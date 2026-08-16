@@ -357,6 +357,7 @@ export function Annotations(annotationsProps: AnnotationsProps) {
                 documentId,
                 onClick: onSelect,
                 appearanceActive,
+                pageRotation: annotationsProps.rotation,
               })
             }
           </AnnotationContainer>

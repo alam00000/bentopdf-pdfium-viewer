@@ -1985,6 +1985,12 @@ export interface PdfSquareAnnoObject extends PdfAnnotationObjectBase {
   rectangleDifferences?: PdfRectDifferences;
 }
 
+export enum MarkupOrientation {
+  Horizontal = 0,
+  VerticalRight = 1,
+  VerticalLeft = 2,
+}
+
 /**
  * Pdf squiggly annotation
  *
@@ -2014,6 +2020,8 @@ export interface PdfSquigglyAnnoObject extends PdfAnnotationObjectBase {
    * quads of squiggly area
    */
   segmentRects: Rect[];
+  strokeWidth?: number;
+  segmentOrientations?: MarkupOrientation[];
 }
 
 /**
@@ -2045,6 +2053,8 @@ export interface PdfUnderlineAnnoObject extends PdfAnnotationObjectBase {
    * quads of underline area
    */
   segmentRects: Rect[];
+  strokeWidth?: number;
+  segmentOrientations?: MarkupOrientation[];
 }
 
 /**
@@ -2078,6 +2088,8 @@ export interface PdfStrikeOutAnnoObject extends PdfAnnotationObjectBase {
    * quads of strikeout area
    */
   segmentRects: Rect[];
+  strokeWidth?: number;
+  segmentOrientations?: MarkupOrientation[];
 }
 
 /**

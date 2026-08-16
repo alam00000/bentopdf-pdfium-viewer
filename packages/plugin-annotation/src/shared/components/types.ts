@@ -148,6 +148,7 @@ export interface AnnotationRendererProps<T extends PdfAnnotationObject = PdfAnno
   onClick: (e: AnnotationInteractionEvent) => void;
   /** When true, AP canvas provides the visual; component should only render hit area */
   appearanceActive: boolean;
+  pageRotation: number;
 }
 
 /**

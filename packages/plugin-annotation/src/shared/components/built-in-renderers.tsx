@@ -175,12 +175,13 @@ export const builtInRenderers: BoxedAnnotationRenderer[] = [
   createRenderer<PdfUnderlineAnnoObject>({
     id: 'underline',
     matches: (a): a is PdfUnderlineAnnoObject => a.type === PdfAnnotationSubtype.UNDERLINE,
-    render: ({ currentObject, scale, onClick, appearanceActive }) => (
+    render: ({ currentObject, scale, onClick, appearanceActive, pageRotation }) => (
       <Underline
         {...currentObject}
         scale={scale}
         onClick={onClick}
         appearanceActive={appearanceActive}
+        pageRotation={pageRotation}
       />
     ),
     zIndex: 0,
@@ -190,12 +191,13 @@ export const builtInRenderers: BoxedAnnotationRenderer[] = [
   createRenderer<PdfStrikeOutAnnoObject>({
     id: 'strikeout',
     matches: (a): a is PdfStrikeOutAnnoObject => a.type === PdfAnnotationSubtype.STRIKEOUT,
-    render: ({ currentObject, scale, onClick, appearanceActive }) => (
+    render: ({ currentObject, scale, onClick, appearanceActive, pageRotation }) => (
       <Strikeout
         {...currentObject}
         scale={scale}
         onClick={onClick}
         appearanceActive={appearanceActive}
+        pageRotation={pageRotation}
       />
     ),
     zIndex: 0,
@@ -205,12 +207,13 @@ export const builtInRenderers: BoxedAnnotationRenderer[] = [
   createRenderer<PdfSquigglyAnnoObject>({
     id: 'squiggly',
     matches: (a): a is PdfSquigglyAnnoObject => a.type === PdfAnnotationSubtype.SQUIGGLY,
-    render: ({ currentObject, scale, onClick, appearanceActive }) => (
+    render: ({ currentObject, scale, onClick, appearanceActive, pageRotation }) => (
       <Squiggly
         {...currentObject}
         scale={scale}
         onClick={onClick}
         appearanceActive={appearanceActive}
+        pageRotation={pageRotation}
       />
     ),
     zIndex: 0,

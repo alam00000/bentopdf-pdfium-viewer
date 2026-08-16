@@ -1,5 +1,7 @@
 import { CSSProperties, MouseEvent } from '@framework';
-import { Rect } from '@embedpdf/models';
+import { MarkupOrientation, Rect } from '@embedpdf/models';
+
+import { strikeRuleStyle, resolveSegmentOrientation } from './orientation';
 
 type StrikeoutProps = {
   /** Stroke/markup color */
@@ -12,6 +14,12 @@ type StrikeoutProps = {
   style?: CSSProperties;
   /** When true, AP image provides the visual; only render hit area */
   appearanceActive?: boolean;
+
+  strokeWidth?: number;
+
+  pageRotation?: number;
+
+  segmentOrientations?: MarkupOrientation[];
 };
 
 export function Strikeout({
@@ -23,13 +31,20 @@ export function Strikeout({
   onClick,
   style,
   appearanceActive = false,
+  strokeWidth,
+  pageRotation = 0,
+  segmentOrientations,
 }: StrikeoutProps) {
   const resolvedColor = strokeColor ?? '#FFFF00';
-  const thickness = 2 * scale;
+  const thickness = (strokeWidth ?? 1.6) * scale;
 
   return (
     <>
-      {segmentRects.map((r, i) => (
+      {segmentRects.map((r, i) => {
+
+        const orientation = resolveSegmentOrientation(segmentOrientations, i, pageRotation);
+        const ruleStyle = strikeRuleStyle(orientation, thickness);
+        return (
         <div
           key={i}
           onPointerDown={onClick}
@@ -46,24 +61,21 @@ export function Strikeout({
             ...style,
           }}
         >
-          {/* Visual -- hidden when AP active, never interactive */}
+          {}
           {!appearanceActive && (
             <div
               style={{
                 position: 'absolute',
-                left: 0,
-                top: '50%',
-                width: '100%',
-                height: thickness,
                 background: resolvedColor,
                 opacity: opacity,
-                transform: 'translateY(-50%)',
                 pointerEvents: 'none',
+                ...ruleStyle,
               }}
             />
           )}
         </div>
-      ))}
+        );
+      })}
     </>
   );
 }

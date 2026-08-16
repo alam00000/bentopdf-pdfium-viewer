@@ -1,4 +1,4 @@
-import { PdfPageGeometry, PdfRun, Position, Rect } from '@embedpdf/models';
+import { MarkupOrientation, PdfPageGeometry, PdfRun, Position, Rect } from '@embedpdf/models';
 import { SelectionRangeX } from './types';
 
 /**
@@ -62,7 +62,7 @@ export function glyphAt(geo: PdfPageGeometry, pt: Position, toleranceFactor = 1.
     }
 
     for (let i = 0; i < run.glyphs.length; i++) {
-      const g = run.glyphs[i];
+      const g = run.glyphs[i]!;
       if (g.flags === 2) continue;
 
       const gx = g.tightX ?? g.x;
@@ -117,6 +117,99 @@ function computeTolerance(geo: PdfPageGeometry, factor: number): number {
   return (totalHeight / count) * factor;
 }
 
+export function orientationFromAdvance(dx: number, dy: number): MarkupOrientation | null {
+  if (dx === 0 && dy === 0) return null;
+  if (Math.abs(dx) >= Math.abs(dy)) return MarkupOrientation.Horizontal;
+  return dy < 0 ? MarkupOrientation.VerticalRight : MarkupOrientation.VerticalLeft;
+}
+
+export function orientationForRect(
+  geo: PdfPageGeometry | undefined,
+  rect: Rect,
+): MarkupOrientation | null {
+  if (!geo) return null;
+
+  const x0 = rect.origin.x;
+  const y0 = rect.origin.y;
+  const x1 = x0 + rect.size.width;
+  const y1 = y0 + rect.size.height;
+
+  const EPS = 0.5;
+
+  let minCX = Infinity;
+  let maxCX = -Infinity;
+  let minCY = Infinity;
+  let maxCY = -Infinity;
+
+  let firstY = 0;
+  let lastY = 0;
+  let count = 0;
+  let sumH = 0;
+
+  for (const run of geo.runs) {
+    for (const g of run.glyphs) {
+      if (g.flags === 2) continue;
+      const cx = g.x + g.width / 2;
+      const cy = g.y + g.height / 2;
+      if (cx < x0 - EPS || cx > x1 + EPS || cy < y0 - EPS || cy > y1 + EPS) continue;
+
+      if (count === 0) firstY = cy;
+      lastY = cy;
+      if (cx < minCX) minCX = cx;
+      if (cx > maxCX) maxCX = cx;
+      if (cy < minCY) minCY = cy;
+      if (cy > maxCY) maxCY = cy;
+      count++;
+      sumH += g.height;
+    }
+  }
+
+  if (count < 2) return null;
+
+  const xRange = maxCX - minCX;
+  const yRange = maxCY - minCY;
+  if (xRange === 0 && yRange === 0) return null;
+
+  const avgH = sumH / count;
+  const VERT_DOMINANCE = 1.5;
+  const minVert = Math.max(2, avgH * 0.5);
+  if (yRange > xRange * VERT_DOMINANCE && yRange > minVert) {
+
+    return lastY - firstY < 0
+      ? MarkupOrientation.VerticalRight
+      : MarkupOrientation.VerticalLeft;
+  }
+  return MarkupOrientation.Horizontal;
+}
+
+export function orientationsForSegments(
+  geo: PdfPageGeometry | undefined,
+  segmentRects: Rect[],
+): MarkupOrientation[] | undefined {
+  if (segmentRects.length === 0) return undefined;
+
+  const horizontalForAll = (): MarkupOrientation[] =>
+    segmentRects.map(() => MarkupOrientation.Horizontal);
+  if (!geo) return horizontalForAll();
+  const raw = segmentRects.map((r) => orientationForRect(geo, r));
+  const known = raw.filter((o): o is MarkupOrientation => o !== null);
+  if (known.length === 0) return horizontalForAll();
+
+  const tieRank = (o: MarkupOrientation): number =>
+    o === MarkupOrientation.Horizontal ? 0 : o === MarkupOrientation.VerticalLeft ? 1 : 2;
+  const counts = new Map<MarkupOrientation, number>();
+  for (const o of known) counts.set(o, (counts.get(o) ?? 0) + 1);
+  let dominant = known[0]!;
+  let best = -1;
+  for (const [o, c] of counts) {
+    if (c > best || (c === best && tieRank(o) < tieRank(dominant))) {
+      best = c;
+      dominant = o;
+    }
+  }
+  return segmentRects.map(() => dominant);
+}
+
 /**
  * Helper: min/max glyph indices on `page` for current sel
  * @param sel - selection range
@@ -134,7 +227,7 @@ export function sliceBounds(
 
   const from = page === sel.start.page ? sel.start.index : 0;
 
-  const lastRun = geo.runs[geo.runs.length - 1];
+  const lastRun = geo.runs[geo.runs.length - 1]!;
   const lastCharOnPage = lastRun.charStart + lastRun.glyphs.length - 1;
 
   const to = page === sel.end.page ? sel.end.index : lastCharOnPage;
@@ -197,7 +290,7 @@ export function rectsWithinSlice(
     };
 
     for (let i = sIdx; i <= eIdx; i++) {
-      const g = run.glyphs[i];
+      const g = run.glyphs[i]!;
       if (g.flags === 2) continue;
 
       if (charCount > 0 && prevRight > -Infinity) {
@@ -399,7 +492,7 @@ function resolveCharIndex(
   charIndex: number,
 ): { runIdx: number; localIdx: number } | null {
   for (let r = 0; r < geo.runs.length; r++) {
-    const run = geo.runs[r];
+    const run = geo.runs[r]!;
     const localIdx = charIndex - run.charStart;
     if (localIdx >= 0 && localIdx < run.glyphs.length) {
       return { runIdx: r, localIdx };
@@ -439,7 +532,7 @@ export function expandToWordBoundary(
   while (from > 0) {
     const prev = resolveCharIndex(geo, from - 1);
     if (!prev) break;
-    if (isGlyphWordBoundary(geo.runs[prev.runIdx].glyphs[prev.localIdx].flags)) break;
+    if (isGlyphWordBoundary(geo.runs[prev.runIdx]!.glyphs[prev.localIdx]!.flags)) break;
     from--;
   }
 
@@ -448,7 +541,7 @@ export function expandToWordBoundary(
   while (to < totalChars - 1) {
     const next = resolveCharIndex(geo, to + 1);
     if (!next) break;
-    if (isGlyphWordBoundary(geo.runs[next.runIdx].glyphs[next.localIdx].flags)) break;
+    if (isGlyphWordBoundary(geo.runs[next.runIdx]!.glyphs[next.localIdx]!.flags)) break;
     to++;
   }
 
@@ -470,7 +563,7 @@ export function expandToLineBoundary(
   const resolved = resolveCharIndex(geo, charIndex);
   if (!resolved) return null;
 
-  const anchorRun = geo.runs[resolved.runIdx];
+  const anchorRun = geo.runs[resolved.runIdx]!;
   const anchorTop = anchorRun.rect.y;
   const anchorBottom = anchorRun.rect.y + anchorRun.rect.height;
 
@@ -479,7 +572,7 @@ export function expandToLineBoundary(
 
   // Expand backward through runs on the same visual row
   for (let r = resolved.runIdx - 1; r >= 0; r--) {
-    const run = geo.runs[r];
+    const run = geo.runs[r]!;
     if (isZeroSizeRun(run)) continue;
     if (!runsOverlapVertically(run.rect.y, run.rect.y + run.rect.height, anchorTop, anchorBottom)) {
       break;
@@ -489,7 +582,7 @@ export function expandToLineBoundary(
 
   // Expand forward through runs on the same visual row
   for (let r = resolved.runIdx + 1; r < geo.runs.length; r++) {
-    const run = geo.runs[r];
+    const run = geo.runs[r]!;
     if (isZeroSizeRun(run)) continue;
     if (!runsOverlapVertically(run.rect.y, run.rect.y + run.rect.height, anchorTop, anchorBottom)) {
       break;
@@ -518,6 +611,6 @@ function runsOverlapVertically(
 
 function getTotalCharCount(geo: PdfPageGeometry): number {
   if (geo.runs.length === 0) return 0;
-  const lastRun = geo.runs[geo.runs.length - 1];
+  const lastRun = geo.runs[geo.runs.length - 1]!;
   return lastRun.charStart + lastRun.glyphs.length;
 }

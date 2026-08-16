@@ -1,5 +1,6 @@
 import { Rect, boundingRect } from '@embedpdf/models';
 import { FormattedSelection, SelectionDocumentState } from './types';
+import { orientationsForSegments } from './utils';
 
 export function selectRectsForPage(state: SelectionDocumentState, page: number) {
   return state.rects[page] ?? [];
@@ -36,7 +37,8 @@ export function getFormattedSelectionForPage(
   if (segmentRects.length === 0) return null;
   const boundingRect = selectBoundingRectForPage(state, page);
   if (!boundingRect) return null;
-  return { pageIndex: page, rect: boundingRect, segmentRects };
+  const segmentOrientations = orientationsForSegments(state.geometry[page], segmentRects);
+  return { pageIndex: page, rect: boundingRect, segmentRects, segmentOrientations };
 }
 
 export function getFormattedSelection(state: SelectionDocumentState) {
@@ -58,6 +60,7 @@ export function getFormattedSelection(state: SelectionDocumentState) {
         pageIndex,
         rect: boundingRect,
         segmentRects,
+        segmentOrientations: orientationsForSegments(state.geometry[pageIndex], segmentRects),
       });
     }
   }

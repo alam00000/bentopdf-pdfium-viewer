@@ -1,5 +1,5 @@
 import { BasePluginConfig, EventHook } from '@embedpdf/core';
-import { PdfPageGeometry, PdfTask, Rect, Size } from '@embedpdf/models';
+import { MarkupOrientation, PdfPageGeometry, PdfTask, Rect, Size } from '@embedpdf/models';
 
 export interface MarqueeSelectionConfig {
   /** Minimum drag distance in pixels before considering it a marquee */
@@ -78,6 +78,8 @@ export interface FormattedSelection {
   pageIndex: number;
   rect: Rect;
   segmentRects: Rect[];
+
+  segmentOrientations?: MarkupOrientation[];
 }
 
 export interface SelectionRectsCallback {

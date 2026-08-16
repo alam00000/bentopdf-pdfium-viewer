@@ -20,6 +20,8 @@ export const textMarkupSelectionHandler: SelectionHandlerFactory = {
           ...tool.defaults,
           rect: selection.rect,
           segmentRects: selection.segmentRects,
+
+          segmentOrientations: selection.segmentOrientations,
           pageIndex: selection.pageIndex,
           created: new Date(),
           id,

@@ -195,12 +195,18 @@ export class SelectionPlugin extends BasePlugin<
 
     this.coreStore.onAction(REFRESH_PAGES, (action) => {
       const { documentId, pageIndexes } = action.payload;
-      const tasks = pageIndexes.map((pageIndex) =>
+
+      const geometry = this.getDocumentState(documentId)?.geometry;
+      const affected = geometry
+        ? pageIndexes.filter((pageIndex) => geometry[pageIndex] !== undefined)
+        : [];
+      if (affected.length === 0) return;
+      const tasks = affected.map((pageIndex) =>
         this.getNewPageGeometryAndCache(documentId, pageIndex),
       );
       Task.all(tasks).wait(() => {
         // Notify affected pages about geometry updates
-        pageIndexes.forEach((pageIndex) => {
+        affected.forEach((pageIndex) => {
           this.notifyPage(documentId, pageIndex);
         });
       }, ignore);
@@ -713,7 +719,12 @@ export class SelectionPlugin extends BasePlugin<
     if (!coreDoc || !coreDoc.document)
       return PdfTaskHelper.reject({ code: PdfErrorCode.NotFound, message: 'Doc Not Found' });
 
-    const page = coreDoc.document.pages.find((p) => p.index === pageIdx)!;
+    const page =
+      coreDoc.document.pages[pageIdx]?.index === pageIdx
+        ? coreDoc.document.pages[pageIdx]
+        : coreDoc.document.pages.find((p) => p.index === pageIdx);
+    if (!page)
+      return PdfTaskHelper.reject({ code: PdfErrorCode.NotFound, message: 'Page Not Found' });
     const task = this.engine.getPageGeometry(coreDoc.document, page);
     task.wait((geo) => {
       this.dispatch(cachePageGeometry(documentId, pageIdx, geo));

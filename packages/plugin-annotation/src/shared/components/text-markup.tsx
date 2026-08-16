@@ -1,6 +1,15 @@
-import { blendModeToCss, PdfAnnotationSubtype, PdfBlendMode, Rect } from '@embedpdf/models';
+import {
+  blendModeToCss,
+  MarkupOrientation,
+  PdfAnnotationSubtype,
+  PdfBlendMode,
+  Rect,
+} from '@embedpdf/models';
 import { AnnotationTool } from '@embedpdf/plugin-annotation';
 import { useSelectionCapability } from '@embedpdf/plugin-selection/@framework';
+import { orientationsForSegments } from '@embedpdf/plugin-selection';
+
+import { useDocumentState } from '@embedpdf/core/@framework';
 
 import { useEffect, useState } from '@framework';
 import { useAnnotationCapability } from '../hooks';
@@ -19,15 +28,26 @@ export function TextMarkup({ documentId, pageIndex, scale }: TextMarkupProps) {
   const { provides: selectionProvides } = useSelectionCapability();
   const { provides: annotationProvides } = useAnnotationCapability();
   const [rects, setRects] = useState<Array<Rect>>([]);
+  const [orientations, setOrientations] = useState<MarkupOrientation[] | undefined>(undefined);
   const [boundingRect, setBoundingRect] = useState<Rect | null>(null);
   const [activeTool, setActiveTool] = useState<AnnotationTool | null>(null);
+
+  const documentState = useDocumentState(documentId);
+  const effectiveRotation =
+    (((documentState?.document?.pages?.[pageIndex]?.rotation ?? 0) +
+      (documentState?.rotation ?? 0)) %
+      4) as number;
 
   useEffect(() => {
     if (!selectionProvides) return;
 
     return selectionProvides.forDocument(documentId).onSelectionChange(() => {
-      setRects(selectionProvides.forDocument(documentId).getHighlightRectsForPage(pageIndex));
-      setBoundingRect(selectionProvides.forDocument(documentId).getBoundingRectForPage(pageIndex));
+      const scope = selectionProvides.forDocument(documentId);
+      const newRects = scope.getHighlightRectsForPage(pageIndex);
+      setRects(newRects);
+      setBoundingRect(scope.getBoundingRectForPage(pageIndex));
+
+      setOrientations(orientationsForSegments(scope.getState().geometry[pageIndex], newRects));
     });
   }, [selectionProvides, documentId, pageIndex]);
 
@@ -58,9 +78,12 @@ export function TextMarkup({ documentId, pageIndex, scale }: TextMarkupProps) {
         >
           <Underline
             strokeColor={activeTool.defaults?.strokeColor}
+            strokeWidth={activeTool.defaults?.strokeWidth}
             opacity={activeTool.defaults?.opacity}
             segmentRects={rects}
+            segmentOrientations={orientations}
             scale={scale}
+            pageRotation={effectiveRotation}
           />
         </div>
       );
@@ -94,9 +117,12 @@ export function TextMarkup({ documentId, pageIndex, scale }: TextMarkupProps) {
         >
           <Strikeout
             strokeColor={activeTool.defaults?.strokeColor}
+            strokeWidth={activeTool.defaults?.strokeWidth}
             opacity={activeTool.defaults?.opacity}
             segmentRects={rects}
+            segmentOrientations={orientations}
             scale={scale}
+            pageRotation={effectiveRotation}
           />
         </div>
       );
@@ -112,9 +138,12 @@ export function TextMarkup({ documentId, pageIndex, scale }: TextMarkupProps) {
         >
           <Squiggly
             strokeColor={activeTool.defaults?.strokeColor}
+            strokeWidth={activeTool.defaults?.strokeWidth}
             opacity={activeTool.defaults?.opacity}
             segmentRects={rects}
+            segmentOrientations={orientations}
             scale={scale}
+            pageRotation={effectiveRotation}
           />
         </div>
       );

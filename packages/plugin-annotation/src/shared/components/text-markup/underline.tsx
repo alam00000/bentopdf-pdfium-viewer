@@ -1,5 +1,7 @@
 import { CSSProperties, MouseEvent } from '@framework';
-import { Rect } from '@embedpdf/models';
+import { MarkupOrientation, Rect } from '@embedpdf/models';
+
+import { baselineEdgeStyle, resolveSegmentOrientation } from './orientation';
 
 type UnderlineProps = {
   /** Stroke/markup color */
@@ -12,6 +14,12 @@ type UnderlineProps = {
   style?: CSSProperties;
   /** When true, AP image provides the visual; only render hit area */
   appearanceActive?: boolean;
+
+  strokeWidth?: number;
+
+  pageRotation?: number;
+
+  segmentOrientations?: MarkupOrientation[];
 };
 
 export function Underline({
@@ -23,13 +31,20 @@ export function Underline({
   onClick,
   style,
   appearanceActive = false,
+  strokeWidth,
+  pageRotation = 0,
+  segmentOrientations,
 }: UnderlineProps) {
   const resolvedColor = strokeColor ?? '#FFFF00';
-  const thickness = 2 * scale; // 2 CSS px at 100 % zoom
+  const thickness = (strokeWidth ?? 1.6) * scale;
 
   return (
     <>
-      {segmentRects.map((r, i) => (
+      {segmentRects.map((r, i) => {
+
+        const orientation = resolveSegmentOrientation(segmentOrientations, i, pageRotation);
+        const ruleStyle = baselineEdgeStyle(orientation, thickness);
+        return (
         <div
           key={i}
           onPointerDown={onClick}
@@ -46,23 +61,21 @@ export function Underline({
             ...style,
           }}
         >
-          {/* Visual -- hidden when AP active, never interactive */}
+          {}
           {!appearanceActive && (
             <div
               style={{
                 position: 'absolute',
-                left: 0,
-                bottom: 0,
-                width: '100%',
-                height: thickness,
                 background: resolvedColor,
                 opacity: opacity,
                 pointerEvents: 'none',
+                ...ruleStyle,
               }}
             />
           )}
         </div>
-      ))}
+        );
+      })}
     </>
   );
 }
