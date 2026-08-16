@@ -3,14 +3,15 @@
  * — it only speaks the @embedpdf/engine-core `Engine` contract, so swapping the
  * implementation here changes nothing above it.
  *
- * Pick with ?engine=local|cloud  (default: local wasm)
+ * Pick with ?engine=local  (default: local wasm)
  *   local — @embedpdf/engine: PDFium wasm in a Worker thread (real rendering)
- *   cloud — @cloudpdf/engine: the same contract over HTTP (needs a running server)
+ *
+ * The upstream `cloud` mode depended on CloudPDF's server, which is not part of
+ * this fork; only the local engine is available here.
  */
 import type { Engine, OpenInput } from '@embedpdf/core';
 import type { InitialDocument } from '@embedpdf/react';
 import { localEngine } from '@embedpdf/engine';
-import { cloudEngine } from '@cloudpdf/engine';
 
 export type EngineMode = 'local' | 'cloud';
 
@@ -39,11 +40,9 @@ const DROID_FALLBACK_FONT = {
  */
 export function selectedEngine(): Engine {
   if (engineMode === 'cloud') {
-    // Same Engine contract, served over HTTP. Requires cloudpdf/server + a token.
-    return cloudEngine({
-      baseUrl: import.meta.env.VITE_CLOUDPDF_URL ?? 'http://127.0.0.1:3000',
-      token: import.meta.env.VITE_CLOUDPDF_TOKEN,
-    });
+    throw new Error(
+      'The cloud engine is not available in this fork — CloudPDF server components were removed. Use ?engine=local.'
+    );
   }
   // Local wasm engine in the default worker, CJK fallback font registered at boot.
   return localEngine({ fallbackFonts: [DROID_FALLBACK_FONT] });

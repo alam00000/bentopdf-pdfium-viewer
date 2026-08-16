@@ -1,11 +1,7 @@
 packages:
   - 'packages/**'
   - 'examples/**'
-  # Recursive, like packages/: the cloudpdf tree groups a product line into a
-  # directory once it has siblings (cloudpdf/viewer/{main,react,vue,...}).
-  - 'cloudpdf/**'
   - 'tooling/*'
-  - 'website'
   # Shared docs machinery + (later) the shared docs corpus — see
   # DOCS-PLATFORM-ARCHITECTURE.md.
   - 'docs/*'
