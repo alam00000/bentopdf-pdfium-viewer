@@ -52,20 +52,22 @@ const HitLine = ({
 
 type SearchSidebarProps = {
   documentId: string;
+  isOpen?: boolean;
   onClose?: () => void;
 };
 
-export function SearchSidebar({ documentId, onClose }: SearchSidebarProps) {
+export function SearchSidebar({ documentId, isOpen, onClose }: SearchSidebarProps) {
   const { state, provides } = useSearch(documentId);
   const { provides: scroll } = useScrollCapability();
   const { translate } = useTranslations(documentId);
   const inputRef = useRef<HTMLInputElement>(null);
   const [inputValue, setInputValue] = useState('');
 
-  // Focus input on mount
   useEffect(() => {
-    //inputRef.current?.focus();
-  }, []);
+    if (isOpen === false) return;
+    const id = requestAnimationFrame(() => inputRef.current?.focus({ preventScroll: true }));
+    return () => cancelAnimationFrame(id);
+  }, [isOpen]);
 
   // Sync inputValue with persisted state.query when state loads
   useEffect(() => {

@@ -100,7 +100,7 @@ export function SchemaSidebar({ schema, documentId, isOpen, onClose }: SidebarRe
           />
         )}
         {content.type === 'component' && (
-          <>{renderCustomComponent(content.componentId, documentId, {})}</>
+          <>{renderCustomComponent(content.componentId, documentId, { isOpen })}</>
         )}
       </div>
     </div>
@@ -404,7 +404,7 @@ function BottomDrawer({
             />
           )}
           {content.type === 'component' && (
-            <>{renderCustomComponent(content.componentId, documentId, {})}</>
+            <>{renderCustomComponent(content.componentId, documentId, { isOpen })}</>
           )}
         </div>
       </div>
