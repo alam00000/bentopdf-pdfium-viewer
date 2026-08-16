@@ -1,0 +1,6 @@
+BentoPDF PDF Viewer
+Copyright 2026 BentoPDF
+
+Includes code from EmbedPDF (https://github.com/embedpdf/embed-pdf-viewer)
+Copyright 2025 CloudPDF, licensed under the MIT License (LICENSE-MIT).
+Modified by BentoPDF; changes are recorded in the Git history.

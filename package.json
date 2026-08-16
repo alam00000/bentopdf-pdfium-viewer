@@ -1,9 +1,9 @@
 {
-  "name": "embedpdf",
+  "name": "bentopdf-pdfium-viewer",
   "private": true,
   "version": "0.0.0",
   "packageManager": "pnpm@10.4.0",
-  "license": "MIT",
+  "license": "AGPL-3.0-only",
   "scripts": {
     "dev": "turbo run dev --parallel",
     "dev:vanilla": "pnpm --filter @embedpdf/example-vanilla run dev",
