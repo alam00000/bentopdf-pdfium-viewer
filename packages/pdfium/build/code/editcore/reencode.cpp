@@ -11,7 +11,8 @@ namespace fxcrt {
 template <typename T>
 class StringPoolTemplate;
 
-class ByteStringPool;
+class [[clang::trivial_abi]] ByteString;
+using ByteStringPool = StringPoolTemplate<ByteString>;
 
 class [[clang::trivial_abi]] ByteString {
  public:
