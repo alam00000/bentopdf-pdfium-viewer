@@ -175,7 +175,7 @@ index 4b3984ac5..ee57845df 100644
      // ---- Regular FreeText appearance (unchanged) ----
  
 diff --git a/fpdfsdk/fpdf_annot.cpp b/fpdfsdk/fpdf_annot.cpp
-index dde86d33b..bd694d890 100644
+index dde86d33b..8a04f597b 100644
 --- a/fpdfsdk/fpdf_annot.cpp
 +++ b/fpdfsdk/fpdf_annot.cpp
 @@ -3332,8 +3332,15 @@ EPDFAnnot_GenerateAppearance(FPDF_ANNOTATION annot) {
@@ -214,6 +214,84 @@ index dde86d33b..bd694d890 100644
  }
  
  FPDF_EXPORT FPDF_BLENDMODE FPDF_CALLCONV
+@@ -5473,3 +5487,77 @@ FPDF_EXPORT FPDF_BOOL FPDF_CALLCONV EPDFPage_MoveAnnots(FPDF_PAGE page,
+   }
+   return true;
+ }
++
++FPDF_EXPORT FPDF_BOOL FPDF_CALLCONV
++EPDFAnnot_SetExtendedRotation(FPDF_ANNOTATION annot, float rotation) {
++  if (!CPDFAnnotContextFromFPDFAnnotation(annot)) {
++    return false;
++  }
++  if (rotation == 0.0f) {
++    EPDFAnnot_ClearEmbedMetadataKey(annot, "Rotation");
++    return true;
++  }
++  return EPDFAnnot_SetEmbedMetadataNumber(annot, "Rotation", rotation);
++}
++
++FPDF_EXPORT FPDF_BOOL FPDF_CALLCONV
++EPDFAnnot_GetExtendedRotation(FPDF_ANNOTATION annot, float* rotation) {
++  if (!rotation || !CPDFAnnotContextFromFPDFAnnotation(annot)) {
++    return false;
++  }
++  *rotation = 0.0f;
++  EPDFAnnot_GetEmbedMetadataNumber(annot, "Rotation", rotation);
++  return true;
++}
++
++FPDF_EXPORT FPDF_BOOL FPDF_CALLCONV
++EPDFAnnot_SetUnrotatedRect(FPDF_ANNOTATION annot, const FS_RECTF* rect) {
++  if (!CPDFAnnotContextFromFPDFAnnotation(annot)) {
++    return false;
++  }
++  if (!rect || CFXFloatRectFromFSRectF(*rect).IsEmpty()) {
++    EPDFAnnot_ClearEmbedMetadataKey(annot, "UnrotatedRect");
++    return true;
++  }
++  return EPDFAnnot_SetEmbedMetadataRect(annot, "UnrotatedRect", rect);
++}
++
++FPDF_EXPORT FPDF_BOOL FPDF_CALLCONV
++EPDFAnnot_GetUnrotatedRect(FPDF_ANNOTATION annot, FS_RECTF* rect) {
++  if (!rect || !CPDFAnnotContextFromFPDFAnnotation(annot)) {
++    return false;
++  }
++  *rect = FSRectFFromCFXFloatRect(CFX_FloatRect());
++  EPDFAnnot_GetEmbedMetadataRect(annot, "UnrotatedRect", rect);
++  return true;
++}
++
++FPDF_EXPORT FPDF_BOOL FPDF_CALLCONV
++EPDFAnnot_SetVerticalAlignment(FPDF_ANNOTATION annot,
++                               FPDF_VERTICAL_ALIGNMENT alignment) {
++  if (FPDFAnnot_GetSubtype(annot) != FPDF_ANNOT_FREETEXT) {
++    return false;
++  }
++  if (alignment < FPDF_VERTICAL_ALIGNMENT_TOP ||
++      alignment > FPDF_VERTICAL_ALIGNMENT_BOTTOM) {
++    return false;
++  }
++  return EPDFAnnot_SetEmbedMetadataNumber(annot, "VerticalAlignment",
++                                          static_cast<float>(alignment));
++}
++
++FPDF_EXPORT FPDF_VERTICAL_ALIGNMENT FPDF_CALLCONV
++EPDFAnnot_GetVerticalAlignment(FPDF_ANNOTATION annot) {
++  if (FPDFAnnot_GetSubtype(annot) != FPDF_ANNOT_FREETEXT) {
++    return FPDF_VERTICAL_ALIGNMENT_TOP;
++  }
++  float v = 0.0f;
++  if (!EPDFAnnot_GetEmbedMetadataNumber(annot, "VerticalAlignment", &v)) {
++    return FPDF_VERTICAL_ALIGNMENT_TOP;
++  }
++  const int iv = static_cast<int>(v);
++  if (iv >= FPDF_VERTICAL_ALIGNMENT_TOP && iv <= FPDF_VERTICAL_ALIGNMENT_BOTTOM) {
++    return static_cast<FPDF_VERTICAL_ALIGNMENT>(iv);
++  }
++  return FPDF_VERTICAL_ALIGNMENT_TOP;
++}
 diff --git a/fpdfsdk/fpdf_edittext.cpp b/fpdfsdk/fpdf_edittext.cpp
 index 8831c257a..a57a25c12 100644
 --- a/fpdfsdk/fpdf_edittext.cpp
@@ -247,6 +325,36 @@ index 8831c257a..a57a25c12 100644
  FPDF_EXPORT FPDF_FONT FPDF_CALLCONV FPDFText_LoadFont(FPDF_DOCUMENT document,
                                                        const uint8_t* data,
                                                        uint32_t size,
+diff --git a/public/fpdf_annot.h b/public/fpdf_annot.h
+index 76b0f73c8..f4b12bcf5 100644
+--- a/public/fpdf_annot.h
++++ b/public/fpdf_annot.h
+@@ -844,6 +844,25 @@ EPDFAnnot_GetEmbedMetadataJSON(FPDF_ANNOTATION annot,
+                                FPDF_WCHAR* buffer,
+                                unsigned long buflen);
+ 
++FPDF_EXPORT FPDF_BOOL FPDF_CALLCONV
++EPDFAnnot_SetExtendedRotation(FPDF_ANNOTATION annot, float rotation);
++
++FPDF_EXPORT FPDF_BOOL FPDF_CALLCONV
++EPDFAnnot_GetExtendedRotation(FPDF_ANNOTATION annot, float* rotation);
++
++FPDF_EXPORT FPDF_BOOL FPDF_CALLCONV
++EPDFAnnot_SetUnrotatedRect(FPDF_ANNOTATION annot, const FS_RECTF* rect);
++
++FPDF_EXPORT FPDF_BOOL FPDF_CALLCONV
++EPDFAnnot_GetUnrotatedRect(FPDF_ANNOTATION annot, FS_RECTF* rect);
++
++FPDF_EXPORT FPDF_BOOL FPDF_CALLCONV
++EPDFAnnot_SetVerticalAlignment(FPDF_ANNOTATION annot,
++                               FPDF_VERTICAL_ALIGNMENT alignment);
++
++FPDF_EXPORT FPDF_VERTICAL_ALIGNMENT FPDF_CALLCONV
++EPDFAnnot_GetVerticalAlignment(FPDF_ANNOTATION annot);
++
+ // Experimental EmbedPDF Extension API.
+ // Removes /EMBD_Metadata from every annotation in |document|. This does not
+ // remove standard annotation fields or appearance streams.
 diff --git a/public/fpdf_edit.h b/public/fpdf_edit.h
 index 98df505d4..ab2b3a655 100644
 --- a/public/fpdf_edit.h
