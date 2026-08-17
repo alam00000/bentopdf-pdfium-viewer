@@ -3,7 +3,7 @@
 
 export interface WasmExports {
   malloc: (size: number) => number;
-  free: (ptr: number) => void;
+  free:   (ptr:  number) => void;
 }
 
 /**
@@ -22,18 +22,30 @@ export interface PdfiumRuntimeMethods {
   setValue: typeof setValue;
   stringToUTF16: typeof stringToUTF16;
   stringToUTF8: typeof stringToUTF8;
+  lengthBytesUTF8: typeof lengthBytesUTF8;
+  HEAPU8: typeof HEAPU8;
+  HEAPU32: typeof HEAPU32;
+  HEAP32: typeof HEAP32;
+  HEAPF32: typeof HEAPF32;
+  HEAPF64: typeof HEAPF64;
 }
 
 export const exportedRuntimeMethods = [
-  'wasmExports',
-  'UTF16ToString',
-  'UTF8ToString',
-  'addFunction',
-  'ccall',
-  'cwrap',
-  'getValue',
-  'removeFunction',
-  'setValue',
-  'stringToUTF16',
-  'stringToUTF8',
+  "wasmExports",
+  "UTF16ToString",
+  "UTF8ToString",
+  "addFunction",
+  "ccall",
+  "cwrap",
+  "getValue",
+  "removeFunction",
+  "setValue",
+  "stringToUTF16",
+  "stringToUTF8",
+  "lengthBytesUTF8",
+  "HEAPU8",
+  "HEAPU32",
+  "HEAP32",
+  "HEAPF32",
+  "HEAPF64"
 ] as const;
