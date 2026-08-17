@@ -48,6 +48,11 @@ cp -f "$PDFIUM/build/patch/build/config/BUILDCONFIG.gn" \
 cp -f "$PDFIUM/build/patch/build/toolchain/wasm/BUILD.gn" \
       "$SRC/build/toolchain/wasm/BUILD.gn"
 
+git config --global --add safe.directory '*' >/dev/null 2>&1 || true
+if ! git -C "$SRC" apply --reverse --check "$PDFIUM/build/patch/editcore-pdfium.patch" >/dev/null 2>&1; then
+  git -C "$SRC" apply "$PDFIUM/build/patch/editcore-pdfium.patch"
+fi
+
 
 #if command -v mountpoint >/dev/null 2>&1 && mountpoint -q "$OUT"; then
 #  echo "⚠️ $OUT is a mount — clearing contents only"
@@ -77,8 +82,9 @@ gen_exports() {
     sort | sed 's|^|#include "|;s|$|"|' ) > "$WS/all.h"
 
   echo '#include "../build/code/cpp/ext_api.h"' >> "$WS/all.h"
+  echo '#include "editcore.h"' >> "$WS/all.h"
 
-  clang -std=c11 -I"$SRC" -I"$ROOT/build/code/cpp" \
+  clang -std=c11 -I"$SRC" -I"$ROOT/build/code/cpp" -I"$SRC/public" -I"$PDFIUM/build/code/editcore" \
         -fsyntax-only -Xclang -ast-dump=json "$WS/all.h" > "$WS/ast.json"
 
   node "$PDFIUM/build/generate-functions.mjs"       "$WS/ast.json" "$WS"

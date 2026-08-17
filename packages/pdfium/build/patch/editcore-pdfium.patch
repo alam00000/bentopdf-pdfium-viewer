@@ -1,0 +1,119 @@
+diff --git a/core/fpdfapi/page/cpdf_textobject.cpp b/core/fpdfapi/page/cpdf_textobject.cpp
+index 0114f8b67..e02bfb57e 100644
+--- a/core/fpdfapi/page/cpdf_textobject.cpp
++++ b/core/fpdfapi/page/cpdf_textobject.cpp
+@@ -236,6 +236,52 @@ void CPDF_TextObject::SetSegments(pdfium::span<const ByteString> strings,
+   }
+ }
+ 
++bool CPDF_TextObject::SetAbsolutePositions(
++    pdfium::span<const float> absolute_positions) {
++  std::vector<uint32_t> real_codes;
++  real_codes.reserve(char_codes_.size());
++  for (uint32_t code : char_codes_) {
++    if (code != CPDF_Font::kInvalidCharCode) {
++      real_codes.push_back(code);
++    }
++  }
++  if (real_codes.size() <= 1) {
++    return false;
++  }
++  if (absolute_positions.size() != real_codes.size() - 1) {
++    return false;
++  }
++
++  const float fontsize = GetFontSize();
++  if (fontsize == 0.0f) {
++    return false;
++  }
++
++  RetainPtr<CPDF_Font> font = GetFont();
++  const CPDF_CIDFont* cid_font = font->AsCIDFont();
++  const float char_space = text_state().GetCharSpace();
++  const float word_space = text_state().GetWordSpace();
++
++  std::vector<ByteString> strings(real_codes.size());
++  std::vector<float> kernings(real_codes.size() - 1);
++  float current_position = 0;
++  for (size_t i = 0; i + 1 < real_codes.size(); ++i) {
++    const uint32_t charcode = real_codes[i];
++    font->AppendChar(&strings[i], charcode);
++    current_position += GetCharWidth(charcode);
++    if (charcode == ' ' && (!cid_font || cid_font->GetCharSize(' ') == 1)) {
++      current_position += word_space;
++    }
++    current_position += char_space;
++    kernings[i] = (current_position - absolute_positions[i]) * 1000 / fontsize;
++    current_position = absolute_positions[i];
++  }
++  font->AppendChar(&strings.back(), real_codes.back());
++  SetSegments(strings, kernings);
++  CalcPositionDataInternal(font);
++  return true;
++}
++
+ void CPDF_TextObject::SetText(const ByteString& str) {
+   SetSegments(pdfium::span_from_ref(str), pdfium::span<float>());
+   CalcPositionDataInternal(GetFont());
+diff --git a/core/fpdfapi/page/cpdf_textobject.h b/core/fpdfapi/page/cpdf_textobject.h
+index fe26c52a3..df92c7f0d 100644
+--- a/core/fpdfapi/page/cpdf_textobject.h
++++ b/core/fpdfapi/page/cpdf_textobject.h
+@@ -76,6 +76,8 @@ class CPDF_TextObject final : public CPDF_PageObject {
+   void SetSegments(pdfium::span<const ByteString> strings,
+                    pdfium::span<const float> kernings);
+ 
++  bool SetAbsolutePositions(pdfium::span<const float> absolute_positions);
++
+   bool GetSeparatorAdjustment(size_t index, float* out_thousandths) const;
+ 
+   CFX_PointF CalcPositionData(float horz_scale);
+diff --git a/fpdfsdk/fpdf_edittext.cpp b/fpdfsdk/fpdf_edittext.cpp
+index 78e6dbc91..a063db45d 100644
+--- a/fpdfsdk/fpdf_edittext.cpp
++++ b/fpdfsdk/fpdf_edittext.cpp
+@@ -668,6 +668,28 @@ FPDFText_SetCharcodes(FPDF_PAGEOBJECT text_object,
+   return true;
+ }
+ 
++FPDF_EXPORT FPDF_BOOL FPDF_CALLCONV
++FPDFText_SetPositions(FPDF_PAGEOBJECT text_object,
++                      const float* positions,
++                      size_t count) {
++  CPDF_TextObject* pTextObj = CPDFTextObjectFromFPDFPageObject(text_object);
++  if (!pTextObj) {
++    return false;
++  }
++
++  if (!positions && count) {
++    return false;
++  }
++
++  auto positions_span = UNSAFE_BUFFERS(pdfium::span(positions, count));
++  if (!pTextObj->SetAbsolutePositions(positions_span)) {
++    return false;
++  }
++
++  pTextObj->SetDirty(true);
++  return true;
++}
++
+ FPDF_EXPORT FPDF_FONT FPDF_CALLCONV FPDFText_LoadFont(FPDF_DOCUMENT document,
+                                                       const uint8_t* data,
+                                                       uint32_t size,
+diff --git a/public/fpdf_edit.h b/public/fpdf_edit.h
+index 7399c2af2..8518434f5 100644
+--- a/public/fpdf_edit.h
++++ b/public/fpdf_edit.h
+@@ -1326,6 +1326,11 @@ FPDFText_SetCharcodes(FPDF_PAGEOBJECT text_object,
+                       const uint32_t* charcodes,
+                       size_t count);
+ 
++FPDF_EXPORT FPDF_BOOL FPDF_CALLCONV
++FPDFText_SetPositions(FPDF_PAGEOBJECT text_object,
++                      const float* positions,
++                      size_t count);
++
+ // Returns a font object loaded from a stream of data. The font is loaded
+ // into the document. Various font data structures, such as the ToUnicode data,
+ // are auto-generated based on the inputs.

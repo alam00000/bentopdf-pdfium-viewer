@@ -1,4 +1,4 @@
-em++ $(ls ./code/cpp/*.cpp) \
+em++ $(ls ./code/cpp/*.cpp) $(ls ./code/editcore/*.cpp) \
   /workspace/packages/pdfium/pdfium-src/out/wasm/obj/libpdfium.a \
   -v \
   -sEXPORT_ES6=1 \
@@ -15,7 +15,9 @@ em++ $(ls ./code/cpp/*.cpp) \
   -lpdfium \
   -L/workspace/packages/pdfium/pdfium-src/out/wasm/obj \
   -I/workspace/packages/pdfium/pdfium-src/public \
-  -std=c++11 \
+  -I./code/editcore \
+  -I./code/harfbuzz/src \
+  -std=c++17 \
   -Wall \
   --no-entry \
   -o \

@@ -34,7 +34,13 @@ const methods = [
   'removeFunction',
   'setValue',
   'stringToUTF16',
-  'stringToUTF8'
+  'stringToUTF8',
+  'lengthBytesUTF8',
+  'HEAPU8',
+  'HEAPU32',
+  'HEAP32',
+  'HEAPF32',
+  'HEAPF64'
 ];
 
 /**

@@ -33,7 +33,7 @@ function collectFunctions(node, out = []) {
   if (
     node.kind === 'FunctionDecl' &&
     node.name &&
-    /^(?:FPDF|EPDF|FORM|PDFiumExt_)/.test(node.name)
+    /^(?:FPDF|EPDF|FORM|PDFiumExt_|ec_)/.test(node.name)
   ) {
     const qual = node.type?.qualType || '';
     const m    = qual.match(/^(.*?)\s*\((.*?)\)$/);        // ret  ( params )

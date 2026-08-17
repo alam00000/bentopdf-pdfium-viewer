@@ -1,0 +1,55 @@
+name: Build PDFium WASM
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - 'packages/pdfium/build/**'
+      - 'packages/pdfium/scripts/**'
+      - 'packages/pdfium/Dockerfile'
+      - 'packages/pdfium/docker-compose.yml'
+      - '.github/workflows/build-pdfium.yml'
+      - '.gitmodules'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Init pdfium submodule
+        run: |
+          git submodule update --init --depth 1 packages/pdfium/pdfium-src || git submodule update --init packages/pdfium/pdfium-src
+
+      - name: Apply EditCore pdfium patch
+        working-directory: packages/pdfium
+        run: |
+          if ! git -C pdfium-src apply --reverse --check "$PWD/build/patch/editcore-pdfium.patch" 2>/dev/null; then
+            git -C pdfium-src apply "$PWD/build/patch/editcore-pdfium.patch"
+          fi
+
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/local/.ghcup /opt/hostedtoolcache/CodeQL
+          df -h /
+
+      - name: Build pdfium.wasm
+        working-directory: packages/pdfium
+        run: |
+          docker compose run --rm pdfium-build
+
+      - name: Verify EditCore exports
+        run: |
+          test -s packages/pdfium/src/vendor/pdfium.wasm
+          grep -c ec_ packages/pdfium/src/vendor/functions.ts
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pdfium-vendor
+          path: packages/pdfium/src/vendor/
+          if-no-files-found: error
+          retention-days: 14
+
