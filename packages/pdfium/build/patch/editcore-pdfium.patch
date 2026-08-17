@@ -68,6 +68,19 @@ index fe26c52a3..df92c7f0d 100644
    bool GetSeparatorAdjustment(size_t index, float* out_thousandths) const;
  
    CFX_PointF CalcPositionData(float horz_scale);
+diff --git a/fpdfsdk/BUILD.gn b/fpdfsdk/BUILD.gn
+index 11abfbde0..d923b0b8e 100644
+--- a/fpdfsdk/BUILD.gn
++++ b/fpdfsdk/BUILD.gn
+@@ -71,7 +71,7 @@ source_set("fpdfsdk") {
+   ]
+   deps = [
+     "//third_party/libwebp:webp_enc",
+-    "//third_party/libpng",
++    "//third_party:png",
+     "//third_party/libjpeg_turbo:libjpeg",
+     "../:pdfium_public_headers",
+     "../constants",
 diff --git a/fpdfsdk/fpdf_edittext.cpp b/fpdfsdk/fpdf_edittext.cpp
 index 78e6dbc91..a063db45d 100644
 --- a/fpdfsdk/fpdf_edittext.cpp
