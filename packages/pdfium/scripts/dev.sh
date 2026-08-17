@@ -67,7 +67,7 @@ fi
 ###############################################################################
 (
   cd "$SRC" && \
-  gn gen out/wasm \
+  ./buildtools/linux64/gn gen out/wasm \
     --args='is_debug=false treat_warnings_as_errors=false pdf_use_skia=false pdf_enable_xfa=false pdf_enable_v8=false is_component_build=false clang_use_chrome_plugins=false pdf_is_standalone=true use_debug_fission=false use_custom_libcxx=false use_sysroot=false pdf_is_complete_lib=true pdf_use_partition_alloc=false is_clang=false symbol_level=0 target_os="wasm" target_cpu="wasm"'
 )
 
@@ -107,7 +107,7 @@ WATCHER_SCRIPT=$(typeset -f gen_exports)$'\n'"\
 rm -rf \"$PDFIUM/build/wasm\" && mkdir -p \"$PDFIUM/build/wasm\"; \
 \
 echo \"🛠 \$(date +%H:%M:%S) Rebuilding…\";\
-ninja -C \"$OUT\" pdfium -v;\
+\"$SRC/third_party/ninja/ninja\" -C \"$OUT\" pdfium -v;\
 gen_exports;\
 cd $PDFIUM/build && bash ./compile.esm.sh && bash ./compile.sh;\
 # ⬇️  copy freshly-built artefacts into src/vendor (overwrite if they exist)
