@@ -68,24 +68,157 @@ index fe26c52a3..df92c7f0d 100644
    bool GetSeparatorAdjustment(size_t index, float* out_thousandths) const;
  
    CFX_PointF CalcPositionData(float horz_scale);
-diff --git a/fpdfsdk/BUILD.gn b/fpdfsdk/BUILD.gn
-index 11abfbde0..d923b0b8e 100644
---- a/fpdfsdk/BUILD.gn
-+++ b/fpdfsdk/BUILD.gn
-@@ -71,7 +71,7 @@ source_set("fpdfsdk") {
-   ]
-   deps = [
-     "//third_party/libwebp:webp_enc",
--    "//third_party/libpng",
-+    "//third_party:png",
-     "//third_party/libjpeg_turbo:libjpeg",
-     "../:pdfium_public_headers",
-     "../constants",
+diff --git a/core/fpdfdoc/cpdf_generateap.cpp b/core/fpdfdoc/cpdf_generateap.cpp
+index 4b3984ac5..ee57845df 100644
+--- a/core/fpdfdoc/cpdf_generateap.cpp
++++ b/core/fpdfdoc/cpdf_generateap.cpp
+@@ -660,6 +660,65 @@ ShapeRotationInfo GetShapeRotationInfo(const CPDF_Dictionary* annot_dict) {
+   return info;
+ }
+ 
++struct BentoPageRotFrame {
++  bool active = false;
++  int quarter = 0;
++  CFX_FloatRect base;
++  CFX_FloatRect local_bbox;
++  CFX_Matrix matrix;
++
++  CFX_PointF ToLocal(const CFX_PointF& p) const {
++    switch (quarter) {
++      case 1:
++        return CFX_PointF(p.y - base.bottom, base.right - p.x);
++      case 2:
++        return CFX_PointF(base.right - p.x, base.top - p.y);
++      case 3:
++        return CFX_PointF(base.top - p.y, p.x - base.left);
++      default:
++        return p;
++    }
++  }
++
++  CFX_FloatRect RectToLocal(const CFX_FloatRect& r) const {
++    const CFX_PointF p0 = ToLocal(CFX_PointF(r.left, r.bottom));
++    const CFX_PointF p1 = ToLocal(CFX_PointF(r.right, r.top));
++    CFX_FloatRect out(p0.x, p0.y, p1.x, p1.y);
++    out.Normalize();
++    return out;
++  }
++};
++
++BentoPageRotFrame BentoGetPageRotFrame(const CPDF_Dictionary* annot_dict,
++                                       const CFX_FloatRect& base_rect) {
++  BentoPageRotFrame f;
++  int q = annot_dict->GetIntegerFor("EPDFPageRot");
++  q = ((q % 4) + 4) % 4;
++  if (q == 0) {
++    return f;
++  }
++  f.active = true;
++  f.quarter = q;
++  f.base = base_rect;
++  f.base.Normalize();
++  const float w = f.base.Width();
++  const float h = f.base.Height();
++  f.local_bbox =
++      (q == 2) ? CFX_FloatRect(0, 0, w, h) : CFX_FloatRect(0, 0, h, w);
++  switch (q) {
++    case 1:
++      f.matrix = CFX_Matrix(0, 1, -1, 0, f.base.right, f.base.bottom);
++      break;
++    case 2:
++      f.matrix = CFX_Matrix(-1, 0, 0, -1, f.base.right, f.base.top);
++      break;
++    case 3:
++      f.matrix = CFX_Matrix(0, -1, 1, 0, f.base.left, f.base.top);
++      break;
++  }
++  return f;
++}
++
+ struct DefaultAppearanceInfo {
+   ByteString font_name;
+   float font_size;
+@@ -2047,6 +2106,15 @@ bool GenerateFreeTextAP(APGenerationTarget* target,
+       text_box = box_rot.bbox;
+     }
+ 
++    const BentoPageRotFrame page_frame = BentoGetPageRotFrame(annot_dict, rect);
++    if (page_frame.active) {
++      tip = page_frame.ToLocal(tip);
++      knee = page_frame.ToLocal(knee);
++      conn = page_frame.ToLocal(conn);
++      text_box = page_frame.RectToLocal(text_box);
++      annot_dict->SetNewFor<CPDF_Number>("Rotate", page_frame.quarter * 90);
++    }
++
+     // (c) Border width and colors.
+     const float border_w = GetBorderWidth(annot_dict);
+ 
+@@ -2223,9 +2291,16 @@ bool GenerateFreeTextAP(APGenerationTarget* target,
+     auto resource_font_dict = map.CreateFontResourceDict();
+     auto resource_dict = GenerateResourcesDict(
+         doc, std::move(graphics_state_dict), std::move(resource_font_dict));
+-    GenerateAndSetAPDict(target, annot_dict, &appearance_stream,
+-                         std::move(resource_dict),
+-                         /*is_text_markup_annotation=*/false);
++    if (page_frame.active) {
++      GenerateAndSetAPDictWithTransform(target, annot_dict, &appearance_stream,
++                                        std::move(resource_dict),
++                                        page_frame.matrix,
++                                        page_frame.local_bbox);
++    } else {
++      GenerateAndSetAPDict(target, annot_dict, &appearance_stream,
++                           std::move(resource_dict),
++                           /*is_text_markup_annotation=*/false);
++    }
+   } else {
+     // ---- Regular FreeText appearance (unchanged) ----
+ 
+diff --git a/fpdfsdk/fpdf_annot.cpp b/fpdfsdk/fpdf_annot.cpp
+index dde86d33b..bd694d890 100644
+--- a/fpdfsdk/fpdf_annot.cpp
++++ b/fpdfsdk/fpdf_annot.cpp
+@@ -3332,8 +3332,15 @@ EPDFAnnot_GenerateAppearance(FPDF_ANNOTATION annot) {
+   const CPDF_Annot::Subtype subtype = CPDF_Annot::StringToAnnotSubtype(
+       pAnnotDict->GetNameFor(pdfium::annotation::kSubtype));
+ 
+-  // This is the key: call the internal AP generator.
+-  return CPDF_GenerateAP::GenerateAnnotAP(pDoc, pAnnotDict.Get(), subtype);
++  CPDF_Page* pPage = pContext->GetPage()->AsPDFPage();
++  const int page_rot = pPage ? pPage->GetOriginalRotation() : 0;
++  if (page_rot) {
++    pAnnotDict->SetNewFor<CPDF_Number>("EPDFPageRot", page_rot);
++  }
++  const bool ok =
++      CPDF_GenerateAP::GenerateAnnotAP(pDoc, pAnnotDict.Get(), subtype);
++  pAnnotDict->RemoveFor("EPDFPageRot");
++  return ok;
+ }
+ 
+ FPDF_EXPORT FPDF_BOOL FPDF_CALLCONV
+@@ -3360,8 +3367,15 @@ EPDFAnnot_GenerateAppearanceWithBlend(FPDF_ANNOTATION annot,
+   // Validate blend enum range if needed (already static_assert aligned).
+   auto internal = static_cast<BlendMode>(blend);
+ 
+-  return CPDF_GenerateAP::GenerateAnnotAP(doc, annot_dict.Get(), subtype,
+-                                          internal);
++  CPDF_Page* page = ctx->GetPage()->AsPDFPage();
++  const int page_rot = page ? page->GetOriginalRotation() : 0;
++  if (page_rot) {
++    annot_dict->SetNewFor<CPDF_Number>("EPDFPageRot", page_rot);
++  }
++  const bool ok = CPDF_GenerateAP::GenerateAnnotAP(doc, annot_dict.Get(),
++                                                   subtype, internal);
++  annot_dict->RemoveFor("EPDFPageRot");
++  return ok;
+ }
+ 
+ FPDF_EXPORT FPDF_BLENDMODE FPDF_CALLCONV
 diff --git a/fpdfsdk/fpdf_edittext.cpp b/fpdfsdk/fpdf_edittext.cpp
-index 78e6dbc91..a063db45d 100644
+index 8831c257a..a57a25c12 100644
 --- a/fpdfsdk/fpdf_edittext.cpp
 +++ b/fpdfsdk/fpdf_edittext.cpp
-@@ -668,6 +668,28 @@ FPDFText_SetCharcodes(FPDF_PAGEOBJECT text_object,
+@@ -661,6 +661,28 @@ FPDFText_SetCharcodes(FPDF_PAGEOBJECT text_object,
    return true;
  }
  
@@ -115,10 +248,10 @@ index 78e6dbc91..a063db45d 100644
                                                        const uint8_t* data,
                                                        uint32_t size,
 diff --git a/public/fpdf_edit.h b/public/fpdf_edit.h
-index 7399c2af2..8518434f5 100644
+index 98df505d4..ab2b3a655 100644
 --- a/public/fpdf_edit.h
 +++ b/public/fpdf_edit.h
-@@ -1326,6 +1326,11 @@ FPDFText_SetCharcodes(FPDF_PAGEOBJECT text_object,
+@@ -1361,6 +1361,11 @@ FPDFText_SetCharcodes(FPDF_PAGEOBJECT text_object,
                        const uint32_t* charcodes,
                        size_t count);
  
