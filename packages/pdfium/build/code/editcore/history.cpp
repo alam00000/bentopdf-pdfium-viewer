@@ -154,6 +154,17 @@ bool applyOp(EditOp& op, FPDF_PAGE page, bool forward) {
 bool historyRecording(const Session& s) { return s.recording != nullptr; }
 
 void historyBegin(Session& s, FPDF_PAGE page, const char* label) {
+    if (s.recording) {
+        if (s.recording->label == "__live_preview__" &&
+            (!label || strcmp(label, "__live_preview__") != 0)) {
+            historyScratchRevert(s, s.recording->page);
+            s.livePage = nullptr;
+            s.livePara = -1;
+            s.liveTicks = 0;
+        } else {
+            return;
+        }
+    }
     if (s.recording) return;
     auto it = s.pages.find(page);
     s.recording = std::make_unique<EditCommand>();

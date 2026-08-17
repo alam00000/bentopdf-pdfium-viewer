@@ -890,9 +890,18 @@ void ec_set_flatten_forms(EC_SESSION session, int enabled) {
     if (Session* s = asSession(session)) s->flattenForms = enabled != 0;
 }
 
+static void liveEndIfOpen(Session& s) {
+    if (s.recording && s.recording->label == "__live_preview__")
+        historyScratchRevert(s, s.recording->page);
+    s.livePage = nullptr;
+    s.livePara = -1;
+    s.liveTicks = 0;
+}
+
 char* ec_build_page_model(EC_SESSION session, FPDF_PAGE page) {
     Session* s = asSession(session);
     if (!s || !page) return nullptr;
+    if (s) liveEndIfOpen(*s);
 
     flattenContentForms(*s, page);
     bakeWordSpacedText(*s, page);
@@ -922,6 +931,7 @@ int ec_spell_load(EC_SESSION session, const char* data, int len) {
 char* ec_spell_check_page(EC_SESSION session, FPDF_PAGE page) {
     Session* s = asSession(session);
     if (!s || !page) return nullptr;
+    if (s) liveEndIfOpen(*s);
     auto it = s->pages.find(page);
     if (it == s->pages.end()) {
         char* built = ec_build_page_model(session, page);
@@ -936,6 +946,7 @@ char* ec_select_text(EC_SESSION session, FPDF_PAGE page, float x0, float y0,
                      float x1, float y1, int mode) {
     Session* s = asSession(session);
     if (!s || !page) return nullptr;
+    if (s) liveEndIfOpen(*s);
     auto it = s->pages.find(page);
     if (it == s->pages.end()) {
         char* built = ec_build_page_model(session, page);
@@ -950,6 +961,7 @@ char* ec_build_page_model_region(EC_SESSION session, FPDF_PAGE page,
                                  float x, float y, float w, float h) {
     Session* s = asSession(session);
     if (!s || !page) return nullptr;
+    if (s) liveEndIfOpen(*s);
     char* full = ec_build_page_model(session, page);
     if (!full) return nullptr;
     ec_string_free(full);
@@ -985,6 +997,7 @@ void appendNum(std::string& out, float v) {
 char* ec_page_text_json(EC_SESSION session, FPDF_PAGE page) {
     Session* s = asSession(session);
     if (!s || !page) return nullptr;
+    if (s) liveEndIfOpen(*s);
     auto it = s->pages.find(page);
     if (it == s->pages.end()) {
         char* built = ec_build_page_model(session, page);
@@ -1030,6 +1043,7 @@ int ec_get_paragraph_objects(EC_SESSION session, FPDF_PAGE page, int para_id,
                              FPDF_PAGEOBJECT* out, int capacity) {
     Session* s = asSession(session);
     if (!s) return 0;
+    if (s) liveEndIfOpen(*s);
     auto it = s->pages.find(page);
     if (it == s->pages.end()) return 0;
     Paragraph* p = it->second.find(para_id);
@@ -1288,6 +1302,15 @@ char* ec_commit_paragraph(EC_SESSION session, FPDF_PAGE page, int para_id,
     return dupString(paragraphToJson(*p));
 }
 
+int ec_render_paragraph_live_end(EC_SESSION session, FPDF_PAGE page) {
+    Session* s = asSession(session);
+    if (!s) return 0;
+    (void)page;
+    const bool was = s->recording && s->recording->label == "__live_preview__";
+    liveEndIfOpen(*s);
+    return was ? 1 : 0;
+}
+
 unsigned char* ec_render_paragraph_live(EC_SESSION session, FPDF_PAGE page,
                                         int para_id, const ec_run_in* runs,
                                         int run_count,
@@ -1307,18 +1330,35 @@ unsigned char* ec_render_paragraph_live(EC_SESSION session, FPDF_PAGE page,
 
     if (p->unwrapsForms) return nullptr;
 
-    if (historyRecording(*s)) return nullptr;
+    bool liveOpen = s->recording && s->recording->label == "__live_preview__";
+    if (s->recording && !liveOpen) return nullptr;
+    if (liveOpen &&
+        (s->livePage != page || s->livePara != para_id || ++s->liveTicks >= 8)) {
+        liveEndIfOpen(*s);
+        liveOpen = false;
+        p = it->second.find(para_id);
+        if (!p || !p->editable || p->vertical || p->unwrapsForms) return nullptr;
+    }
 
     const int w = static_cast<int>(std::lround(mw * scale));
     const int h = static_cast<int>(std::lround(mh * scale));
     if (w < 1 || h < 1 || w > 8192 || h > 8192 || w * h > 33554432)
         return nullptr;
 
-    historyBegin(*s, page, "__live_preview__");
+    if (!liveOpen) {
+        historyBegin(*s, page, "__live_preview__");
+        s->livePage = page;
+        s->livePara = para_id;
+        s->liveTicks = 0;
+    }
     char* json =
         ec_commit_paragraph(session, page, para_id, runs, run_count, fmt);
+    if (!json) {
+        liveEndIfOpen(*s);
+        return nullptr;
+    }
     unsigned char* out = nullptr;
-    if (json) {
+    {
         free(json);
         FPDF_BITMAP bmp = FPDFBitmap_CreateEx(w, h, FPDFBitmap_BGRA, nullptr, 0);
         if (bmp) {
@@ -1352,7 +1392,7 @@ unsigned char* ec_render_paragraph_live(EC_SESSION session, FPDF_PAGE page,
         }
     }
 
-    historyScratchRevert(*s, page);
+    if (!out) liveEndIfOpen(*s);
     return out;
 }
 
@@ -1917,6 +1957,7 @@ char* ec_page_text_state(EC_SESSION session, FPDF_PAGE page) {
 
     Session* s = asSession(session);
     if (!s || !page) return nullptr;
+    if (s) liveEndIfOpen(*s);
 
     struct Entry { FPDF_PAGEOBJECT o; FS_MATRIX m; int inForm; };
     std::vector<Entry> entries;
@@ -2429,12 +2470,14 @@ void ec_history_end(EC_SESSION session, FPDF_PAGE page) {
 int ec_history_undo(EC_SESSION session, FPDF_PAGE page) {
     Session* s = asSession(session);
     if (!s || !page) return 0;
+    if (s) liveEndIfOpen(*s);
     return historyUndo(*s, page) ? 1 : 0;
 }
 
 int ec_history_redo(EC_SESSION session, FPDF_PAGE page) {
     Session* s = asSession(session);
     if (!s || !page) return 0;
+    if (s) liveEndIfOpen(*s);
     return historyRedo(*s, page) ? 1 : 0;
 }
 

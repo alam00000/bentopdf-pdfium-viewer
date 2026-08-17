@@ -271,6 +271,10 @@ struct Session {
 
     std::map<FPDF_FONT, std::set<uint32_t>> fontRenderedCps;
 
+    FPDF_PAGE livePage = nullptr;
+    int livePara = -1;
+    int liveTicks = 0;
+
     std::set<FPDF_PAGE> saveCorrupting;
 
     std::set<FPDF_PAGE> saveTextOnly;

@@ -92,6 +92,7 @@ unsigned char* ec_render_paragraph_live(EC_SESSION session, FPDF_PAGE page,
                                         const ec_para_format* fmt, float scale,
                                         float mx, float my, float mw, float mh,
                                         int* out_w, int* out_h);
+int ec_render_paragraph_live_end(EC_SESSION session, FPDF_PAGE page);
 
 char* ec_add_paragraph(EC_SESSION session, FPDF_PAGE page,
                        float x, float y_top, float width,
