@@ -36,10 +36,22 @@ jobs:
           sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/local/.ghcup /opt/hostedtoolcache/CodeQL
           df -h /
 
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build container image
+        uses: docker/build-push-action@v6
+        with:
+          context: packages/pdfium
+          target: pdfium-deps
+          tags: embedpdf/pdfium-dev
+          load: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
       - name: Build pdfium.wasm
         working-directory: packages/pdfium
         run: |
-          docker compose run --rm pdfium-build
+          docker compose run --rm --no-build pdfium-build
 
       - name: Verify EditCore exports
         run: |
