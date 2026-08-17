@@ -28,7 +28,7 @@ var readyPromise = new Promise((resolve, reject) => {
   readyPromiseResolve = resolve;
   readyPromiseReject = reject;
 });
-["_ec_add_paragraph","_ec_buffer_alloc","_ec_build_page_model","_ec_build_page_model_region","_ec_clone_marker","_ec_commit_paragraph","_ec_dealias_page_fonts","_ec_delete_paragraph","_ec_document_info","_ec_duplicate_paragraph","_ec_form_draw","_ec_get_paragraph_objects","_ec_get_run_font_data","_ec_history_begin","_ec_history_clear","_ec_history_depth","_ec_history_end","_ec_history_note_insert","_ec_history_note_matrix","_ec_history_note_zorder","_ec_history_redo","_ec_history_remove_object","_ec_history_undo","_ec_last_splice_plan","_ec_mark_fonts_fragile","_ec_move_paragraph","_ec_normalize_page_paint","_ec_page_crop_origin","_ec_page_has_cid_fonts","_ec_page_regen_is_lossy","_ec_page_text_json","_ec_page_text_state","_ec_page_transform","_ec_preview_paragraph","_ec_reencode_page_fonts","_ec_render_paragraph_live","_ec_resize_paragraph","_ec_save_document","_ec_select_text","_ec_session_create","_ec_session_destroy","_ec_set_flatten_forms","_ec_set_surgical","_ec_spell_check_page","_ec_spell_load","_ec_string_free","_ec_synth_run_font","_ec_test_arabic","_ec_test_bidi","_ec_test_pagetext","_ec_test_paraadv","_ec_test_shape","_ec_test_subset","_ec_version","_EPDF_GetMetaKeyCount","_EPDF_GetMetaKeyName","_EPDF_GetMetaTrapped","_EPDF_GetPageRotationByIndex","_EPDF_GetPageSizeByIndexNormalized","_EPDF_HasMetaText","_EPDF_IsEncrypted","_EPDF_IsOwnerUnlocked","_EPDF_LoadPageNormalized","_EPDF_PNG_EncodeRGBA","_EPDF_RemoveEncryption","_EPDF_RenderAnnotBitmap","_EPDF_RenderAnnotBitmapUnrotated","_EPDF_SetEncryption","_EPDF_SetMetaText","_EPDF_SetMetaTrapped","_EPDF_UnlockOwnerPermissions","_EPDFAction_CreateGoTo","_EPDFAction_CreateGoToNamed","_EPDFAction_CreateLaunch","_EPDFAction_CreateRemoteGoToByName","_EPDFAction_CreateRemoteGoToDest","_EPDFAction_CreateURI","_EPDFAnnot_ApplyRedaction","_EPDFAnnot_ClearBorderEffect","_EPDFAnnot_ClearColor","_EPDFAnnot_ClearRectangleDifferences","_EPDFAnnot_Flatten","_EPDFAnnot_GenerateAppearance","_EPDFAnnot_GenerateAppearanceWithBlend","_EPDFAnnot_GetAPMatrix","_EPDFAnnot_GetAvailableAppearanceModes","_EPDFAnnot_GetBlendMode","_EPDFAnnot_GetBorderDashPattern","_EPDFAnnot_GetBorderDashPatternCount","_EPDFAnnot_GetBorderEffect","_EPDFAnnot_GetBorderStyle","_EPDFAnnot_GetColor","_EPDFAnnot_GetDefaultAppearance","_EPDFAnnot_GetExtendedRotation","_EPDFAnnot_GetIcon","_EPDFAnnot_GetIntent","_EPDFAnnot_GetLineEndings","_EPDFAnnot_GetOpacity","_EPDFAnnot_GetOverlayText","_EPDFAnnot_GetOverlayTextRepeat","_EPDFAnnot_GetRect","_EPDFAnnot_GetRectangleDifferences","_EPDFAnnot_GetReplyType","_EPDFAnnot_GetRichContent","_EPDFAnnot_GetRotate","_EPDFAnnot_GetTextAlignment","_EPDFAnnot_GetUnrotatedRect","_EPDFAnnot_GetVerticalAlignment","_EPDFAnnot_HasAppearanceStream","_EPDFAnnot_SetAction","_EPDFAnnot_SetAPMatrix","_EPDFAnnot_SetBorderDashPattern","_EPDFAnnot_SetBorderEffect","_EPDFAnnot_SetBorderStyle","_EPDFAnnot_SetColor","_EPDFAnnot_SetDefaultAppearance","_EPDFAnnot_SetExtendedRotation","_EPDFAnnot_SetIcon","_EPDFAnnot_SetIntent","_EPDFAnnot_SetLine","_EPDFAnnot_SetLineEndings","_EPDFAnnot_SetLinkedAnnot","_EPDFAnnot_SetOpacity","_EPDFAnnot_SetOverlayText","_EPDFAnnot_SetOverlayTextRepeat","_EPDFAnnot_SetRectangleDifferences","_EPDFAnnot_SetReplyType","_EPDFAnnot_SetRotate","_EPDFAnnot_SetTextAlignment","_EPDFAnnot_SetUnrotatedRect","_EPDFAnnot_SetVerticalAlignment","_EPDFAnnot_SetVertices","_EPDFAnnot_UpdateAppearanceToRect","_EPDFAttachment_GetDescription","_EPDFAttachment_GetIntegerValue","_EPDFAttachment_SetDescription","_EPDFAttachment_SetSubtype","_EPDFBookmark_AppendChild","_EPDFBookmark_Clear","_EPDFBookmark_ClearTarget","_EPDFBookmark_Create","_EPDFBookmark_Delete","_EPDFBookmark_InsertAfter","_EPDFBookmark_SetAction","_EPDFBookmark_SetDest","_EPDFBookmark_SetTitle","_EPDFCatalog_GetLanguage","_EPDFDest_CreateRemoteView","_EPDFDest_CreateRemoteXYZ","_EPDFDest_CreateView","_EPDFDest_CreateXYZ","_EPDFNamedDest_Remove","_EPDFNamedDest_SetDest","_EPDFPage_ApplyRedactions","_EPDFPage_CreateAnnot","_EPDFPage_GetAnnotByName","_EPDFPage_GetAnnotCountRaw","_EPDFPage_GetAnnotRaw","_EPDFPage_RemoveAnnotByName","_EPDFPage_RemoveAnnotRaw","_EPDFText_RedactInQuads","_EPDFText_RedactInRect","_FORM_CanRedo","_FORM_CanUndo","_FORM_DoDocumentAAction","_FORM_DoDocumentJSAction","_FORM_DoDocumentOpenAction","_FORM_DoPageAAction","_FORM_ForceToKillFocus","_FORM_GetFocusedAnnot","_FORM_GetFocusedText","_FORM_GetSelectedText","_FORM_IsIndexSelected","_FORM_OnAfterLoadPage","_FORM_OnBeforeClosePage","_FORM_OnChar","_FORM_OnFocus","_FORM_OnKeyDown","_FORM_OnKeyUp","_FORM_OnLButtonDoubleClick","_FORM_OnLButtonDown","_FORM_OnLButtonUp","_FORM_OnMouseMove","_FORM_OnMouseWheel","_FORM_OnRButtonDown","_FORM_OnRButtonUp","_FORM_Redo","_FORM_ReplaceAndKeepSelection","_FORM_ReplaceSelection","_FORM_SelectAllText","_FORM_SetFocusedAnnot","_FORM_SetIndexSelected","_FORM_Undo","_FPDF_AddInstalledFont","_FPDF_CloseDocument","_FPDF_ClosePage","_FPDF_CloseXObject","_FPDF_CopyViewerPreferences","_FPDF_CountNamedDests","_FPDF_CreateClipPath","_FPDF_CreateNewDocument","_FPDF_DestroyClipPath","_FPDF_DestroyLibrary","_FPDF_DeviceToPage","_FPDF_DocumentHasValidCrossReferenceTable","_FPDF_FFLDraw","_FPDF_FreeDefaultSystemFontInfo","_FPDF_GetDefaultSystemFontInfo","_FPDF_GetDefaultTTFMap","_FPDF_GetDefaultTTFMapCount","_FPDF_GetDefaultTTFMapEntry","_FPDF_GetDocPermissions","_FPDF_GetDocUserPermissions","_FPDF_GetFileIdentifier","_FPDF_GetFileVersion","_FPDF_GetFormType","_FPDF_GetLastError","_FPDF_GetMetaText","_FPDF_GetNamedDest","_FPDF_GetNamedDestByName","_FPDF_GetPageAAction","_FPDF_GetPageBoundingBox","_FPDF_GetPageCount","_FPDF_GetPageHeight","_FPDF_GetPageHeightF","_FPDF_GetPageLabel","_FPDF_GetPageSizeByIndex","_FPDF_GetPageSizeByIndexF","_FPDF_GetPageWidth","_FPDF_GetPageWidthF","_FPDF_GetSecurityHandlerRevision","_FPDF_GetSignatureCount","_FPDF_GetSignatureObject","_FPDF_GetTrailerEnds","_FPDF_GetXFAPacketContent","_FPDF_GetXFAPacketCount","_FPDF_GetXFAPacketName","_FPDF_ImportNPagesToOne","_FPDF_ImportPages","_FPDF_ImportPagesByIndex","_FPDF_InitLibrary","_FPDF_InitLibraryWithConfig","_FPDF_LoadCustomDocument","_FPDF_LoadDocument","_FPDF_LoadMemDocument","_FPDF_LoadMemDocument64","_FPDF_LoadPage","_FPDF_LoadXFA","_FPDF_MovePages","_FPDF_NewFormObjectFromXObject","_FPDF_NewXObjectFromPage","_FPDF_PageToDevice","_FPDF_RemoveFormFieldHighlight","_FPDF_RenderPage_Close","_FPDF_RenderPage_Continue","_FPDF_RenderPageBitmap","_FPDF_RenderPageBitmap_Start","_FPDF_RenderPageBitmapWithColorScheme_Start","_FPDF_RenderPageBitmapWithMatrix","_FPDF_SaveAsCopy","_FPDF_SaveWithVersion","_FPDF_SetFormFieldHighlightAlpha","_FPDF_SetFormFieldHighlightColor","_FPDF_SetSandBoxPolicy","_FPDF_SetSystemFontInfo","_FPDF_StructElement_Attr_CountChildren","_FPDF_StructElement_Attr_GetBlobValue","_FPDF_StructElement_Attr_GetBooleanValue","_FPDF_StructElement_Attr_GetChildAtIndex","_FPDF_StructElement_Attr_GetCount","_FPDF_StructElement_Attr_GetName","_FPDF_StructElement_Attr_GetNumberValue","_FPDF_StructElement_Attr_GetStringValue","_FPDF_StructElement_Attr_GetType","_FPDF_StructElement_Attr_GetValue","_FPDF_StructElement_CountChildren","_FPDF_StructElement_GetActualText","_FPDF_StructElement_GetAltText","_FPDF_StructElement_GetAttributeAtIndex","_FPDF_StructElement_GetAttributeCount","_FPDF_StructElement_GetChildAtIndex","_FPDF_StructElement_GetChildMarkedContentID","_FPDF_StructElement_GetID","_FPDF_StructElement_GetLang","_FPDF_StructElement_GetMarkedContentID","_FPDF_StructElement_GetMarkedContentIdAtIndex","_FPDF_StructElement_GetMarkedContentIdCount","_FPDF_StructElement_GetObjType","_FPDF_StructElement_GetParent","_FPDF_StructElement_GetStringAttribute","_FPDF_StructElement_GetTitle","_FPDF_StructElement_GetType","_FPDF_StructTree_Close","_FPDF_StructTree_CountChildren","_FPDF_StructTree_GetChildAtIndex","_FPDF_StructTree_GetForPage","_FPDF_VIEWERREF_GetDuplex","_FPDF_VIEWERREF_GetName","_FPDF_VIEWERREF_GetNumCopies","_FPDF_VIEWERREF_GetPrintPageRange","_FPDF_VIEWERREF_GetPrintPageRangeCount","_FPDF_VIEWERREF_GetPrintPageRangeElement","_FPDF_VIEWERREF_GetPrintScaling","_FPDFAction_GetDest","_FPDFAction_GetFilePath","_FPDFAction_GetType","_FPDFAction_GetURIPath","_FPDFAnnot_AddFileAttachment","_FPDFAnnot_AddInkStroke","_FPDFAnnot_AppendAttachmentPoints","_FPDFAnnot_AppendObject","_FPDFAnnot_CountAttachmentPoints","_FPDFAnnot_GetAP","_FPDFAnnot_GetAttachmentPoints","_FPDFAnnot_GetBorder","_FPDFAnnot_GetColor","_FPDFAnnot_GetFileAttachment","_FPDFAnnot_GetFlags","_FPDFAnnot_GetFocusableSubtypes","_FPDFAnnot_GetFocusableSubtypesCount","_FPDFAnnot_GetFontColor","_FPDFAnnot_GetFontSize","_FPDFAnnot_GetFormAdditionalActionJavaScript","_FPDFAnnot_GetFormControlCount","_FPDFAnnot_GetFormControlIndex","_FPDFAnnot_GetFormFieldAlternateName","_FPDFAnnot_GetFormFieldAtPoint","_FPDFAnnot_GetFormFieldExportValue","_FPDFAnnot_GetFormFieldFlags","_FPDFAnnot_GetFormFieldName","_FPDFAnnot_GetFormFieldType","_FPDFAnnot_GetFormFieldValue","_FPDFAnnot_GetInkListCount","_FPDFAnnot_GetInkListPath","_FPDFAnnot_GetLine","_FPDFAnnot_GetLink","_FPDFAnnot_GetLinkedAnnot","_FPDFAnnot_GetNumberValue","_FPDFAnnot_GetObject","_FPDFAnnot_GetObjectCount","_FPDFAnnot_GetOptionCount","_FPDFAnnot_GetOptionLabel","_FPDFAnnot_GetRect","_FPDFAnnot_GetStringValue","_FPDFAnnot_GetSubtype","_FPDFAnnot_GetValueType","_FPDFAnnot_GetVertices","_FPDFAnnot_HasAttachmentPoints","_FPDFAnnot_HasKey","_FPDFAnnot_IsChecked","_FPDFAnnot_IsObjectSupportedSubtype","_FPDFAnnot_IsOptionSelected","_FPDFAnnot_IsSupportedSubtype","_FPDFAnnot_RemoveInkList","_FPDFAnnot_RemoveObject","_FPDFAnnot_SetAP","_FPDFAnnot_SetAttachmentPoints","_FPDFAnnot_SetBorder","_FPDFAnnot_SetColor","_FPDFAnnot_SetFlags","_FPDFAnnot_SetFocusableSubtypes","_FPDFAnnot_SetFontColor","_FPDFAnnot_SetFormFieldFlags","_FPDFAnnot_SetRect","_FPDFAnnot_SetStringValue","_FPDFAnnot_SetURI","_FPDFAnnot_UpdateObject","_FPDFAttachment_GetFile","_FPDFAttachment_GetName","_FPDFAttachment_GetStringValue","_FPDFAttachment_GetSubtype","_FPDFAttachment_GetValueType","_FPDFAttachment_HasKey","_FPDFAttachment_SetFile","_FPDFAttachment_SetStringValue","_FPDFAvail_Create","_FPDFAvail_Destroy","_FPDFAvail_GetDocument","_FPDFAvail_GetFirstPageNum","_FPDFAvail_IsDocAvail","_FPDFAvail_IsFormAvail","_FPDFAvail_IsLinearized","_FPDFAvail_IsPageAvail","_FPDFBitmap_Create","_FPDFBitmap_CreateEx","_FPDFBitmap_Destroy","_FPDFBitmap_FillRect","_FPDFBitmap_GetBuffer","_FPDFBitmap_GetFormat","_FPDFBitmap_GetHeight","_FPDFBitmap_GetStride","_FPDFBitmap_GetWidth","_FPDFBookmark_Find","_FPDFBookmark_GetAction","_FPDFBookmark_GetCount","_FPDFBookmark_GetDest","_FPDFBookmark_GetFirstChild","_FPDFBookmark_GetNextSibling","_FPDFBookmark_GetTitle","_FPDFCatalog_GetLanguage","_FPDFCatalog_IsTagged","_FPDFCatalog_SetLanguage","_FPDFClipPath_CountPaths","_FPDFClipPath_CountPathSegments","_FPDFClipPath_GetPathSegment","_FPDFDest_GetDestPageIndex","_FPDFDest_GetLocationInPage","_FPDFDest_GetView","_FPDFDoc_AddAttachment","_FPDFDoc_CloseJavaScriptAction","_FPDFDoc_DeleteAttachment","_FPDFDOC_ExitFormFillEnvironment","_FPDFDoc_GetAttachment","_FPDFDoc_GetAttachmentCount","_FPDFDoc_GetJavaScriptAction","_FPDFDoc_GetJavaScriptActionCount","_FPDFDoc_GetPageMode","_FPDFDOC_InitFormFillEnvironment","_FPDFFont_Close","_FPDFFont_GetAscent","_FPDFFont_GetBaseFontName","_FPDFFont_GetDescent","_FPDFFont_GetFamilyName","_FPDFFont_GetFlags","_FPDFFont_GetFontData","_FPDFFont_GetGlyphPath","_FPDFFont_GetGlyphWidth","_FPDFFont_GetIsEmbedded","_FPDFFont_GetItalicAngle","_FPDFFont_GetWeight","_FPDFFormObj_CountObjects","_FPDFFormObj_GetObject","_FPDFFormObj_RemoveObject","_FPDFGlyphPath_CountGlyphSegments","_FPDFGlyphPath_GetGlyphPathSegment","_FPDFImageObj_GetBitmap","_FPDFImageObj_GetIccProfileDataDecoded","_FPDFImageObj_GetImageDataDecoded","_FPDFImageObj_GetImageDataRaw","_FPDFImageObj_GetImageFilter","_FPDFImageObj_GetImageFilterCount","_FPDFImageObj_GetImageMetadata","_FPDFImageObj_GetImagePixelSize","_FPDFImageObj_GetRenderedBitmap","_FPDFImageObj_LoadJpegFile","_FPDFImageObj_LoadJpegFileInline","_FPDFImageObj_SetBitmap","_FPDFImageObj_SetMatrix","_FPDFJavaScriptAction_GetName","_FPDFJavaScriptAction_GetScript","_FPDFLink_CloseWebLinks","_FPDFLink_CountQuadPoints","_FPDFLink_CountRects","_FPDFLink_CountWebLinks","_FPDFLink_Enumerate","_FPDFLink_GetAction","_FPDFLink_GetAnnot","_FPDFLink_GetAnnotRect","_FPDFLink_GetDest","_FPDFLink_GetLinkAtPoint","_FPDFLink_GetLinkZOrderAtPoint","_FPDFLink_GetQuadPoints","_FPDFLink_GetRect","_FPDFLink_GetTextRange","_FPDFLink_GetURL","_FPDFLink_LoadWebLinks","_FPDFPage_CloseAnnot","_FPDFPage_CountObjects","_FPDFPage_CreateAnnot","_FPDFPage_Delete","_FPDFPage_Flatten","_FPDFPage_FormFieldZOrderAtPoint","_FPDFPage_GenerateContent","_FPDFPage_GetAnnot","_FPDFPage_GetAnnotCount","_FPDFPage_GetAnnotIndex","_FPDFPage_GetArtBox","_FPDFPage_GetBleedBox","_FPDFPage_GetCropBox","_FPDFPage_GetDecodedThumbnailData","_FPDFPage_GetMediaBox","_FPDFPage_GetObject","_FPDFPage_GetRawThumbnailData","_FPDFPage_GetRotation","_FPDFPage_GetThumbnailAsBitmap","_FPDFPage_GetTrimBox","_FPDFPage_HasFormFieldAtPoint","_FPDFPage_HasTransparency","_FPDFPage_InsertClipPath","_FPDFPage_InsertObject","_FPDFPage_InsertObjectAtIndex","_FPDFPage_New","_FPDFPage_RemoveAnnot","_FPDFPage_RemoveObject","_FPDFPage_SetArtBox","_FPDFPage_SetBleedBox","_FPDFPage_SetCropBox","_FPDFPage_SetMediaBox","_FPDFPage_SetRotation","_FPDFPage_SetTrimBox","_FPDFPage_TransformAnnots","_FPDFPage_TransFormWithClip","_FPDFPageObj_AddMark","_FPDFPageObj_CountMarks","_FPDFPageObj_CreateNewPath","_FPDFPageObj_CreateNewRect","_FPDFPageObj_CreateTextObj","_FPDFPageObj_Destroy","_FPDFPageObj_GetBounds","_FPDFPageObj_GetClipPath","_FPDFPageObj_GetDashArray","_FPDFPageObj_GetDashCount","_FPDFPageObj_GetDashPhase","_FPDFPageObj_GetFillColor","_FPDFPageObj_GetIsActive","_FPDFPageObj_GetLineCap","_FPDFPageObj_GetLineJoin","_FPDFPageObj_GetMark","_FPDFPageObj_GetMarkedContentID","_FPDFPageObj_GetMatrix","_FPDFPageObj_GetRotatedBounds","_FPDFPageObj_GetStrokeColor","_FPDFPageObj_GetStrokeWidth","_FPDFPageObj_GetType","_FPDFPageObj_HasTransparency","_FPDFPageObj_NewImageObj","_FPDFPageObj_NewTextObj","_FPDFPageObj_RemoveMark","_FPDFPageObj_SetBlendMode","_FPDFPageObj_SetDashArray","_FPDFPageObj_SetDashPhase","_FPDFPageObj_SetFillColor","_FPDFPageObj_SetIsActive","_FPDFPageObj_SetLineCap","_FPDFPageObj_SetLineJoin","_FPDFPageObj_SetMatrix","_FPDFPageObj_SetStrokeColor","_FPDFPageObj_SetStrokeWidth","_FPDFPageObj_Transform","_FPDFPageObj_TransformClipPath","_FPDFPageObj_TransformF","_FPDFPageObjMark_CountParams","_FPDFPageObjMark_GetName","_FPDFPageObjMark_GetParamBlobValue","_FPDFPageObjMark_GetParamFloatValue","_FPDFPageObjMark_GetParamIntValue","_FPDFPageObjMark_GetParamKey","_FPDFPageObjMark_GetParamStringValue","_FPDFPageObjMark_GetParamValueType","_FPDFPageObjMark_RemoveParam","_FPDFPageObjMark_SetBlobParam","_FPDFPageObjMark_SetFloatParam","_FPDFPageObjMark_SetIntParam","_FPDFPageObjMark_SetStringParam","_FPDFPath_BezierTo","_FPDFPath_Close","_FPDFPath_CountSegments","_FPDFPath_GetDrawMode","_FPDFPath_GetPathSegment","_FPDFPath_LineTo","_FPDFPath_MoveTo","_FPDFPath_SetDrawMode","_FPDFPathSegment_GetClose","_FPDFPathSegment_GetPoint","_FPDFPathSegment_GetType","_FPDFSignatureObj_GetByteRange","_FPDFSignatureObj_GetContents","_FPDFSignatureObj_GetDocMDPPermission","_FPDFSignatureObj_GetReason","_FPDFSignatureObj_GetSubFilter","_FPDFSignatureObj_GetTime","_FPDFText_ClosePage","_FPDFText_CountChars","_FPDFText_CountRects","_FPDFText_FindClose","_FPDFText_FindNext","_FPDFText_FindPrev","_FPDFText_FindStart","_FPDFText_GetBoundedText","_FPDFText_GetCharAngle","_FPDFText_GetCharBox","_FPDFText_GetCharIndexAtPos","_FPDFText_GetCharIndexFromTextIndex","_FPDFText_GetCharOrigin","_FPDFText_GetFillColor","_FPDFText_GetFontInfo","_FPDFText_GetFontSize","_FPDFText_GetFontWeight","_FPDFText_GetLooseCharBox","_FPDFText_GetMatrix","_FPDFText_GetRect","_FPDFText_GetSchCount","_FPDFText_GetSchResultIndex","_FPDFText_GetStrokeColor","_FPDFText_GetText","_FPDFText_GetTextIndexFromCharIndex","_FPDFText_GetTextObject","_FPDFText_GetUnicode","_FPDFText_HasUnicodeMapError","_FPDFText_IsGenerated","_FPDFText_IsHyphen","_FPDFText_LoadCidType2Font","_FPDFText_LoadFont","_FPDFText_LoadPage","_FPDFText_LoadStandardFont","_FPDFText_SetCharcodes","_FPDFText_SetPositions","_FPDFText_SetText","_FPDFTextObj_GetFont","_FPDFTextObj_GetFontSize","_FPDFTextObj_GetRenderedBitmap","_FPDFTextObj_GetText","_FPDFTextObj_GetTextRenderMode","_FPDFTextObj_SetTextRenderMode","_PDFiumExt_CloseFileWriter","_PDFiumExt_CloseFormFillInfo","_PDFiumExt_ExitFormFillEnvironment","_PDFiumExt_GetFileWriterData","_PDFiumExt_GetFileWriterSize","_PDFiumExt_Init","_PDFiumExt_InitFormFillEnvironment","_PDFiumExt_OpenFileWriter","_PDFiumExt_OpenFormFillInfo","_PDFiumExt_SaveAsCopy","_malloc","_free","_memory","___indirect_function_table","onRuntimeInitialized"].forEach((prop) => {
+["_ec_add_paragraph","_ec_buffer_alloc","_ec_build_page_model","_ec_build_page_model_region","_ec_clone_marker","_ec_commit_paragraph","_ec_dealias_page_fonts","_ec_delete_paragraph","_ec_document_info","_ec_duplicate_paragraph","_ec_form_draw","_ec_get_paragraph_objects","_ec_get_run_font_data","_ec_history_begin","_ec_history_clear","_ec_history_depth","_ec_history_end","_ec_history_note_insert","_ec_history_note_matrix","_ec_history_note_zorder","_ec_history_redo","_ec_history_remove_object","_ec_history_undo","_ec_last_splice_plan","_ec_mark_fonts_fragile","_ec_move_paragraph","_ec_normalize_page_paint","_ec_page_crop_origin","_ec_page_has_cid_fonts","_ec_page_regen_is_lossy","_ec_page_text_json","_ec_page_text_state","_ec_page_transform","_ec_preview_paragraph","_ec_reencode_page_fonts","_ec_render_paragraph_live","_ec_resize_paragraph","_ec_save_document","_ec_select_text","_ec_session_create","_ec_session_destroy","_ec_set_flatten_forms","_ec_set_surgical","_ec_spell_check_page","_ec_spell_load","_ec_string_free","_ec_synth_run_font","_ec_test_arabic","_ec_test_bidi","_ec_test_pagetext","_ec_test_paraadv","_ec_test_shape","_ec_test_subset","_ec_version","_EPDF_CheckPasswordPermissions","_EPDF_FreeBuffer","_EPDF_GetMetaKeyCount","_EPDF_GetMetaKeyName","_EPDF_GetMetaTrapped","_EPDF_GetPageBoxByIndex","_EPDF_GetPageRotationByIndex","_EPDF_GetPageSizeByIndexNormalized","_EPDF_GetPageUserUnitByIndex","_EPDF_HasMetaText","_EPDF_InitThread","_EPDF_IsEncrypted","_EPDF_IsOwnerUnlocked","_EPDF_LoadBaseDocument","_EPDF_LoadMemBaseDocument","_EPDF_LoadMemBaseDocument64","_EPDF_LoadPageNormalized","_EPDF_PNG_EncodeRGBA","_EPDF_ReleaseBaseDocument","_EPDF_RemoveEncryption","_EPDF_RenderAnnotBitmap","_EPDF_RenderAnnotBitmapUnrotated","_EPDF_SaveDocumentToOwnedBuffer","_EPDF_SaveDocumentToOwnedBufferWithVersion","_EPDF_SetEncryption","_EPDF_SetMetaText","_EPDF_SetMetaTrapped","_EPDF_SetRuntimeOwnerPermissions","_EPDF_ShutdownThread","_EPDF_UnlockOwnerPermissions","_EPDFAction_CloseModel","_EPDFAction_CreateGoTo","_EPDFAction_CreateGoToNamed","_EPDFAction_CreateLaunch","_EPDFAction_CreateRemoteGoToByName","_EPDFAction_CreateRemoteGoToDest","_EPDFAction_CreateURI","_EPDFAction_GetNextAt","_EPDFAction_GetNextCount","_EPDFAction_GetNodeCount","_EPDFAction_GetNodeDest","_EPDFAction_GetNodeFilePath","_EPDFAction_GetNodeJavaScript","_EPDFAction_GetNodeName","_EPDFAction_GetNodeSubtype","_EPDFAction_GetNodeType","_EPDFAction_GetNodeURI","_EPDFAction_GetRootNode","_EPDFAction_GetWarningFlags","_EPDFAction_IsComplete","_EPDFAction_LoadModel","_EPDFAction_NodeHasJavaScript","_EPDFAnnot_ApplyRedaction","_EPDFAnnot_ClearBorderEffect","_EPDFAnnot_ClearColor","_EPDFAnnot_ClearEmbedMetadata","_EPDFAnnot_ClearEmbedMetadataKey","_EPDFAnnot_ClearMKColor","_EPDFAnnot_ClearRectangleDifferences","_EPDFAnnot_ExportAppearanceAsDocument","_EPDFAnnot_ExportMultipleAppearancesAsDocument","_EPDFAnnot_Flatten","_EPDFAnnot_GenerateAppearance","_EPDFAnnot_GenerateAppearanceWithBlend","_EPDFAnnot_GenerateFormFieldAP","_EPDFAnnot_GetActionModel","_EPDFAnnot_GetAPMatrix","_EPDFAnnot_GetAvailableAppearanceModes","_EPDFAnnot_GetBlendMode","_EPDFAnnot_GetBorderDashPattern","_EPDFAnnot_GetBorderDashPatternCount","_EPDFAnnot_GetBorderEffect","_EPDFAnnot_GetBorderStyle","_EPDFAnnot_GetCalloutLine","_EPDFAnnot_GetCalloutLineCount","_EPDFAnnot_GetColor","_EPDFAnnot_GetDefaultAppearance","_EPDFAnnot_GetEmbedMetadataBoolean","_EPDFAnnot_GetEmbedMetadataJSON","_EPDFAnnot_GetEmbedMetadataNumber","_EPDFAnnot_GetEmbedMetadataRect","_EPDFAnnot_GetEmbedMetadataString","_EPDFAnnot_GetExtendedRotation","_EPDFAnnot_GetIntent","_EPDFAnnot_GetLineEndings","_EPDFAnnot_GetMKColor","_EPDFAnnot_GetName","_EPDFAnnot_GetObjectNumber","_EPDFAnnot_GetOpacity","_EPDFAnnot_GetOverlayText","_EPDFAnnot_GetOverlayTextRepeat","_EPDFAnnot_GetRect","_EPDFAnnot_GetRectangleDifferences","_EPDFAnnot_GetReplyType","_EPDFAnnot_GetRichContent","_EPDFAnnot_GetRotate","_EPDFAnnot_GetTextAlignment","_EPDFAnnot_GetUnrotatedRect","_EPDFAnnot_GetVerticalAlignment","_EPDFAnnot_HasAppearanceStream","_EPDFAnnot_HasEmbedMetadata","_EPDFAnnot_RemoveAction","_EPDFAnnot_RemoveDest","_EPDFAnnot_SetAction","_EPDFAnnot_SetAPMatrix","_EPDFAnnot_SetAppearanceFromPage","_EPDFAnnot_SetBorderDashPattern","_EPDFAnnot_SetBorderEffect","_EPDFAnnot_SetBorderStyle","_EPDFAnnot_SetCalloutLine","_EPDFAnnot_SetColor","_EPDFAnnot_SetDefaultAppearance","_EPDFAnnot_SetDefaultAppearanceRegisteredFont","_EPDFAnnot_SetEmbedMetadataBoolean","_EPDFAnnot_SetEmbedMetadataJSON","_EPDFAnnot_SetEmbedMetadataNumber","_EPDFAnnot_SetEmbedMetadataRect","_EPDFAnnot_SetEmbedMetadataString","_EPDFAnnot_SetExtendedRotation","_EPDFAnnot_SetIntent","_EPDFAnnot_SetLine","_EPDFAnnot_SetLineEndings","_EPDFAnnot_SetLinkedAnnot","_EPDFAnnot_SetMKColor","_EPDFAnnot_SetName","_EPDFAnnot_SetNumberValue","_EPDFAnnot_SetOpacity","_EPDFAnnot_SetOverlayText","_EPDFAnnot_SetOverlayTextRepeat","_EPDFAnnot_SetRectangleDifferences","_EPDFAnnot_SetReplyType","_EPDFAnnot_SetRotate","_EPDFAnnot_SetTextAlignment","_EPDFAnnot_SetUnrotatedRect","_EPDFAnnot_SetVerticalAlignment","_EPDFAnnot_SetVertices","_EPDFAnnot_UpdateAppearanceToRect","_EPDFAttachment_ExtractFile","_EPDFAttachment_ExtractFileToOwnedBuffer","_EPDFAttachment_GetDescription","_EPDFAttachment_GetIntegerValue","_EPDFAttachment_SetDescription","_EPDFAttachment_SetSubtype","_EPDFBookmark_AppendChild","_EPDFBookmark_Clear","_EPDFBookmark_ClearTarget","_EPDFBookmark_Create","_EPDFBookmark_Delete","_EPDFBookmark_InsertAfter","_EPDFBookmark_SetAction","_EPDFBookmark_SetDest","_EPDFBookmark_SetTitle","_EPDFCatalog_GetLanguage","_EPDFDest_CreateRemoteView","_EPDFDest_CreateRemoteXYZ","_EPDFDest_CreateView","_EPDFDest_CreateXYZ","_EPDFDest_GetPageObjectNumber","_EPDFDoc_ClearPagePieceInfoEntry","_EPDFDoc_ClearPagePieceInfoKey","_EPDFDoc_ClearPieceInfoEntry","_EPDFDoc_ClearPieceInfoKey","_EPDFDoc_DeletePageByObjectNumber","_EPDFDoc_GetAdditionalActionModel","_EPDFDoc_GetAttachmentIndexByKey","_EPDFDoc_GetAttachmentKey","_EPDFDoc_GetLastModified","_EPDFDoc_GetNamedJavaScriptActionModel","_EPDFDoc_GetOpenActionModel","_EPDFDoc_GetPageActionModel","_EPDFDoc_GetPageLastModified","_EPDFDoc_GetPageObjectNumberByIndex","_EPDFDoc_GetPagePieceInfoBoolean","_EPDFDoc_GetPagePieceInfoEntryAt","_EPDFDoc_GetPagePieceInfoEntryCount","_EPDFDoc_GetPagePieceInfoKeyAt","_EPDFDoc_GetPagePieceInfoKeyCount","_EPDFDoc_GetPagePieceInfoLastModified","_EPDFDoc_GetPagePieceInfoName","_EPDFDoc_GetPagePieceInfoNumber","_EPDFDoc_GetPagePieceInfoString","_EPDFDoc_GetPagePieceInfoStringArrayAt","_EPDFDoc_GetPagePieceInfoStringArrayCount","_EPDFDoc_GetPagePieceInfoValueType","_EPDFDoc_GetPieceInfoBoolean","_EPDFDoc_GetPieceInfoEntryAt","_EPDFDoc_GetPieceInfoEntryCount","_EPDFDoc_GetPieceInfoKeyAt","_EPDFDoc_GetPieceInfoKeyCount","_EPDFDoc_GetPieceInfoLastModified","_EPDFDoc_GetPieceInfoName","_EPDFDoc_GetPieceInfoNumber","_EPDFDoc_GetPieceInfoString","_EPDFDoc_GetPieceInfoStringArrayAt","_EPDFDoc_GetPieceInfoStringArrayCount","_EPDFDoc_GetPieceInfoValueType","_EPDFDoc_HasPagePieceInfoEntry","_EPDFDoc_HasPieceInfoEntry","_EPDFDoc_LoadPageByObjectNumber","_EPDFDoc_LoadPageByObjectNumberNormalized","_EPDFDoc_SetPagePieceInfoBoolean","_EPDFDoc_SetPagePieceInfoName","_EPDFDoc_SetPagePieceInfoNumber","_EPDFDoc_SetPagePieceInfoString","_EPDFDoc_SetPagePieceInfoStringArray","_EPDFDoc_SetPageRotationByObjectNumber","_EPDFDoc_SetPieceInfoBoolean","_EPDFDoc_SetPieceInfoName","_EPDFDoc_SetPieceInfoNumber","_EPDFDoc_SetPieceInfoString","_EPDFDoc_SetPieceInfoStringArray","_EPDFDocument_ClearEmbedMetadata","_EPDFFont_AddFallbackFont","_EPDFFont_ClearFallbackFonts","_EPDFFont_ClearRegisteredFonts","_EPDFFont_RegisterFont","_EPDFFont_RegisterMemFont","_EPDFFont_RegisterMemFont64","_EPDFForm_AttachWidget","_EPDFForm_CloseModel","_EPDFForm_CountCalculationOrder","_EPDFForm_CountFieldDefaultValues","_EPDFForm_CountFieldOptions","_EPDFForm_CountFields","_EPDFForm_CountFieldValues","_EPDFForm_CountFieldWidgets","_EPDFForm_CreateField","_EPDFForm_DeleteField","_EPDFForm_DetachWidget","_EPDFForm_ExportFDF","_EPDFForm_ExportXFDF","_EPDFForm_GetCalculationOrderFieldIndex","_EPDFForm_GetFieldActionModel","_EPDFForm_GetFieldAlternateName","_EPDFForm_GetFieldDefaultValueAt","_EPDFForm_GetFieldDefaultValueKind","_EPDFForm_GetFieldFamily","_EPDFForm_GetFieldFlags","_EPDFForm_GetFieldIndexByObjNum","_EPDFForm_GetFieldIndexForWidget","_EPDFForm_GetFieldMappingName","_EPDFForm_GetFieldMaxLen","_EPDFForm_GetFieldName","_EPDFForm_GetFieldObjNum","_EPDFForm_GetFieldOptionLabel","_EPDFForm_GetFieldOptionValue","_EPDFForm_GetFieldOrigin","_EPDFForm_GetFieldValueAt","_EPDFForm_GetFieldValueKind","_EPDFForm_GetFieldWidgetExportValue","_EPDFForm_GetFieldWidgetObjNum","_EPDFForm_GetFieldWidgetOnState","_EPDFForm_GetFieldWidgetPageObjNum","_EPDFForm_GetFormKind","_EPDFForm_GetNeedAppearances","_EPDFForm_ImportFDF","_EPDFForm_ImportXFDF","_EPDFForm_IsFieldOptionSelected","_EPDFForm_IsFieldWidgetChecked","_EPDFForm_LoadModel","_EPDFForm_RemoveFieldDefaultValue","_EPDFForm_Repair","_EPDFForm_ResetField","_EPDFForm_SetChoiceValues","_EPDFForm_SetFieldAlternateName","_EPDFForm_SetFieldAppearanceText","_EPDFForm_SetFieldDefaultToggle","_EPDFForm_SetFieldDefaultValues","_EPDFForm_SetFieldDisplay","_EPDFForm_SetFieldFlags","_EPDFForm_SetFieldMappingName","_EPDFForm_SetFieldMaxLen","_EPDFForm_SetFieldName","_EPDFForm_SetFieldOptions","_EPDFForm_SetTextValue","_EPDFForm_SetToggle","_EPDFImageObj_SetJpeg","_EPDFImageObj_SetPng","_EPDFLayer_GetBaseDocument","_EPDFLayer_GetPromotedObjectCount","_EPDFLayer_IsObjectPromoted","_EPDFLayer_OpenLayer","_EPDFLayer_OpenLayerArtifact","_EPDFLayer_SaveDelta","_EPDFLayer_SaveDeltaToOwnedBuffer","_EPDFLayer_SaveLayerArtifact","_EPDFLayer_SaveLayerArtifactToOwnedBuffer","_EPDFNamedDest_Remove","_EPDFNamedDest_SetDest","_EPDFPage_ApplyRedactions","_EPDFPage_CreateAnnot","_EPDFPage_Flatten","_EPDFPage_GetAnnotByName","_EPDFPage_GetAnnotByObjectNumber","_EPDFPage_GetAnnotCountRaw","_EPDFPage_GetAnnotRaw","_EPDFPage_GetObjectNumber","_EPDFPage_MoveAnnots","_EPDFPage_RemoveAnnot","_EPDFPage_RemoveAnnotByName","_EPDFPage_RemoveAnnotByObjectNumber","_EPDFPage_RemoveAnnotRaw","_EPDFText_GetCharGeometry","_EPDFText_GetCharToTextMap","_EPDFText_GetTextFull","_EPDFText_RedactInQuads","_EPDFText_RedactInRect","_FORM_CanRedo","_FORM_CanUndo","_FORM_DoDocumentAAction","_FORM_DoDocumentJSAction","_FORM_DoDocumentOpenAction","_FORM_DoPageAAction","_FORM_ForceToKillFocus","_FORM_GetFocusedAnnot","_FORM_GetFocusedText","_FORM_GetSelectedText","_FORM_IsIndexSelected","_FORM_OnAfterLoadPage","_FORM_OnBeforeClosePage","_FORM_OnChar","_FORM_OnFocus","_FORM_OnKeyDown","_FORM_OnKeyUp","_FORM_OnLButtonDoubleClick","_FORM_OnLButtonDown","_FORM_OnLButtonUp","_FORM_OnMouseMove","_FORM_OnMouseWheel","_FORM_OnRButtonDown","_FORM_OnRButtonUp","_FORM_Redo","_FORM_ReplaceAndKeepSelection","_FORM_ReplaceSelection","_FORM_SelectAllText","_FORM_SetFocusedAnnot","_FORM_SetIndexSelected","_FORM_Undo","_FPDF_AddInstalledFont","_FPDF_CloseDocument","_FPDF_ClosePage","_FPDF_CloseXObject","_FPDF_CopyViewerPreferences","_FPDF_CountNamedDests","_FPDF_CreateClipPath","_FPDF_CreateNewDocument","_FPDF_DestroyClipPath","_FPDF_DestroyLibrary","_FPDF_DeviceToPage","_FPDF_DocumentHasValidCrossReferenceTable","_FPDF_FFLDraw","_FPDF_FreeDefaultSystemFontInfo","_FPDF_GetDefaultSystemFontInfo","_FPDF_GetDefaultTTFMap","_FPDF_GetDefaultTTFMapCount","_FPDF_GetDefaultTTFMapEntry","_FPDF_GetDocPermissions","_FPDF_GetDocUserPermissions","_FPDF_GetFileIdentifier","_FPDF_GetFileVersion","_FPDF_GetFormType","_FPDF_GetLastError","_FPDF_GetMetaText","_FPDF_GetNamedDest","_FPDF_GetNamedDestByName","_FPDF_GetPageAAction","_FPDF_GetPageBoundingBox","_FPDF_GetPageCount","_FPDF_GetPageHeight","_FPDF_GetPageHeightF","_FPDF_GetPageLabel","_FPDF_GetPageSizeByIndex","_FPDF_GetPageSizeByIndexF","_FPDF_GetPageWidth","_FPDF_GetPageWidthF","_FPDF_GetSecurityHandlerRevision","_FPDF_GetSignatureCount","_FPDF_GetSignatureObject","_FPDF_GetTrailerEnds","_FPDF_GetXFAPacketContent","_FPDF_GetXFAPacketCount","_FPDF_GetXFAPacketName","_FPDF_ImportNPagesToOne","_FPDF_ImportPages","_FPDF_ImportPagesByIndex","_FPDF_InitLibrary","_FPDF_InitLibraryWithConfig","_FPDF_LoadCustomDocument","_FPDF_LoadDocument","_FPDF_LoadMemDocument","_FPDF_LoadMemDocument64","_FPDF_LoadPage","_FPDF_LoadXFA","_FPDF_MovePages","_FPDF_NewFormObjectFromXObject","_FPDF_NewXObjectFromPage","_FPDF_PageToDevice","_FPDF_RemoveFormFieldHighlight","_FPDF_RenderPage_Close","_FPDF_RenderPage_Continue","_FPDF_RenderPageBitmap","_FPDF_RenderPageBitmap_Start","_FPDF_RenderPageBitmapWithColorScheme_Start","_FPDF_RenderPageBitmapWithMatrix","_FPDF_SaveAsCopy","_FPDF_SaveWithVersion","_FPDF_SetFormFieldHighlightAlpha","_FPDF_SetFormFieldHighlightColor","_FPDF_SetSandBoxPolicy","_FPDF_SetSystemFontInfo","_FPDF_StructElement_Attr_CountChildren","_FPDF_StructElement_Attr_GetBlobValue","_FPDF_StructElement_Attr_GetBooleanValue","_FPDF_StructElement_Attr_GetChildAtIndex","_FPDF_StructElement_Attr_GetCount","_FPDF_StructElement_Attr_GetName","_FPDF_StructElement_Attr_GetNumberValue","_FPDF_StructElement_Attr_GetStringValue","_FPDF_StructElement_Attr_GetType","_FPDF_StructElement_Attr_GetValue","_FPDF_StructElement_CountChildren","_FPDF_StructElement_GetActualText","_FPDF_StructElement_GetAltText","_FPDF_StructElement_GetAttributeAtIndex","_FPDF_StructElement_GetAttributeCount","_FPDF_StructElement_GetChildAtIndex","_FPDF_StructElement_GetChildMarkedContentID","_FPDF_StructElement_GetID","_FPDF_StructElement_GetLang","_FPDF_StructElement_GetMarkedContentID","_FPDF_StructElement_GetMarkedContentIdAtIndex","_FPDF_StructElement_GetMarkedContentIdCount","_FPDF_StructElement_GetObjType","_FPDF_StructElement_GetParent","_FPDF_StructElement_GetStringAttribute","_FPDF_StructElement_GetTitle","_FPDF_StructElement_GetType","_FPDF_StructTree_Close","_FPDF_StructTree_CountChildren","_FPDF_StructTree_GetChildAtIndex","_FPDF_StructTree_GetForPage","_FPDF_VIEWERREF_GetDuplex","_FPDF_VIEWERREF_GetName","_FPDF_VIEWERREF_GetNumCopies","_FPDF_VIEWERREF_GetPrintPageRange","_FPDF_VIEWERREF_GetPrintPageRangeCount","_FPDF_VIEWERREF_GetPrintPageRangeElement","_FPDF_VIEWERREF_GetPrintScaling","_FPDFAction_GetDest","_FPDFAction_GetFilePath","_FPDFAction_GetType","_FPDFAction_GetURIPath","_FPDFAnnot_AddFileAttachment","_FPDFAnnot_AddInkStroke","_FPDFAnnot_AppendAttachmentPoints","_FPDFAnnot_AppendObject","_FPDFAnnot_CountAttachmentPoints","_FPDFAnnot_GetAP","_FPDFAnnot_GetAttachmentPoints","_FPDFAnnot_GetBorder","_FPDFAnnot_GetColor","_FPDFAnnot_GetFileAttachment","_FPDFAnnot_GetFlags","_FPDFAnnot_GetFocusableSubtypes","_FPDFAnnot_GetFocusableSubtypesCount","_FPDFAnnot_GetFontColor","_FPDFAnnot_GetFontSize","_FPDFAnnot_GetFormAdditionalActionJavaScript","_FPDFAnnot_GetFormControlCount","_FPDFAnnot_GetFormControlIndex","_FPDFAnnot_GetFormFieldAlternateName","_FPDFAnnot_GetFormFieldAtPoint","_FPDFAnnot_GetFormFieldExportValue","_FPDFAnnot_GetFormFieldFlags","_FPDFAnnot_GetFormFieldName","_FPDFAnnot_GetFormFieldType","_FPDFAnnot_GetFormFieldValue","_FPDFAnnot_GetInkListCount","_FPDFAnnot_GetInkListPath","_FPDFAnnot_GetLine","_FPDFAnnot_GetLink","_FPDFAnnot_GetLinkedAnnot","_FPDFAnnot_GetNumberValue","_FPDFAnnot_GetObject","_FPDFAnnot_GetObjectCount","_FPDFAnnot_GetOptionCount","_FPDFAnnot_GetOptionLabel","_FPDFAnnot_GetRect","_FPDFAnnot_GetStringValue","_FPDFAnnot_GetSubtype","_FPDFAnnot_GetValueType","_FPDFAnnot_GetVertices","_FPDFAnnot_HasAttachmentPoints","_FPDFAnnot_HasKey","_FPDFAnnot_IsChecked","_FPDFAnnot_IsObjectSupportedSubtype","_FPDFAnnot_IsOptionSelected","_FPDFAnnot_IsSupportedSubtype","_FPDFAnnot_RemoveInkList","_FPDFAnnot_RemoveObject","_FPDFAnnot_SetAP","_FPDFAnnot_SetAttachmentPoints","_FPDFAnnot_SetBorder","_FPDFAnnot_SetColor","_FPDFAnnot_SetFlags","_FPDFAnnot_SetFocusableSubtypes","_FPDFAnnot_SetFontColor","_FPDFAnnot_SetFormFieldFlags","_FPDFAnnot_SetRect","_FPDFAnnot_SetStringValue","_FPDFAnnot_SetURI","_FPDFAnnot_UpdateObject","_FPDFAttachment_GetFile","_FPDFAttachment_GetName","_FPDFAttachment_GetStringValue","_FPDFAttachment_GetSubtype","_FPDFAttachment_GetValueType","_FPDFAttachment_HasKey","_FPDFAttachment_SetFile","_FPDFAttachment_SetStringValue","_FPDFAvail_Create","_FPDFAvail_Destroy","_FPDFAvail_GetDocument","_FPDFAvail_GetFirstPageNum","_FPDFAvail_IsDocAvail","_FPDFAvail_IsFormAvail","_FPDFAvail_IsLinearized","_FPDFAvail_IsPageAvail","_FPDFBitmap_Create","_FPDFBitmap_CreateEx","_FPDFBitmap_Destroy","_FPDFBitmap_FillRect","_FPDFBitmap_GetBuffer","_FPDFBitmap_GetFormat","_FPDFBitmap_GetHeight","_FPDFBitmap_GetStride","_FPDFBitmap_GetWidth","_FPDFBookmark_Find","_FPDFBookmark_GetAction","_FPDFBookmark_GetCount","_FPDFBookmark_GetDest","_FPDFBookmark_GetFirstChild","_FPDFBookmark_GetNextSibling","_FPDFBookmark_GetTitle","_FPDFCatalog_GetLanguage","_FPDFCatalog_IsTagged","_FPDFCatalog_SetLanguage","_FPDFClipPath_CountPaths","_FPDFClipPath_CountPathSegments","_FPDFClipPath_GetPathSegment","_FPDFDest_GetDestPageIndex","_FPDFDest_GetLocationInPage","_FPDFDest_GetView","_FPDFDoc_AddAttachment","_FPDFDoc_CloseJavaScriptAction","_FPDFDoc_DeleteAttachment","_FPDFDOC_ExitFormFillEnvironment","_FPDFDoc_GetAttachment","_FPDFDoc_GetAttachmentCount","_FPDFDoc_GetJavaScriptAction","_FPDFDoc_GetJavaScriptActionCount","_FPDFDoc_GetPageMode","_FPDFDOC_InitFormFillEnvironment","_FPDFFont_Close","_FPDFFont_GetAscent","_FPDFFont_GetBaseFontName","_FPDFFont_GetDescent","_FPDFFont_GetFamilyName","_FPDFFont_GetFlags","_FPDFFont_GetFontData","_FPDFFont_GetGlyphPath","_FPDFFont_GetGlyphWidth","_FPDFFont_GetIsEmbedded","_FPDFFont_GetItalicAngle","_FPDFFont_GetWeight","_FPDFFormObj_CountObjects","_FPDFFormObj_GetObject","_FPDFFormObj_RemoveObject","_FPDFGlyphPath_CountGlyphSegments","_FPDFGlyphPath_GetGlyphPathSegment","_FPDFImageObj_GetBitmap","_FPDFImageObj_GetIccProfileDataDecoded","_FPDFImageObj_GetImageDataDecoded","_FPDFImageObj_GetImageDataRaw","_FPDFImageObj_GetImageFilter","_FPDFImageObj_GetImageFilterCount","_FPDFImageObj_GetImageMetadata","_FPDFImageObj_GetImagePixelSize","_FPDFImageObj_GetRenderedBitmap","_FPDFImageObj_LoadJpegFile","_FPDFImageObj_LoadJpegFileInline","_FPDFImageObj_SetBitmap","_FPDFImageObj_SetMatrix","_FPDFJavaScriptAction_GetName","_FPDFJavaScriptAction_GetScript","_FPDFLink_CloseWebLinks","_FPDFLink_CountQuadPoints","_FPDFLink_CountRects","_FPDFLink_CountWebLinks","_FPDFLink_Enumerate","_FPDFLink_GetAction","_FPDFLink_GetAnnot","_FPDFLink_GetAnnotRect","_FPDFLink_GetDest","_FPDFLink_GetLinkAtPoint","_FPDFLink_GetLinkZOrderAtPoint","_FPDFLink_GetQuadPoints","_FPDFLink_GetRect","_FPDFLink_GetTextRange","_FPDFLink_GetURL","_FPDFLink_LoadWebLinks","_FPDFPage_CloseAnnot","_FPDFPage_CountObjects","_FPDFPage_CreateAnnot","_FPDFPage_Delete","_FPDFPage_Flatten","_FPDFPage_FormFieldZOrderAtPoint","_FPDFPage_GenerateContent","_FPDFPage_GetAnnot","_FPDFPage_GetAnnotCount","_FPDFPage_GetAnnotIndex","_FPDFPage_GetArtBox","_FPDFPage_GetBleedBox","_FPDFPage_GetCropBox","_FPDFPage_GetDecodedThumbnailData","_FPDFPage_GetMediaBox","_FPDFPage_GetObject","_FPDFPage_GetRawThumbnailData","_FPDFPage_GetRotation","_FPDFPage_GetThumbnailAsBitmap","_FPDFPage_GetTrimBox","_FPDFPage_HasFormFieldAtPoint","_FPDFPage_HasTransparency","_FPDFPage_InsertClipPath","_FPDFPage_InsertObject","_FPDFPage_InsertObjectAtIndex","_FPDFPage_New","_FPDFPage_RemoveAnnot","_FPDFPage_RemoveObject","_FPDFPage_SetArtBox","_FPDFPage_SetBleedBox","_FPDFPage_SetCropBox","_FPDFPage_SetMediaBox","_FPDFPage_SetRotation","_FPDFPage_SetTrimBox","_FPDFPage_TransformAnnots","_FPDFPage_TransFormWithClip","_FPDFPageObj_AddMark","_FPDFPageObj_CountMarks","_FPDFPageObj_CreateNewPath","_FPDFPageObj_CreateNewRect","_FPDFPageObj_CreateTextObj","_FPDFPageObj_Destroy","_FPDFPageObj_GetBounds","_FPDFPageObj_GetClipPath","_FPDFPageObj_GetDashArray","_FPDFPageObj_GetDashCount","_FPDFPageObj_GetDashPhase","_FPDFPageObj_GetFillColor","_FPDFPageObj_GetIsActive","_FPDFPageObj_GetLineCap","_FPDFPageObj_GetLineJoin","_FPDFPageObj_GetMark","_FPDFPageObj_GetMarkedContentID","_FPDFPageObj_GetMatrix","_FPDFPageObj_GetRotatedBounds","_FPDFPageObj_GetStrokeColor","_FPDFPageObj_GetStrokeWidth","_FPDFPageObj_GetType","_FPDFPageObj_HasTransparency","_FPDFPageObj_NewImageObj","_FPDFPageObj_NewTextObj","_FPDFPageObj_RemoveMark","_FPDFPageObj_SetBlendMode","_FPDFPageObj_SetDashArray","_FPDFPageObj_SetDashPhase","_FPDFPageObj_SetFillColor","_FPDFPageObj_SetIsActive","_FPDFPageObj_SetLineCap","_FPDFPageObj_SetLineJoin","_FPDFPageObj_SetMatrix","_FPDFPageObj_SetStrokeColor","_FPDFPageObj_SetStrokeWidth","_FPDFPageObj_Transform","_FPDFPageObj_TransformClipPath","_FPDFPageObj_TransformF","_FPDFPageObjMark_CountParams","_FPDFPageObjMark_GetName","_FPDFPageObjMark_GetParamBlobValue","_FPDFPageObjMark_GetParamFloatValue","_FPDFPageObjMark_GetParamIntValue","_FPDFPageObjMark_GetParamKey","_FPDFPageObjMark_GetParamStringValue","_FPDFPageObjMark_GetParamValueType","_FPDFPageObjMark_RemoveParam","_FPDFPageObjMark_SetBlobParam","_FPDFPageObjMark_SetFloatParam","_FPDFPageObjMark_SetIntParam","_FPDFPageObjMark_SetStringParam","_FPDFPath_BezierTo","_FPDFPath_Close","_FPDFPath_CountSegments","_FPDFPath_GetDrawMode","_FPDFPath_GetPathSegment","_FPDFPath_LineTo","_FPDFPath_MoveTo","_FPDFPath_SetDrawMode","_FPDFPathSegment_GetClose","_FPDFPathSegment_GetPoint","_FPDFPathSegment_GetType","_FPDFSignatureObj_GetByteRange","_FPDFSignatureObj_GetContents","_FPDFSignatureObj_GetDocMDPPermission","_FPDFSignatureObj_GetReason","_FPDFSignatureObj_GetSubFilter","_FPDFSignatureObj_GetTime","_FPDFText_ClosePage","_FPDFText_CountChars","_FPDFText_CountRects","_FPDFText_FindClose","_FPDFText_FindNext","_FPDFText_FindPrev","_FPDFText_FindStart","_FPDFText_GetBoundedText","_FPDFText_GetCharAngle","_FPDFText_GetCharBox","_FPDFText_GetCharIndexAtPos","_FPDFText_GetCharIndexFromTextIndex","_FPDFText_GetCharOrigin","_FPDFText_GetFillColor","_FPDFText_GetFontInfo","_FPDFText_GetFontSize","_FPDFText_GetFontWeight","_FPDFText_GetLooseCharBox","_FPDFText_GetMatrix","_FPDFText_GetRect","_FPDFText_GetSchCount","_FPDFText_GetSchResultIndex","_FPDFText_GetStrokeColor","_FPDFText_GetText","_FPDFText_GetTextIndexFromCharIndex","_FPDFText_GetTextObject","_FPDFText_GetUnicode","_FPDFText_HasUnicodeMapError","_FPDFText_IsGenerated","_FPDFText_IsHyphen","_FPDFText_LoadCidType2Font","_FPDFText_LoadFont","_FPDFText_LoadPage","_FPDFText_LoadStandardFont","_FPDFText_SetCharcodes","_FPDFText_SetPositions","_FPDFText_SetText","_FPDFTextObj_GetFont","_FPDFTextObj_GetFontSize","_FPDFTextObj_GetRenderedBitmap","_FPDFTextObj_GetText","_FPDFTextObj_GetTextRenderMode","_FPDFTextObj_SetTextRenderMode","_PDFiumExt_CloseFileWriter","_PDFiumExt_CloseFormFillInfo","_PDFiumExt_ExitFormFillEnvironment","_PDFiumExt_GetFileWriterData","_PDFiumExt_GetFileWriterSize","_PDFiumExt_Init","_PDFiumExt_InitFormFillEnvironment","_PDFiumExt_OpenFileWriter","_PDFiumExt_OpenFormFillInfo","_PDFiumExt_SaveAsCopy","_malloc","_free","_memory","___indirect_function_table","onRuntimeInitialized"].forEach((prop) => {
   if (!Object.getOwnPropertyDescriptor(readyPromise, prop)) {
     Object.defineProperty(readyPromise, prop, {
       get: () => abort('You are getting ' + prop + ' on the Promise object, instead of the instance. Use .then() to get called back with the instance, see the MODULARIZE docs in src/settings.js'),
@@ -4175,6 +4175,9 @@ function dbg(...args) {
       abort('native code called abort()');
     };
 
+  var nowIsMonotonic = 1;
+  var __emscripten_get_now_is_monotonic = () => nowIsMonotonic;
+
   var __emscripten_memcpy_js = (dest, src, num) => HEAPU8.copyWithin(dest, src, src + num);
 
   var __emscripten_throw_longjmp = () => {
@@ -4293,6 +4296,8 @@ function dbg(...args) {
     };
 
   var _emscripten_date_now = () => Date.now();
+
+  var _emscripten_get_now = () => performance.now();
 
   var getHeapMax = () =>
       // Stay one Wasm page short of 4GB: while e.g. Chrome is able to allocate
@@ -4949,6 +4954,8 @@ var wasmImports = {
   /** @export */
   _abort_js: __abort_js,
   /** @export */
+  _emscripten_get_now_is_monotonic: __emscripten_get_now_is_monotonic,
+  /** @export */
   _emscripten_memcpy_js: __emscripten_memcpy_js,
   /** @export */
   _emscripten_throw_longjmp: __emscripten_throw_longjmp,
@@ -4960,6 +4967,8 @@ var wasmImports = {
   _tzset_js: __tzset_js,
   /** @export */
   emscripten_date_now: _emscripten_date_now,
+  /** @export */
+  emscripten_get_now: _emscripten_get_now,
   /** @export */
   emscripten_resize_heap: _emscripten_resize_heap,
   /** @export */
@@ -4984,6 +4993,10 @@ var wasmImports = {
   invoke_iiii,
   /** @export */
   invoke_iiiii,
+  /** @export */
+  invoke_v,
+  /** @export */
+  invoke_vi,
   /** @export */
   invoke_vii,
   /** @export */
@@ -5177,6 +5190,105 @@ var _FPDFGlyphPath_GetGlyphPathSegment = Module['_FPDFGlyphPath_GetGlyphPathSegm
 var _ec_synth_run_font = Module['_ec_synth_run_font'] = createExportWrapper('ec_synth_run_font', 5);
 var _ec_test_shape = Module['_ec_test_shape'] = createExportWrapper('ec_test_shape', 3);
 var _ec_test_subset = Module['_ec_test_subset'] = createExportWrapper('ec_test_subset', 4);
+var _EPDFAction_CloseModel = Module['_EPDFAction_CloseModel'] = createExportWrapper('EPDFAction_CloseModel', 1);
+var _EPDFAction_LoadModel = Module['_EPDFAction_LoadModel'] = createExportWrapper('EPDFAction_LoadModel', 1);
+var _EPDFAction_GetRootNode = Module['_EPDFAction_GetRootNode'] = createExportWrapper('EPDFAction_GetRootNode', 1);
+var _EPDFAction_GetNodeCount = Module['_EPDFAction_GetNodeCount'] = createExportWrapper('EPDFAction_GetNodeCount', 1);
+var _EPDFAction_GetNodeType = Module['_EPDFAction_GetNodeType'] = createExportWrapper('EPDFAction_GetNodeType', 2);
+var _EPDFAction_GetNodeSubtype = Module['_EPDFAction_GetNodeSubtype'] = createExportWrapper('EPDFAction_GetNodeSubtype', 4);
+var _EPDFAction_NodeHasJavaScript = Module['_EPDFAction_NodeHasJavaScript'] = createExportWrapper('EPDFAction_NodeHasJavaScript', 2);
+var _EPDFAction_GetNodeJavaScript = Module['_EPDFAction_GetNodeJavaScript'] = createExportWrapper('EPDFAction_GetNodeJavaScript', 4);
+var _EPDFAction_GetNodeDest = Module['_EPDFAction_GetNodeDest'] = createExportWrapper('EPDFAction_GetNodeDest', 3);
+var _EPDFAction_GetNodeURI = Module['_EPDFAction_GetNodeURI'] = createExportWrapper('EPDFAction_GetNodeURI', 5);
+var _EPDFAction_GetNodeFilePath = Module['_EPDFAction_GetNodeFilePath'] = createExportWrapper('EPDFAction_GetNodeFilePath', 4);
+var _EPDFAction_GetNodeName = Module['_EPDFAction_GetNodeName'] = createExportWrapper('EPDFAction_GetNodeName', 4);
+var _EPDFAction_GetNextCount = Module['_EPDFAction_GetNextCount'] = createExportWrapper('EPDFAction_GetNextCount', 2);
+var _EPDFAction_GetNextAt = Module['_EPDFAction_GetNextAt'] = createExportWrapper('EPDFAction_GetNextAt', 3);
+var _EPDFAction_GetWarningFlags = Module['_EPDFAction_GetWarningFlags'] = createExportWrapper('EPDFAction_GetWarningFlags', 1);
+var _EPDFAction_IsComplete = Module['_EPDFAction_IsComplete'] = createExportWrapper('EPDFAction_IsComplete', 1);
+var _EPDFDoc_GetOpenActionModel = Module['_EPDFDoc_GetOpenActionModel'] = createExportWrapper('EPDFDoc_GetOpenActionModel', 1);
+var _EPDFDoc_GetAdditionalActionModel = Module['_EPDFDoc_GetAdditionalActionModel'] = createExportWrapper('EPDFDoc_GetAdditionalActionModel', 2);
+var _EPDFDoc_GetPageActionModel = Module['_EPDFDoc_GetPageActionModel'] = createExportWrapper('EPDFDoc_GetPageActionModel', 3);
+var _EPDFAnnot_GetActionModel = Module['_EPDFAnnot_GetActionModel'] = createExportWrapper('EPDFAnnot_GetActionModel', 2);
+var _EPDF_LoadBaseDocument = Module['_EPDF_LoadBaseDocument'] = createExportWrapper('EPDF_LoadBaseDocument', 2);
+var _EPDF_LoadMemBaseDocument = Module['_EPDF_LoadMemBaseDocument'] = createExportWrapper('EPDF_LoadMemBaseDocument', 3);
+var _EPDF_LoadMemBaseDocument64 = Module['_EPDF_LoadMemBaseDocument64'] = createExportWrapper('EPDF_LoadMemBaseDocument64', 3);
+var _EPDF_ReleaseBaseDocument = Module['_EPDF_ReleaseBaseDocument'] = createExportWrapper('EPDF_ReleaseBaseDocument', 1);
+var _EPDFFont_RegisterFont = Module['_EPDFFont_RegisterFont'] = createExportWrapper('EPDFFont_RegisterFont', 4);
+var _EPDFFont_RegisterMemFont = Module['_EPDFFont_RegisterMemFont'] = createExportWrapper('EPDFFont_RegisterMemFont', 5);
+var _EPDFFont_RegisterMemFont64 = Module['_EPDFFont_RegisterMemFont64'] = createExportWrapper('EPDFFont_RegisterMemFont64', 5);
+var _EPDFFont_ClearRegisteredFonts = Module['_EPDFFont_ClearRegisteredFonts'] = createExportWrapper('EPDFFont_ClearRegisteredFonts', 0);
+var _EPDFFont_AddFallbackFont = Module['_EPDFFont_AddFallbackFont'] = createExportWrapper('EPDFFont_AddFallbackFont', 1);
+var _EPDFFont_ClearFallbackFonts = Module['_EPDFFont_ClearFallbackFonts'] = createExportWrapper('EPDFFont_ClearFallbackFonts', 0);
+var _EPDFForm_LoadModel = Module['_EPDFForm_LoadModel'] = createExportWrapper('EPDFForm_LoadModel', 1);
+var _EPDFForm_CloseModel = Module['_EPDFForm_CloseModel'] = createExportWrapper('EPDFForm_CloseModel', 1);
+var _EPDFForm_GetFormKind = Module['_EPDFForm_GetFormKind'] = createExportWrapper('EPDFForm_GetFormKind', 1);
+var _EPDFForm_GetNeedAppearances = Module['_EPDFForm_GetNeedAppearances'] = createExportWrapper('EPDFForm_GetNeedAppearances', 1);
+var _EPDFForm_CountFields = Module['_EPDFForm_CountFields'] = createExportWrapper('EPDFForm_CountFields', 1);
+var _EPDFForm_GetFieldActionModel = Module['_EPDFForm_GetFieldActionModel'] = createExportWrapper('EPDFForm_GetFieldActionModel', 3);
+var _EPDFForm_CountCalculationOrder = Module['_EPDFForm_CountCalculationOrder'] = createExportWrapper('EPDFForm_CountCalculationOrder', 1);
+var _EPDFForm_GetCalculationOrderFieldIndex = Module['_EPDFForm_GetCalculationOrderFieldIndex'] = createExportWrapper('EPDFForm_GetCalculationOrderFieldIndex', 2);
+var _EPDFForm_GetFieldObjNum = Module['_EPDFForm_GetFieldObjNum'] = createExportWrapper('EPDFForm_GetFieldObjNum', 2);
+var _EPDFForm_GetFieldFamily = Module['_EPDFForm_GetFieldFamily'] = createExportWrapper('EPDFForm_GetFieldFamily', 2);
+var _EPDFForm_GetFieldFlags = Module['_EPDFForm_GetFieldFlags'] = createExportWrapper('EPDFForm_GetFieldFlags', 2);
+var _EPDFForm_GetFieldOrigin = Module['_EPDFForm_GetFieldOrigin'] = createExportWrapper('EPDFForm_GetFieldOrigin', 2);
+var _EPDFForm_GetFieldName = Module['_EPDFForm_GetFieldName'] = createExportWrapper('EPDFForm_GetFieldName', 4);
+var _EPDFForm_GetFieldAlternateName = Module['_EPDFForm_GetFieldAlternateName'] = createExportWrapper('EPDFForm_GetFieldAlternateName', 4);
+var _EPDFForm_GetFieldMappingName = Module['_EPDFForm_GetFieldMappingName'] = createExportWrapper('EPDFForm_GetFieldMappingName', 4);
+var _EPDFForm_GetFieldValueKind = Module['_EPDFForm_GetFieldValueKind'] = createExportWrapper('EPDFForm_GetFieldValueKind', 2);
+var _EPDFForm_CountFieldValues = Module['_EPDFForm_CountFieldValues'] = createExportWrapper('EPDFForm_CountFieldValues', 2);
+var _EPDFForm_GetFieldValueAt = Module['_EPDFForm_GetFieldValueAt'] = createExportWrapper('EPDFForm_GetFieldValueAt', 5);
+var _EPDFForm_GetFieldDefaultValueKind = Module['_EPDFForm_GetFieldDefaultValueKind'] = createExportWrapper('EPDFForm_GetFieldDefaultValueKind', 2);
+var _EPDFForm_CountFieldDefaultValues = Module['_EPDFForm_CountFieldDefaultValues'] = createExportWrapper('EPDFForm_CountFieldDefaultValues', 2);
+var _EPDFForm_GetFieldDefaultValueAt = Module['_EPDFForm_GetFieldDefaultValueAt'] = createExportWrapper('EPDFForm_GetFieldDefaultValueAt', 5);
+var _EPDFForm_GetFieldMaxLen = Module['_EPDFForm_GetFieldMaxLen'] = createExportWrapper('EPDFForm_GetFieldMaxLen', 2);
+var _EPDFForm_CountFieldOptions = Module['_EPDFForm_CountFieldOptions'] = createExportWrapper('EPDFForm_CountFieldOptions', 2);
+var _EPDFForm_GetFieldOptionLabel = Module['_EPDFForm_GetFieldOptionLabel'] = createExportWrapper('EPDFForm_GetFieldOptionLabel', 5);
+var _EPDFForm_GetFieldOptionValue = Module['_EPDFForm_GetFieldOptionValue'] = createExportWrapper('EPDFForm_GetFieldOptionValue', 5);
+var _EPDFForm_IsFieldOptionSelected = Module['_EPDFForm_IsFieldOptionSelected'] = createExportWrapper('EPDFForm_IsFieldOptionSelected', 3);
+var _EPDFForm_CountFieldWidgets = Module['_EPDFForm_CountFieldWidgets'] = createExportWrapper('EPDFForm_CountFieldWidgets', 2);
+var _EPDFForm_GetFieldWidgetObjNum = Module['_EPDFForm_GetFieldWidgetObjNum'] = createExportWrapper('EPDFForm_GetFieldWidgetObjNum', 3);
+var _EPDFForm_GetFieldWidgetPageObjNum = Module['_EPDFForm_GetFieldWidgetPageObjNum'] = createExportWrapper('EPDFForm_GetFieldWidgetPageObjNum', 3);
+var _EPDFForm_GetFieldWidgetOnState = Module['_EPDFForm_GetFieldWidgetOnState'] = createExportWrapper('EPDFForm_GetFieldWidgetOnState', 5);
+var _EPDFForm_GetFieldWidgetExportValue = Module['_EPDFForm_GetFieldWidgetExportValue'] = createExportWrapper('EPDFForm_GetFieldWidgetExportValue', 5);
+var _EPDFForm_IsFieldWidgetChecked = Module['_EPDFForm_IsFieldWidgetChecked'] = createExportWrapper('EPDFForm_IsFieldWidgetChecked', 3);
+var _EPDFForm_GetFieldIndexByObjNum = Module['_EPDFForm_GetFieldIndexByObjNum'] = createExportWrapper('EPDFForm_GetFieldIndexByObjNum', 2);
+var _EPDFForm_GetFieldIndexForWidget = Module['_EPDFForm_GetFieldIndexForWidget'] = createExportWrapper('EPDFForm_GetFieldIndexForWidget', 2);
+var _EPDFForm_SetToggle = Module['_EPDFForm_SetToggle'] = createExportWrapper('EPDFForm_SetToggle', 6);
+var _EPDFForm_SetTextValue = Module['_EPDFForm_SetTextValue'] = createExportWrapper('EPDFForm_SetTextValue', 6);
+var _EPDFForm_SetChoiceValues = Module['_EPDFForm_SetChoiceValues'] = createExportWrapper('EPDFForm_SetChoiceValues', 7);
+var _EPDFForm_ResetField = Module['_EPDFForm_ResetField'] = createExportWrapper('EPDFForm_ResetField', 5);
+var _EPDFForm_SetFieldDisplay = Module['_EPDFForm_SetFieldDisplay'] = createExportWrapper('EPDFForm_SetFieldDisplay', 6);
+var _EPDFForm_SetFieldAppearanceText = Module['_EPDFForm_SetFieldAppearanceText'] = createExportWrapper('EPDFForm_SetFieldAppearanceText', 6);
+var _EPDFForm_ExportFDF = Module['_EPDFForm_ExportFDF'] = createExportWrapper('EPDFForm_ExportFDF', 5);
+var _EPDFForm_ExportXFDF = Module['_EPDFForm_ExportXFDF'] = createExportWrapper('EPDFForm_ExportXFDF', 5);
+var _EPDFForm_ImportFDF = Module['_EPDFForm_ImportFDF'] = createExportWrapper('EPDFForm_ImportFDF', 4);
+var _EPDFForm_ImportXFDF = Module['_EPDFForm_ImportXFDF'] = createExportWrapper('EPDFForm_ImportXFDF', 4);
+var _EPDFForm_Repair = Module['_EPDFForm_Repair'] = createExportWrapper('EPDFForm_Repair', 3);
+var _EPDFForm_CreateField = Module['_EPDFForm_CreateField'] = createExportWrapper('EPDFForm_CreateField', 3);
+var _EPDFForm_AttachWidget = Module['_EPDFForm_AttachWidget'] = createExportWrapper('EPDFForm_AttachWidget', 4);
+var _EPDFForm_DetachWidget = Module['_EPDFForm_DetachWidget'] = createExportWrapper('EPDFForm_DetachWidget', 3);
+var _EPDFForm_DeleteField = Module['_EPDFForm_DeleteField'] = createExportWrapper('EPDFForm_DeleteField', 5);
+var _EPDFForm_SetFieldName = Module['_EPDFForm_SetFieldName'] = createExportWrapper('EPDFForm_SetFieldName', 3);
+var _EPDFForm_SetFieldFlags = Module['_EPDFForm_SetFieldFlags'] = createExportWrapper('EPDFForm_SetFieldFlags', 4);
+var _EPDFForm_SetFieldMaxLen = Module['_EPDFForm_SetFieldMaxLen'] = createExportWrapper('EPDFForm_SetFieldMaxLen', 3);
+var _EPDFForm_SetFieldDefaultValues = Module['_EPDFForm_SetFieldDefaultValues'] = createExportWrapper('EPDFForm_SetFieldDefaultValues', 4);
+var _EPDFForm_SetFieldDefaultToggle = Module['_EPDFForm_SetFieldDefaultToggle'] = createExportWrapper('EPDFForm_SetFieldDefaultToggle', 3);
+var _EPDFForm_RemoveFieldDefaultValue = Module['_EPDFForm_RemoveFieldDefaultValue'] = createExportWrapper('EPDFForm_RemoveFieldDefaultValue', 2);
+var _EPDFForm_SetFieldAlternateName = Module['_EPDFForm_SetFieldAlternateName'] = createExportWrapper('EPDFForm_SetFieldAlternateName', 3);
+var _EPDFForm_SetFieldMappingName = Module['_EPDFForm_SetFieldMappingName'] = createExportWrapper('EPDFForm_SetFieldMappingName', 3);
+var _EPDFForm_SetFieldOptions = Module['_EPDFForm_SetFieldOptions'] = createExportWrapper('EPDFForm_SetFieldOptions', 5);
+var _EPDFPage_Flatten = Module['_EPDFPage_Flatten'] = createExportWrapper('EPDFPage_Flatten', 2);
+var _EPDFAnnot_Flatten = Module['_EPDFAnnot_Flatten'] = createExportWrapper('EPDFAnnot_Flatten', 3);
+var _EPDFLayer_OpenLayer = Module['_EPDFLayer_OpenLayer'] = createExportWrapper('EPDFLayer_OpenLayer', 4);
+var _EPDFLayer_OpenLayerArtifact = Module['_EPDFLayer_OpenLayerArtifact'] = createExportWrapper('EPDFLayer_OpenLayerArtifact', 4);
+var _EPDFLayer_IsObjectPromoted = Module['_EPDFLayer_IsObjectPromoted'] = createExportWrapper('EPDFLayer_IsObjectPromoted', 2);
+var _EPDFLayer_GetPromotedObjectCount = Module['_EPDFLayer_GetPromotedObjectCount'] = createExportWrapper('EPDFLayer_GetPromotedObjectCount', 1);
+var _EPDFLayer_GetBaseDocument = Module['_EPDFLayer_GetBaseDocument'] = createExportWrapper('EPDFLayer_GetBaseDocument', 1);
+var _EPDFLayer_SaveDelta = Module['_EPDFLayer_SaveDelta'] = createExportWrapper('EPDFLayer_SaveDelta', 3);
+var _EPDFLayer_SaveDeltaToOwnedBuffer = Module['_EPDFLayer_SaveDeltaToOwnedBuffer'] = createExportWrapper('EPDFLayer_SaveDeltaToOwnedBuffer', 3);
+var _EPDFLayer_SaveLayerArtifact = Module['_EPDFLayer_SaveLayerArtifact'] = createExportWrapper('EPDFLayer_SaveLayerArtifact', 3);
+var _EPDFLayer_SaveLayerArtifactToOwnedBuffer = Module['_EPDFLayer_SaveLayerArtifactToOwnedBuffer'] = createExportWrapper('EPDFLayer_SaveLayerArtifactToOwnedBuffer', 3);
 var _EPDFNamedDest_SetDest = Module['_EPDFNamedDest_SetDest'] = createExportWrapper('EPDFNamedDest_SetDest', 3);
 var _EPDFNamedDest_Remove = Module['_EPDFNamedDest_Remove'] = createExportWrapper('EPDFNamedDest_Remove', 2);
 var _EPDFDest_CreateView = Module['_EPDFDest_CreateView'] = createExportWrapper('EPDFDest_CreateView', 4);
@@ -5198,7 +5310,53 @@ var _EPDFBookmark_SetTitle = Module['_EPDFBookmark_SetTitle'] = createExportWrap
 var _EPDFBookmark_SetDest = Module['_EPDFBookmark_SetDest'] = createExportWrapper('EPDFBookmark_SetDest', 3);
 var _EPDFBookmark_SetAction = Module['_EPDFBookmark_SetAction'] = createExportWrapper('EPDFBookmark_SetAction', 3);
 var _EPDFBookmark_ClearTarget = Module['_EPDFBookmark_ClearTarget'] = createExportWrapper('EPDFBookmark_ClearTarget', 1);
+var _EPDFDoc_HasPieceInfoEntry = Module['_EPDFDoc_HasPieceInfoEntry'] = createExportWrapper('EPDFDoc_HasPieceInfoEntry', 2);
+var _EPDFDoc_GetPieceInfoEntryCount = Module['_EPDFDoc_GetPieceInfoEntryCount'] = createExportWrapper('EPDFDoc_GetPieceInfoEntryCount', 1);
+var _EPDFDoc_GetPieceInfoEntryAt = Module['_EPDFDoc_GetPieceInfoEntryAt'] = createExportWrapper('EPDFDoc_GetPieceInfoEntryAt', 4);
+var _EPDFDoc_GetLastModified = Module['_EPDFDoc_GetLastModified'] = createExportWrapper('EPDFDoc_GetLastModified', 3);
+var _EPDFDoc_GetPieceInfoLastModified = Module['_EPDFDoc_GetPieceInfoLastModified'] = createExportWrapper('EPDFDoc_GetPieceInfoLastModified', 4);
+var _EPDFDoc_GetPieceInfoKeyCount = Module['_EPDFDoc_GetPieceInfoKeyCount'] = createExportWrapper('EPDFDoc_GetPieceInfoKeyCount', 2);
+var _EPDFDoc_GetPieceInfoKeyAt = Module['_EPDFDoc_GetPieceInfoKeyAt'] = createExportWrapper('EPDFDoc_GetPieceInfoKeyAt', 5);
+var _EPDFDoc_GetPieceInfoValueType = Module['_EPDFDoc_GetPieceInfoValueType'] = createExportWrapper('EPDFDoc_GetPieceInfoValueType', 3);
+var _EPDFDoc_SetPieceInfoString = Module['_EPDFDoc_SetPieceInfoString'] = createExportWrapper('EPDFDoc_SetPieceInfoString', 5);
+var _EPDFDoc_GetPieceInfoString = Module['_EPDFDoc_GetPieceInfoString'] = createExportWrapper('EPDFDoc_GetPieceInfoString', 5);
+var _EPDFDoc_SetPieceInfoNumber = Module['_EPDFDoc_SetPieceInfoNumber'] = createExportWrapper('EPDFDoc_SetPieceInfoNumber', 5);
+var _EPDFDoc_GetPieceInfoNumber = Module['_EPDFDoc_GetPieceInfoNumber'] = createExportWrapper('EPDFDoc_GetPieceInfoNumber', 4);
+var _EPDFDoc_SetPieceInfoBoolean = Module['_EPDFDoc_SetPieceInfoBoolean'] = createExportWrapper('EPDFDoc_SetPieceInfoBoolean', 5);
+var _EPDFDoc_GetPieceInfoBoolean = Module['_EPDFDoc_GetPieceInfoBoolean'] = createExportWrapper('EPDFDoc_GetPieceInfoBoolean', 4);
+var _EPDFDoc_SetPieceInfoName = Module['_EPDFDoc_SetPieceInfoName'] = createExportWrapper('EPDFDoc_SetPieceInfoName', 5);
+var _EPDFDoc_GetPieceInfoName = Module['_EPDFDoc_GetPieceInfoName'] = createExportWrapper('EPDFDoc_GetPieceInfoName', 5);
+var _EPDFDoc_SetPieceInfoStringArray = Module['_EPDFDoc_SetPieceInfoStringArray'] = createExportWrapper('EPDFDoc_SetPieceInfoStringArray', 6);
+var _EPDFDoc_GetPieceInfoStringArrayCount = Module['_EPDFDoc_GetPieceInfoStringArrayCount'] = createExportWrapper('EPDFDoc_GetPieceInfoStringArrayCount', 3);
+var _EPDFDoc_GetPieceInfoStringArrayAt = Module['_EPDFDoc_GetPieceInfoStringArrayAt'] = createExportWrapper('EPDFDoc_GetPieceInfoStringArrayAt', 6);
+var _EPDFDoc_ClearPieceInfoKey = Module['_EPDFDoc_ClearPieceInfoKey'] = createExportWrapper('EPDFDoc_ClearPieceInfoKey', 4);
+var _EPDFDoc_ClearPieceInfoEntry = Module['_EPDFDoc_ClearPieceInfoEntry'] = createExportWrapper('EPDFDoc_ClearPieceInfoEntry', 2);
+var _EPDFDoc_HasPagePieceInfoEntry = Module['_EPDFDoc_HasPagePieceInfoEntry'] = createExportWrapper('EPDFDoc_HasPagePieceInfoEntry', 3);
+var _EPDFDoc_GetPagePieceInfoEntryCount = Module['_EPDFDoc_GetPagePieceInfoEntryCount'] = createExportWrapper('EPDFDoc_GetPagePieceInfoEntryCount', 2);
+var _EPDFDoc_GetPagePieceInfoEntryAt = Module['_EPDFDoc_GetPagePieceInfoEntryAt'] = createExportWrapper('EPDFDoc_GetPagePieceInfoEntryAt', 5);
+var _EPDFDoc_GetPageLastModified = Module['_EPDFDoc_GetPageLastModified'] = createExportWrapper('EPDFDoc_GetPageLastModified', 4);
+var _EPDFDoc_GetPagePieceInfoLastModified = Module['_EPDFDoc_GetPagePieceInfoLastModified'] = createExportWrapper('EPDFDoc_GetPagePieceInfoLastModified', 5);
+var _EPDFDoc_GetPagePieceInfoKeyCount = Module['_EPDFDoc_GetPagePieceInfoKeyCount'] = createExportWrapper('EPDFDoc_GetPagePieceInfoKeyCount', 3);
+var _EPDFDoc_GetPagePieceInfoKeyAt = Module['_EPDFDoc_GetPagePieceInfoKeyAt'] = createExportWrapper('EPDFDoc_GetPagePieceInfoKeyAt', 6);
+var _EPDFDoc_GetPagePieceInfoValueType = Module['_EPDFDoc_GetPagePieceInfoValueType'] = createExportWrapper('EPDFDoc_GetPagePieceInfoValueType', 4);
+var _EPDFDoc_SetPagePieceInfoString = Module['_EPDFDoc_SetPagePieceInfoString'] = createExportWrapper('EPDFDoc_SetPagePieceInfoString', 6);
+var _EPDFDoc_GetPagePieceInfoString = Module['_EPDFDoc_GetPagePieceInfoString'] = createExportWrapper('EPDFDoc_GetPagePieceInfoString', 6);
+var _EPDFDoc_SetPagePieceInfoNumber = Module['_EPDFDoc_SetPagePieceInfoNumber'] = createExportWrapper('EPDFDoc_SetPagePieceInfoNumber', 6);
+var _EPDFDoc_GetPagePieceInfoNumber = Module['_EPDFDoc_GetPagePieceInfoNumber'] = createExportWrapper('EPDFDoc_GetPagePieceInfoNumber', 5);
+var _EPDFDoc_SetPagePieceInfoBoolean = Module['_EPDFDoc_SetPagePieceInfoBoolean'] = createExportWrapper('EPDFDoc_SetPagePieceInfoBoolean', 6);
+var _EPDFDoc_GetPagePieceInfoBoolean = Module['_EPDFDoc_GetPagePieceInfoBoolean'] = createExportWrapper('EPDFDoc_GetPagePieceInfoBoolean', 5);
+var _EPDFDoc_SetPagePieceInfoName = Module['_EPDFDoc_SetPagePieceInfoName'] = createExportWrapper('EPDFDoc_SetPagePieceInfoName', 6);
+var _EPDFDoc_GetPagePieceInfoName = Module['_EPDFDoc_GetPagePieceInfoName'] = createExportWrapper('EPDFDoc_GetPagePieceInfoName', 6);
+var _EPDFDoc_SetPagePieceInfoStringArray = Module['_EPDFDoc_SetPagePieceInfoStringArray'] = createExportWrapper('EPDFDoc_SetPagePieceInfoStringArray', 7);
+var _EPDFDoc_GetPagePieceInfoStringArrayCount = Module['_EPDFDoc_GetPagePieceInfoStringArrayCount'] = createExportWrapper('EPDFDoc_GetPagePieceInfoStringArrayCount', 4);
+var _EPDFDoc_GetPagePieceInfoStringArrayAt = Module['_EPDFDoc_GetPagePieceInfoStringArrayAt'] = createExportWrapper('EPDFDoc_GetPagePieceInfoStringArrayAt', 7);
+var _EPDFDoc_ClearPagePieceInfoKey = Module['_EPDFDoc_ClearPagePieceInfoKey'] = createExportWrapper('EPDFDoc_ClearPagePieceInfoKey', 5);
+var _EPDFDoc_ClearPagePieceInfoEntry = Module['_EPDFDoc_ClearPagePieceInfoEntry'] = createExportWrapper('EPDFDoc_ClearPagePieceInfoEntry', 3);
 var _EPDF_PNG_EncodeRGBA = Module['_EPDF_PNG_EncodeRGBA'] = createExportWrapper('EPDF_PNG_EncodeRGBA', 6);
+var _EPDFAnnot_ApplyRedaction = Module['_EPDFAnnot_ApplyRedaction'] = createExportWrapper('EPDFAnnot_ApplyRedaction', 3);
+var _EPDFPage_ApplyRedactions = Module['_EPDFPage_ApplyRedactions'] = createExportWrapper('EPDFPage_ApplyRedactions', 2);
+var _EPDF_InitThread = Module['_EPDF_InitThread'] = createExportWrapper('EPDF_InitThread', 0);
+var _EPDF_ShutdownThread = Module['_EPDF_ShutdownThread'] = createExportWrapper('EPDF_ShutdownThread', 0);
 var _FPDFAnnot_IsSupportedSubtype = Module['_FPDFAnnot_IsSupportedSubtype'] = createExportWrapper('FPDFAnnot_IsSupportedSubtype', 1);
 var _FPDFPage_CreateAnnot = Module['_FPDFPage_CreateAnnot'] = createExportWrapper('FPDFPage_CreateAnnot', 2);
 var _FPDFPage_GetAnnotCount = Module['_FPDFPage_GetAnnotCount'] = createExportWrapper('FPDFPage_GetAnnotCount', 1);
@@ -5235,6 +5393,21 @@ var _FPDFAnnot_GetValueType = Module['_FPDFAnnot_GetValueType'] = createExportWr
 var _FPDFAnnot_SetStringValue = Module['_FPDFAnnot_SetStringValue'] = createExportWrapper('FPDFAnnot_SetStringValue', 3);
 var _FPDFAnnot_GetStringValue = Module['_FPDFAnnot_GetStringValue'] = createExportWrapper('FPDFAnnot_GetStringValue', 4);
 var _FPDFAnnot_GetNumberValue = Module['_FPDFAnnot_GetNumberValue'] = createExportWrapper('FPDFAnnot_GetNumberValue', 3);
+var _EPDFAnnot_SetNumberValue = Module['_EPDFAnnot_SetNumberValue'] = createExportWrapper('EPDFAnnot_SetNumberValue', 3);
+var _EPDFAnnot_HasEmbedMetadata = Module['_EPDFAnnot_HasEmbedMetadata'] = createExportWrapper('EPDFAnnot_HasEmbedMetadata', 1);
+var _EPDFAnnot_ClearEmbedMetadata = Module['_EPDFAnnot_ClearEmbedMetadata'] = createExportWrapper('EPDFAnnot_ClearEmbedMetadata', 1);
+var _EPDFAnnot_ClearEmbedMetadataKey = Module['_EPDFAnnot_ClearEmbedMetadataKey'] = createExportWrapper('EPDFAnnot_ClearEmbedMetadataKey', 2);
+var _EPDFAnnot_SetEmbedMetadataString = Module['_EPDFAnnot_SetEmbedMetadataString'] = createExportWrapper('EPDFAnnot_SetEmbedMetadataString', 3);
+var _EPDFAnnot_GetEmbedMetadataString = Module['_EPDFAnnot_GetEmbedMetadataString'] = createExportWrapper('EPDFAnnot_GetEmbedMetadataString', 4);
+var _EPDFAnnot_SetEmbedMetadataNumber = Module['_EPDFAnnot_SetEmbedMetadataNumber'] = createExportWrapper('EPDFAnnot_SetEmbedMetadataNumber', 3);
+var _EPDFAnnot_GetEmbedMetadataNumber = Module['_EPDFAnnot_GetEmbedMetadataNumber'] = createExportWrapper('EPDFAnnot_GetEmbedMetadataNumber', 3);
+var _EPDFAnnot_SetEmbedMetadataBoolean = Module['_EPDFAnnot_SetEmbedMetadataBoolean'] = createExportWrapper('EPDFAnnot_SetEmbedMetadataBoolean', 3);
+var _EPDFAnnot_GetEmbedMetadataBoolean = Module['_EPDFAnnot_GetEmbedMetadataBoolean'] = createExportWrapper('EPDFAnnot_GetEmbedMetadataBoolean', 3);
+var _EPDFAnnot_SetEmbedMetadataRect = Module['_EPDFAnnot_SetEmbedMetadataRect'] = createExportWrapper('EPDFAnnot_SetEmbedMetadataRect', 3);
+var _EPDFAnnot_GetEmbedMetadataRect = Module['_EPDFAnnot_GetEmbedMetadataRect'] = createExportWrapper('EPDFAnnot_GetEmbedMetadataRect', 3);
+var _EPDFAnnot_SetEmbedMetadataJSON = Module['_EPDFAnnot_SetEmbedMetadataJSON'] = createExportWrapper('EPDFAnnot_SetEmbedMetadataJSON', 2);
+var _EPDFAnnot_GetEmbedMetadataJSON = Module['_EPDFAnnot_GetEmbedMetadataJSON'] = createExportWrapper('EPDFAnnot_GetEmbedMetadataJSON', 3);
+var _EPDFDocument_ClearEmbedMetadata = Module['_EPDFDocument_ClearEmbedMetadata'] = createExportWrapper('EPDFDocument_ClearEmbedMetadata', 1);
 var _FPDFAnnot_SetAP = Module['_FPDFAnnot_SetAP'] = createExportWrapper('FPDFAnnot_SetAP', 3);
 var _FPDFAnnot_GetAP = Module['_FPDFAnnot_GetAP'] = createExportWrapper('FPDFAnnot_GetAP', 4);
 var _FPDFAnnot_GetLinkedAnnot = Module['_FPDFAnnot_GetLinkedAnnot'] = createExportWrapper('FPDFAnnot_GetLinkedAnnot', 2);
@@ -5264,6 +5437,8 @@ var _FPDFAnnot_GetFormControlIndex = Module['_FPDFAnnot_GetFormControlIndex'] = 
 var _FPDFAnnot_GetFormFieldExportValue = Module['_FPDFAnnot_GetFormFieldExportValue'] = createExportWrapper('FPDFAnnot_GetFormFieldExportValue', 4);
 var _FPDFAnnot_SetURI = Module['_FPDFAnnot_SetURI'] = createExportWrapper('FPDFAnnot_SetURI', 2);
 var _EPDFAnnot_SetAction = Module['_EPDFAnnot_SetAction'] = createExportWrapper('EPDFAnnot_SetAction', 2);
+var _EPDFAnnot_RemoveAction = Module['_EPDFAnnot_RemoveAction'] = createExportWrapper('EPDFAnnot_RemoveAction', 1);
+var _EPDFAnnot_RemoveDest = Module['_EPDFAnnot_RemoveDest'] = createExportWrapper('EPDFAnnot_RemoveDest', 1);
 var _FPDFAnnot_GetFileAttachment = Module['_FPDFAnnot_GetFileAttachment'] = createExportWrapper('FPDFAnnot_GetFileAttachment', 1);
 var _FPDFAnnot_AddFileAttachment = Module['_FPDFAnnot_AddFileAttachment'] = createExportWrapper('FPDFAnnot_AddFileAttachment', 2);
 var _EPDFAnnot_SetColor = Module['_EPDFAnnot_SetColor'] = createExportWrapper('EPDFAnnot_SetColor', 5);
@@ -5293,19 +5468,18 @@ var _EPDFAnnot_GetLineEndings = Module['_EPDFAnnot_GetLineEndings'] = createExpo
 var _EPDFAnnot_SetVertices = Module['_EPDFAnnot_SetVertices'] = createExportWrapper('EPDFAnnot_SetVertices', 3);
 var _EPDFAnnot_SetLine = Module['_EPDFAnnot_SetLine'] = createExportWrapper('EPDFAnnot_SetLine', 3);
 var _EPDFAnnot_SetDefaultAppearance = Module['_EPDFAnnot_SetDefaultAppearance'] = createExportWrapper('EPDFAnnot_SetDefaultAppearance', 6);
+var _EPDFAnnot_SetDefaultAppearanceRegisteredFont = Module['_EPDFAnnot_SetDefaultAppearanceRegisteredFont'] = createExportWrapper('EPDFAnnot_SetDefaultAppearanceRegisteredFont', 6);
 var _EPDFAnnot_GetDefaultAppearance = Module['_EPDFAnnot_GetDefaultAppearance'] = createExportWrapper('EPDFAnnot_GetDefaultAppearance', 6);
 var _EPDFAnnot_SetTextAlignment = Module['_EPDFAnnot_SetTextAlignment'] = createExportWrapper('EPDFAnnot_SetTextAlignment', 2);
 var _EPDFAnnot_GetTextAlignment = Module['_EPDFAnnot_GetTextAlignment'] = createExportWrapper('EPDFAnnot_GetTextAlignment', 1);
-var _EPDFAnnot_SetVerticalAlignment = Module['_EPDFAnnot_SetVerticalAlignment'] = createExportWrapper('EPDFAnnot_SetVerticalAlignment', 2);
-var _EPDFAnnot_GetVerticalAlignment = Module['_EPDFAnnot_GetVerticalAlignment'] = createExportWrapper('EPDFAnnot_GetVerticalAlignment', 1);
 var _EPDFPage_GetAnnotByName = Module['_EPDFPage_GetAnnotByName'] = createExportWrapper('EPDFPage_GetAnnotByName', 2);
 var _EPDFPage_RemoveAnnotByName = Module['_EPDFPage_RemoveAnnotByName'] = createExportWrapper('EPDFPage_RemoveAnnotByName', 2);
 var _EPDFAnnot_SetLinkedAnnot = Module['_EPDFAnnot_SetLinkedAnnot'] = createExportWrapper('EPDFAnnot_SetLinkedAnnot', 3);
 var _EPDFPage_GetAnnotCountRaw = Module['_EPDFPage_GetAnnotCountRaw'] = createExportWrapper('EPDFPage_GetAnnotCountRaw', 2);
 var _EPDFPage_GetAnnotRaw = Module['_EPDFPage_GetAnnotRaw'] = createExportWrapper('EPDFPage_GetAnnotRaw', 3);
 var _EPDFPage_RemoveAnnotRaw = Module['_EPDFPage_RemoveAnnotRaw'] = createExportWrapper('EPDFPage_RemoveAnnotRaw', 3);
-var _EPDFAnnot_SetIcon = Module['_EPDFAnnot_SetIcon'] = createExportWrapper('EPDFAnnot_SetIcon', 2);
-var _EPDFAnnot_GetIcon = Module['_EPDFAnnot_GetIcon'] = createExportWrapper('EPDFAnnot_GetIcon', 1);
+var _EPDFAnnot_SetName = Module['_EPDFAnnot_SetName'] = createExportWrapper('EPDFAnnot_SetName', 2);
+var _EPDFAnnot_GetName = Module['_EPDFAnnot_GetName'] = createExportWrapper('EPDFAnnot_GetName', 1);
 var _EPDFAnnot_UpdateAppearanceToRect = Module['_EPDFAnnot_UpdateAppearanceToRect'] = createExportWrapper('EPDFAnnot_UpdateAppearanceToRect', 2);
 var _EPDFPage_CreateAnnot = Module['_EPDFPage_CreateAnnot'] = createExportWrapper('EPDFPage_CreateAnnot', 2);
 var _EPDFAnnot_SetRotate = Module['_EPDFAnnot_SetRotate'] = createExportWrapper('EPDFAnnot_SetRotate', 2);
@@ -5316,21 +5490,37 @@ var _EPDFAnnot_SetOverlayText = Module['_EPDFAnnot_SetOverlayText'] = createExpo
 var _EPDFAnnot_GetOverlayText = Module['_EPDFAnnot_GetOverlayText'] = createExportWrapper('EPDFAnnot_GetOverlayText', 3);
 var _EPDFAnnot_SetOverlayTextRepeat = Module['_EPDFAnnot_SetOverlayTextRepeat'] = createExportWrapper('EPDFAnnot_SetOverlayTextRepeat', 2);
 var _EPDFAnnot_GetOverlayTextRepeat = Module['_EPDFAnnot_GetOverlayTextRepeat'] = createExportWrapper('EPDFAnnot_GetOverlayTextRepeat', 1);
-var _EPDFAnnot_ApplyRedaction = Module['_EPDFAnnot_ApplyRedaction'] = createExportWrapper('EPDFAnnot_ApplyRedaction', 2);
-var _EPDFPage_ApplyRedactions = Module['_EPDFPage_ApplyRedactions'] = createExportWrapper('EPDFPage_ApplyRedactions', 1);
-var _EPDFAnnot_Flatten = Module['_EPDFAnnot_Flatten'] = createExportWrapper('EPDFAnnot_Flatten', 2);
-var _EPDFAnnot_SetExtendedRotation = Module['_EPDFAnnot_SetExtendedRotation'] = createExportWrapper('EPDFAnnot_SetExtendedRotation', 2);
-var _EPDFAnnot_GetExtendedRotation = Module['_EPDFAnnot_GetExtendedRotation'] = createExportWrapper('EPDFAnnot_GetExtendedRotation', 2);
-var _EPDFAnnot_SetUnrotatedRect = Module['_EPDFAnnot_SetUnrotatedRect'] = createExportWrapper('EPDFAnnot_SetUnrotatedRect', 2);
-var _EPDFAnnot_GetUnrotatedRect = Module['_EPDFAnnot_GetUnrotatedRect'] = createExportWrapper('EPDFAnnot_GetUnrotatedRect', 2);
+var _EPDFAnnot_SetAppearanceFromPage = Module['_EPDFAnnot_SetAppearanceFromPage'] = createExportWrapper('EPDFAnnot_SetAppearanceFromPage', 3);
+var _EPDFAnnot_ExportAppearanceAsDocument = Module['_EPDFAnnot_ExportAppearanceAsDocument'] = createExportWrapper('EPDFAnnot_ExportAppearanceAsDocument', 1);
+var _EPDFAnnot_ExportMultipleAppearancesAsDocument = Module['_EPDFAnnot_ExportMultipleAppearancesAsDocument'] = createExportWrapper('EPDFAnnot_ExportMultipleAppearancesAsDocument', 2);
 var _EPDFAnnot_GetRect = Module['_EPDFAnnot_GetRect'] = createExportWrapper('EPDFAnnot_GetRect', 2);
 var _EPDFAnnot_SetAPMatrix = Module['_EPDFAnnot_SetAPMatrix'] = createExportWrapper('EPDFAnnot_SetAPMatrix', 3);
 var _EPDFAnnot_GetAPMatrix = Module['_EPDFAnnot_GetAPMatrix'] = createExportWrapper('EPDFAnnot_GetAPMatrix', 3);
 var _EPDFAnnot_GetAvailableAppearanceModes = Module['_EPDFAnnot_GetAvailableAppearanceModes'] = createExportWrapper('EPDFAnnot_GetAvailableAppearanceModes', 1);
 var _EPDFAnnot_HasAppearanceStream = Module['_EPDFAnnot_HasAppearanceStream'] = createExportWrapper('EPDFAnnot_HasAppearanceStream', 2);
+var _EPDFAnnot_SetMKColor = Module['_EPDFAnnot_SetMKColor'] = createExportWrapper('EPDFAnnot_SetMKColor', 5);
+var _EPDFAnnot_GetMKColor = Module['_EPDFAnnot_GetMKColor'] = createExportWrapper('EPDFAnnot_GetMKColor', 5);
+var _EPDFAnnot_ClearMKColor = Module['_EPDFAnnot_ClearMKColor'] = createExportWrapper('EPDFAnnot_ClearMKColor', 2);
+var _EPDFAnnot_GenerateFormFieldAP = Module['_EPDFAnnot_GenerateFormFieldAP'] = createExportWrapper('EPDFAnnot_GenerateFormFieldAP', 1);
+var _EPDFAnnot_GetCalloutLineCount = Module['_EPDFAnnot_GetCalloutLineCount'] = createExportWrapper('EPDFAnnot_GetCalloutLineCount', 1);
+var _EPDFAnnot_GetCalloutLine = Module['_EPDFAnnot_GetCalloutLine'] = createExportWrapper('EPDFAnnot_GetCalloutLine', 3);
+var _EPDFAnnot_SetCalloutLine = Module['_EPDFAnnot_SetCalloutLine'] = createExportWrapper('EPDFAnnot_SetCalloutLine', 3);
+var _EPDFAnnot_GetObjectNumber = Module['_EPDFAnnot_GetObjectNumber'] = createExportWrapper('EPDFAnnot_GetObjectNumber', 1);
+var _EPDFPage_GetAnnotByObjectNumber = Module['_EPDFPage_GetAnnotByObjectNumber'] = createExportWrapper('EPDFPage_GetAnnotByObjectNumber', 2);
+var _EPDFPage_RemoveAnnot = Module['_EPDFPage_RemoveAnnot'] = createExportWrapper('EPDFPage_RemoveAnnot', 2);
+var _EPDFPage_RemoveAnnotByObjectNumber = Module['_EPDFPage_RemoveAnnotByObjectNumber'] = createExportWrapper('EPDFPage_RemoveAnnotByObjectNumber', 2);
+var _EPDFPage_MoveAnnots = Module['_EPDFPage_MoveAnnots'] = createExportWrapper('EPDFPage_MoveAnnots', 4);
+var _EPDFAnnot_SetExtendedRotation = Module['_EPDFAnnot_SetExtendedRotation'] = createExportWrapper('EPDFAnnot_SetExtendedRotation', 2);
+var _EPDFAnnot_GetExtendedRotation = Module['_EPDFAnnot_GetExtendedRotation'] = createExportWrapper('EPDFAnnot_GetExtendedRotation', 2);
+var _EPDFAnnot_SetUnrotatedRect = Module['_EPDFAnnot_SetUnrotatedRect'] = createExportWrapper('EPDFAnnot_SetUnrotatedRect', 2);
+var _EPDFAnnot_GetUnrotatedRect = Module['_EPDFAnnot_GetUnrotatedRect'] = createExportWrapper('EPDFAnnot_GetUnrotatedRect', 2);
+var _EPDFAnnot_SetVerticalAlignment = Module['_EPDFAnnot_SetVerticalAlignment'] = createExportWrapper('EPDFAnnot_SetVerticalAlignment', 2);
+var _EPDFAnnot_GetVerticalAlignment = Module['_EPDFAnnot_GetVerticalAlignment'] = createExportWrapper('EPDFAnnot_GetVerticalAlignment', 1);
 var _FPDFDoc_GetAttachmentCount = Module['_FPDFDoc_GetAttachmentCount'] = createExportWrapper('FPDFDoc_GetAttachmentCount', 1);
 var _FPDFDoc_AddAttachment = Module['_FPDFDoc_AddAttachment'] = createExportWrapper('FPDFDoc_AddAttachment', 2);
 var _FPDFDoc_GetAttachment = Module['_FPDFDoc_GetAttachment'] = createExportWrapper('FPDFDoc_GetAttachment', 2);
+var _EPDFDoc_GetAttachmentKey = Module['_EPDFDoc_GetAttachmentKey'] = createExportWrapper('EPDFDoc_GetAttachmentKey', 4);
+var _EPDFDoc_GetAttachmentIndexByKey = Module['_EPDFDoc_GetAttachmentIndexByKey'] = createExportWrapper('EPDFDoc_GetAttachmentIndexByKey', 2);
 var _FPDFDoc_DeleteAttachment = Module['_FPDFDoc_DeleteAttachment'] = createExportWrapper('FPDFDoc_DeleteAttachment', 2);
 var _FPDFAttachment_GetName = Module['_FPDFAttachment_GetName'] = createExportWrapper('FPDFAttachment_GetName', 3);
 var _FPDFAttachment_HasKey = Module['_FPDFAttachment_HasKey'] = createExportWrapper('FPDFAttachment_HasKey', 2);
@@ -5344,6 +5534,8 @@ var _EPDFAttachment_SetSubtype = Module['_EPDFAttachment_SetSubtype'] = createEx
 var _EPDFAttachment_SetDescription = Module['_EPDFAttachment_SetDescription'] = createExportWrapper('EPDFAttachment_SetDescription', 2);
 var _EPDFAttachment_GetDescription = Module['_EPDFAttachment_GetDescription'] = createExportWrapper('EPDFAttachment_GetDescription', 3);
 var _EPDFAttachment_GetIntegerValue = Module['_EPDFAttachment_GetIntegerValue'] = createExportWrapper('EPDFAttachment_GetIntegerValue', 3);
+var _EPDFAttachment_ExtractFile = Module['_EPDFAttachment_ExtractFile'] = createExportWrapper('EPDFAttachment_ExtractFile', 6);
+var _EPDFAttachment_ExtractFileToOwnedBuffer = Module['_EPDFAttachment_ExtractFileToOwnedBuffer'] = createExportWrapper('EPDFAttachment_ExtractFileToOwnedBuffer', 6);
 var _FPDFCatalog_IsTagged = Module['_FPDFCatalog_IsTagged'] = createExportWrapper('FPDFCatalog_IsTagged', 1);
 var _FPDFCatalog_GetLanguage = Module['_FPDFCatalog_GetLanguage'] = createExportWrapper('FPDFCatalog_GetLanguage', 3);
 var _FPDFCatalog_SetLanguage = Module['_FPDFCatalog_SetLanguage'] = createExportWrapper('FPDFCatalog_SetLanguage', 2);
@@ -5368,6 +5560,7 @@ var _FPDFAction_GetDest = Module['_FPDFAction_GetDest'] = createExportWrapper('F
 var _FPDFAction_GetFilePath = Module['_FPDFAction_GetFilePath'] = createExportWrapper('FPDFAction_GetFilePath', 3);
 var _FPDFAction_GetURIPath = Module['_FPDFAction_GetURIPath'] = createExportWrapper('FPDFAction_GetURIPath', 4);
 var _FPDFDest_GetDestPageIndex = Module['_FPDFDest_GetDestPageIndex'] = createExportWrapper('FPDFDest_GetDestPageIndex', 2);
+var _EPDFDest_GetPageObjectNumber = Module['_EPDFDest_GetPageObjectNumber'] = createExportWrapper('EPDFDest_GetPageObjectNumber', 2);
 var _FPDFDest_GetView = Module['_FPDFDest_GetView'] = createExportWrapper('FPDFDest_GetView', 3);
 var _FPDFDest_GetLocationInPage = Module['_FPDFDest_GetLocationInPage'] = createExportWrapper('FPDFDest_GetLocationInPage', 7);
 var _FPDFLink_GetLinkAtPoint = Module['_FPDFLink_GetLinkAtPoint'] = createExportWrapper('FPDFLink_GetLinkAtPoint', 3);
@@ -5403,6 +5596,8 @@ var _FPDFImageObj_GetImageFilter = Module['_FPDFImageObj_GetImageFilter'] = crea
 var _FPDFImageObj_GetImageMetadata = Module['_FPDFImageObj_GetImageMetadata'] = createExportWrapper('FPDFImageObj_GetImageMetadata', 3);
 var _FPDFImageObj_GetImagePixelSize = Module['_FPDFImageObj_GetImagePixelSize'] = createExportWrapper('FPDFImageObj_GetImagePixelSize', 3);
 var _FPDFImageObj_GetIccProfileDataDecoded = Module['_FPDFImageObj_GetIccProfileDataDecoded'] = createExportWrapper('FPDFImageObj_GetIccProfileDataDecoded', 5);
+var _EPDFImageObj_SetPng = Module['_EPDFImageObj_SetPng'] = createExportWrapper('EPDFImageObj_SetPng', 5);
+var _EPDFImageObj_SetJpeg = Module['_EPDFImageObj_SetJpeg'] = createExportWrapper('EPDFImageObj_SetJpeg', 5);
 var _FPDF_CreateNewDocument = Module['_FPDF_CreateNewDocument'] = createExportWrapper('FPDF_CreateNewDocument', 0);
 var _FPDFPage_Delete = Module['_FPDFPage_Delete'] = createExportWrapper('FPDFPage_Delete', 2);
 var _FPDF_MovePages = Module['_FPDF_MovePages'] = createExportWrapper('FPDF_MovePages', 4);
@@ -5474,6 +5669,7 @@ var _FORM_SetIndexSelected = Module['_FORM_SetIndexSelected'] = createExportWrap
 var _FORM_IsIndexSelected = Module['_FORM_IsIndexSelected'] = createExportWrapper('FORM_IsIndexSelected', 3);
 var _FPDFDoc_GetJavaScriptActionCount = Module['_FPDFDoc_GetJavaScriptActionCount'] = createExportWrapper('FPDFDoc_GetJavaScriptActionCount', 1);
 var _FPDFDoc_GetJavaScriptAction = Module['_FPDFDoc_GetJavaScriptAction'] = createExportWrapper('FPDFDoc_GetJavaScriptAction', 2);
+var _EPDFDoc_GetNamedJavaScriptActionModel = Module['_EPDFDoc_GetNamedJavaScriptActionModel'] = createExportWrapper('EPDFDoc_GetNamedJavaScriptActionModel', 2);
 var _FPDFDoc_CloseJavaScriptAction = Module['_FPDFDoc_CloseJavaScriptAction'] = createExportWrapper('FPDFDoc_CloseJavaScriptAction', 1);
 var _FPDFJavaScriptAction_GetName = Module['_FPDFJavaScriptAction_GetName'] = createExportWrapper('FPDFJavaScriptAction_GetName', 3);
 var _FPDFJavaScriptAction_GetScript = Module['_FPDFJavaScriptAction_GetScript'] = createExportWrapper('FPDFJavaScriptAction_GetScript', 3);
@@ -5488,6 +5684,9 @@ var _FPDF_RenderPageBitmapWithColorScheme_Start = Module['_FPDF_RenderPageBitmap
 var _FPDF_RenderPageBitmap_Start = Module['_FPDF_RenderPageBitmap_Start'] = createExportWrapper('FPDF_RenderPageBitmap_Start', 9);
 var _FPDF_RenderPage_Continue = Module['_FPDF_RenderPage_Continue'] = createExportWrapper('FPDF_RenderPage_Continue', 2);
 var _FPDF_RenderPage_Close = Module['_FPDF_RenderPage_Close'] = createExportWrapper('FPDF_RenderPage_Close', 1);
+var _EPDF_FreeBuffer = Module['_EPDF_FreeBuffer'] = createExportWrapper('EPDF_FreeBuffer', 1);
+var _EPDF_SaveDocumentToOwnedBuffer = Module['_EPDF_SaveDocumentToOwnedBuffer'] = createExportWrapper('EPDF_SaveDocumentToOwnedBuffer', 3);
+var _EPDF_SaveDocumentToOwnedBufferWithVersion = Module['_EPDF_SaveDocumentToOwnedBufferWithVersion'] = createExportWrapper('EPDF_SaveDocumentToOwnedBufferWithVersion', 4);
 var _FPDFText_GetCharIndexFromTextIndex = Module['_FPDFText_GetCharIndexFromTextIndex'] = createExportWrapper('FPDFText_GetCharIndexFromTextIndex', 2);
 var _FPDFText_GetTextIndexFromCharIndex = Module['_FPDFText_GetTextIndexFromCharIndex'] = createExportWrapper('FPDFText_GetTextIndexFromCharIndex', 2);
 var _FPDF_GetSignatureObject = Module['_FPDF_GetSignatureObject'] = createExportWrapper('FPDF_GetSignatureObject', 2);
@@ -5540,6 +5739,9 @@ var _FPDFText_GetFontWeight = Module['_FPDFText_GetFontWeight'] = createExportWr
 var _FPDFText_GetFillColor = Module['_FPDFText_GetFillColor'] = createExportWrapper('FPDFText_GetFillColor', 6);
 var _FPDFText_GetStrokeColor = Module['_FPDFText_GetStrokeColor'] = createExportWrapper('FPDFText_GetStrokeColor', 6);
 var _FPDFText_GetCharAngle = Module['_FPDFText_GetCharAngle'] = createExportWrapper('FPDFText_GetCharAngle', 2);
+var _EPDFText_GetCharGeometry = Module['_EPDFText_GetCharGeometry'] = createExportWrapper('EPDFText_GetCharGeometry', 3);
+var _EPDFText_GetTextFull = Module['_EPDFText_GetTextFull'] = createExportWrapper('EPDFText_GetTextFull', 3);
+var _EPDFText_GetCharToTextMap = Module['_EPDFText_GetCharToTextMap'] = createExportWrapper('EPDFText_GetCharToTextMap', 3);
 var _FPDFText_GetCharIndexAtPos = Module['_FPDFText_GetCharIndexAtPos'] = createExportWrapper('FPDFText_GetCharIndexAtPos', 5);
 var _FPDFText_GetText = Module['_FPDFText_GetText'] = createExportWrapper('FPDFText_GetText', 4);
 var _FPDFText_CountRects = Module['_FPDFText_CountRects'] = createExportWrapper('FPDFText_CountRects', 3);
@@ -5589,8 +5791,16 @@ var _FPDF_GetDocUserPermissions = Module['_FPDF_GetDocUserPermissions'] = create
 var _EPDF_SetEncryption = Module['_EPDF_SetEncryption'] = createExportWrapper('EPDF_SetEncryption', 4);
 var _EPDF_RemoveEncryption = Module['_EPDF_RemoveEncryption'] = createExportWrapper('EPDF_RemoveEncryption', 1);
 var _EPDF_UnlockOwnerPermissions = Module['_EPDF_UnlockOwnerPermissions'] = createExportWrapper('EPDF_UnlockOwnerPermissions', 2);
+var _EPDF_CheckPasswordPermissions = Module['_EPDF_CheckPasswordPermissions'] = createExportWrapper('EPDF_CheckPasswordPermissions', 6);
+var _EPDF_SetRuntimeOwnerPermissions = Module['_EPDF_SetRuntimeOwnerPermissions'] = createExportWrapper('EPDF_SetRuntimeOwnerPermissions', 2);
 var _EPDF_IsEncrypted = Module['_EPDF_IsEncrypted'] = createExportWrapper('EPDF_IsEncrypted', 1);
 var _EPDF_IsOwnerUnlocked = Module['_EPDF_IsOwnerUnlocked'] = createExportWrapper('EPDF_IsOwnerUnlocked', 1);
+var _EPDFDoc_LoadPageByObjectNumber = Module['_EPDFDoc_LoadPageByObjectNumber'] = createExportWrapper('EPDFDoc_LoadPageByObjectNumber', 2);
+var _EPDFDoc_LoadPageByObjectNumberNormalized = Module['_EPDFDoc_LoadPageByObjectNumberNormalized'] = createExportWrapper('EPDFDoc_LoadPageByObjectNumberNormalized', 2);
+var _EPDFDoc_GetPageObjectNumberByIndex = Module['_EPDFDoc_GetPageObjectNumberByIndex'] = createExportWrapper('EPDFDoc_GetPageObjectNumberByIndex', 2);
+var _EPDFDoc_DeletePageByObjectNumber = Module['_EPDFDoc_DeletePageByObjectNumber'] = createExportWrapper('EPDFDoc_DeletePageByObjectNumber', 2);
+var _EPDFDoc_SetPageRotationByObjectNumber = Module['_EPDFDoc_SetPageRotationByObjectNumber'] = createExportWrapper('EPDFDoc_SetPageRotationByObjectNumber', 3);
+var _EPDFPage_GetObjectNumber = Module['_EPDFPage_GetObjectNumber'] = createExportWrapper('EPDFPage_GetObjectNumber', 1);
 var _FPDF_GetPageWidth = Module['_FPDF_GetPageWidth'] = createExportWrapper('FPDF_GetPageWidth', 1);
 var _FPDF_GetPageHeight = Module['_FPDF_GetPageHeight'] = createExportWrapper('FPDF_GetPageHeight', 1);
 var _FPDF_GetPageBoundingBox = Module['_FPDF_GetPageBoundingBox'] = createExportWrapper('FPDF_GetPageBoundingBox', 2);
@@ -5606,6 +5816,8 @@ var _FPDFBitmap_GetHeight = Module['_FPDFBitmap_GetHeight'] = createExportWrappe
 var _FPDF_GetPageSizeByIndexF = Module['_FPDF_GetPageSizeByIndexF'] = createExportWrapper('FPDF_GetPageSizeByIndexF', 3);
 var _EPDF_GetPageRotationByIndex = Module['_EPDF_GetPageRotationByIndex'] = createExportWrapper('EPDF_GetPageRotationByIndex', 2);
 var _EPDF_GetPageSizeByIndexNormalized = Module['_EPDF_GetPageSizeByIndexNormalized'] = createExportWrapper('EPDF_GetPageSizeByIndexNormalized', 3);
+var _EPDF_GetPageBoxByIndex = Module['_EPDF_GetPageBoxByIndex'] = createExportWrapper('EPDF_GetPageBoxByIndex', 4);
+var _EPDF_GetPageUserUnitByIndex = Module['_EPDF_GetPageUserUnitByIndex'] = createExportWrapper('EPDF_GetPageUserUnitByIndex', 3);
 var _EPDF_LoadPageNormalized = Module['_EPDF_LoadPageNormalized'] = createExportWrapper('EPDF_LoadPageNormalized', 3);
 var _FPDF_GetPageSizeByIndex = Module['_FPDF_GetPageSizeByIndex'] = createExportWrapper('FPDF_GetPageSizeByIndex', 4);
 var _FPDF_VIEWERREF_GetPrintScaling = Module['_FPDF_VIEWERREF_GetPrintScaling'] = createExportWrapper('FPDF_VIEWERREF_GetPrintScaling', 1);
@@ -5622,8 +5834,8 @@ var _FPDF_GetXFAPacketCount = Module['_FPDF_GetXFAPacketCount'] = createExportWr
 var _FPDF_GetXFAPacketName = Module['_FPDF_GetXFAPacketName'] = createExportWrapper('FPDF_GetXFAPacketName', 4);
 var _FPDF_GetXFAPacketContent = Module['_FPDF_GetXFAPacketContent'] = createExportWrapper('FPDF_GetXFAPacketContent', 5);
 var _FPDF_GetTrailerEnds = Module['_FPDF_GetTrailerEnds'] = createExportWrapper('FPDF_GetTrailerEnds', 3);
-var _emscripten_builtin_memalign = createExportWrapper('emscripten_builtin_memalign', 2);
 var _strerror = createExportWrapper('strerror', 1);
+var _emscripten_builtin_memalign = createExportWrapper('emscripten_builtin_memalign', 2);
 var _setThrew = createExportWrapper('setThrew', 2);
 var __emscripten_tempret_set = createExportWrapper('_emscripten_tempret_set', 1);
 var _emscripten_stack_init = () => (_emscripten_stack_init = wasmExports['emscripten_stack_init'])();
@@ -5633,9 +5845,9 @@ var _emscripten_stack_get_end = () => (_emscripten_stack_get_end = wasmExports['
 var __emscripten_stack_restore = (a0) => (__emscripten_stack_restore = wasmExports['_emscripten_stack_restore'])(a0);
 var __emscripten_stack_alloc = (a0) => (__emscripten_stack_alloc = wasmExports['_emscripten_stack_alloc'])(a0);
 var _emscripten_stack_get_current = () => (_emscripten_stack_get_current = wasmExports['emscripten_stack_get_current'])();
-var dynCall_viijii = Module['dynCall_viijii'] = createExportWrapper('dynCall_viijii', 7);
 var dynCall_ji = Module['dynCall_ji'] = createExportWrapper('dynCall_ji', 2);
 var dynCall_iiij = Module['dynCall_iiij'] = createExportWrapper('dynCall_iiij', 5);
+var dynCall_viijii = Module['dynCall_viijii'] = createExportWrapper('dynCall_viijii', 7);
 var dynCall_j = Module['dynCall_j'] = createExportWrapper('dynCall_j', 1);
 var dynCall_jji = Module['dynCall_jji'] = createExportWrapper('dynCall_jji', 4);
 var dynCall_iji = Module['dynCall_iji'] = createExportWrapper('dynCall_iji', 4);
@@ -5692,17 +5904,6 @@ function invoke_iiii(index,a1,a2,a3) {
   }
 }
 
-function invoke_viiii(index,a1,a2,a3,a4) {
-  var sp = stackSave();
-  try {
-    getWasmTableEntry(index)(a1,a2,a3,a4);
-  } catch(e) {
-    stackRestore(sp);
-    if (e !== e+0) throw e;
-    _setThrew(1, 0);
-  }
-}
-
 function invoke_iiiii(index,a1,a2,a3,a4) {
   var sp = stackSave();
   try {
@@ -5718,6 +5919,39 @@ function invoke_vii(index,a1,a2) {
   var sp = stackSave();
   try {
     getWasmTableEntry(index)(a1,a2);
+  } catch(e) {
+    stackRestore(sp);
+    if (e !== e+0) throw e;
+    _setThrew(1, 0);
+  }
+}
+
+function invoke_vi(index,a1) {
+  var sp = stackSave();
+  try {
+    getWasmTableEntry(index)(a1);
+  } catch(e) {
+    stackRestore(sp);
+    if (e !== e+0) throw e;
+    _setThrew(1, 0);
+  }
+}
+
+function invoke_v(index) {
+  var sp = stackSave();
+  try {
+    getWasmTableEntry(index)();
+  } catch(e) {
+    stackRestore(sp);
+    if (e !== e+0) throw e;
+    _setThrew(1, 0);
+  }
+}
+
+function invoke_viiii(index,a1,a2,a3,a4) {
+  var sp = stackSave();
+  try {
+    getWasmTableEntry(index)(a1,a2,a3,a4);
   } catch(e) {
     stackRestore(sp);
     if (e !== e+0) throw e;
