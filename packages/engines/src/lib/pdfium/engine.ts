@@ -5220,9 +5220,9 @@ export class PdfiumNative implements IPdfiumExecutor {
     const ok = !!this.pdfiumModule.EPDFAnnot_GetRectangleDifferences(
       annotationPtr,
       lPtr,
-      tPtr,
-      rPtr,
       bPtr,
+      rPtr,
+      tPtr,
     );
 
     const pdf = this.pdfiumModule.pdfium;
@@ -5257,9 +5257,9 @@ export class PdfiumNative implements IPdfiumExecutor {
     return this.pdfiumModule.EPDFAnnot_SetRectangleDifferences(
       annotationPtr,
       rd.left,
-      rd.top,
-      rd.right,
       rd.bottom,
+      rd.right,
+      rd.top,
     );
   }
 

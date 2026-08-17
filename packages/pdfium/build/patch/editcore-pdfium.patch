@@ -69,7 +69,7 @@ index fe26c52a3..df92c7f0d 100644
  
    CFX_PointF CalcPositionData(float horz_scale);
 diff --git a/core/fpdfdoc/cpdf_generateap.cpp b/core/fpdfdoc/cpdf_generateap.cpp
-index 4b3984ac5..ee57845df 100644
+index 4b3984ac5..4bfc0f6fa 100644
 --- a/core/fpdfdoc/cpdf_generateap.cpp
 +++ b/core/fpdfdoc/cpdf_generateap.cpp
 @@ -660,6 +660,65 @@ ShapeRotationInfo GetShapeRotationInfo(const CPDF_Dictionary* annot_dict) {
@@ -173,6 +173,150 @@ index 4b3984ac5..ee57845df 100644
 +    }
    } else {
      // ---- Regular FreeText appearance (unchanged) ----
+ 
+@@ -2318,6 +2393,32 @@ bool GenerateFreeTextAP(APGenerationTarget* target,
+   return true;
+ }
+ 
++enum class BentoMarkupAxis { kHorizontal = 0, kVerticalRight = 1, kVerticalLeft = 2 };
++
++BentoMarkupAxis ResolveBentoMarkupAxis(const CPDF_Dictionary* annot_dict,
++                                       const CFX_FloatRect& rect) {
++  const int ori = annot_dict->GetIntegerFor("EPDF:MarkupOri");
++  if (ori >= 1) {
++    if (ori == 2) {
++      return BentoMarkupAxis::kVerticalRight;
++    }
++    if (ori == 3) {
++      return BentoMarkupAxis::kVerticalLeft;
++    }
++    return BentoMarkupAxis::kHorizontal;
++  }
++  int page_rot = annot_dict->GetIntegerFor("EPDFPageRot");
++  page_rot = ((page_rot % 4) + 4) % 4;
++  if (page_rot == 1) {
++    return BentoMarkupAxis::kVerticalRight;
++  }
++  if (page_rot == 3) {
++    return BentoMarkupAxis::kVerticalLeft;
++  }
++  (void)rect;
++  return BentoMarkupAxis::kHorizontal;
++}
++
+ bool GenerateHighlightAP(APGenerationTarget* target,
+                          CPDF_Dictionary* annot_dict,
+                          const ByteString& blend_name) {
+@@ -2692,8 +2793,23 @@ bool GenerateUnderlineAP(APGenerationTarget* target,
+ 
+       CFX_FloatRect rect = CPDF_Annot::RectFromQuadPoints(annot_dict, i);
+       rect.Normalize();
+-      app_stream << rect.left << " " << rect.bottom + kLineWidth << " m "
+-                 << rect.right << " " << rect.bottom + kLineWidth << " l S\n";
++      switch (ResolveBentoMarkupAxis(annot_dict, rect)) {
++        case BentoMarkupAxis::kHorizontal:
++          app_stream << rect.left << " " << rect.bottom + kLineWidth << " m "
++                     << rect.right << " " << rect.bottom + kLineWidth
++                     << " l S\n";
++          break;
++        case BentoMarkupAxis::kVerticalRight:
++          app_stream << rect.right - kLineWidth << " " << rect.bottom << " m "
++                     << rect.right - kLineWidth << " " << rect.top
++                     << " l S\n";
++          break;
++        case BentoMarkupAxis::kVerticalLeft:
++          app_stream << rect.left + kLineWidth << " " << rect.bottom << " m "
++                     << rect.left + kLineWidth << " " << rect.top
++                     << " l S\n";
++          break;
++      }
+     }
+   }
+ 
+@@ -2841,26 +2957,51 @@ bool GenerateSquigglyAP(APGenerationTarget* target,
+       CFX_FloatRect rect = CPDF_Annot::RectFromQuadPoints(annot_dict, i);
+       rect.Normalize();
+ 
+-      const float top = rect.bottom + kDelta;
+-      const float bottom = rect.bottom;
+-      app_stream << rect.left << " " << top << " m ";
++      const BentoMarkupAxis axis = ResolveBentoMarkupAxis(annot_dict, rect);
++      float run_lo, run_hi, edge_lo, edge_hi;
++      if (axis == BentoMarkupAxis::kHorizontal) {
++        run_lo = rect.left;
++        run_hi = rect.right;
++        edge_lo = rect.bottom;
++        edge_hi = rect.bottom + kDelta;
++      } else if (axis == BentoMarkupAxis::kVerticalRight) {
++        run_lo = rect.bottom;
++        run_hi = rect.top;
++        edge_lo = rect.right;
++        edge_hi = rect.right - kDelta;
++      } else {
++        run_lo = rect.bottom;
++        run_hi = rect.top;
++        edge_lo = rect.left;
++        edge_hi = rect.left + kDelta;
++      }
++      const bool along_x = (axis == BentoMarkupAxis::kHorizontal);
++      auto emit = [&](float u, float v) {
++        if (along_x) {
++          app_stream << u << " " << v;
++        } else {
++          app_stream << v << " " << u;
++        }
++      };
++      emit(run_lo, edge_hi);
++      app_stream << " m ";
+ 
+-      float x = rect.left + kDelta;
++      float u = run_lo + kDelta;
+       bool isUpwards = false;
+-      while (x < rect.right) {
+-        app_stream << x << " " << (isUpwards ? top : bottom) << " l ";
+-        x += kDelta;
++      while (u < run_hi) {
++        emit(u, isUpwards ? edge_hi : edge_lo);
++        app_stream << " l ";
++        u += kDelta;
+         isUpwards = !isUpwards;
+       }
+ 
+-      float remainder = rect.right - (x - kDelta);
++      float remainder = run_hi - (u - kDelta);
+       if (isUpwards) {
+-        app_stream << rect.right << " " << bottom + remainder << " l ";
++        emit(run_hi, edge_lo + (edge_hi - edge_lo) * (remainder / kDelta));
+       } else {
+-        app_stream << rect.right << " " << top - remainder << " l ";
++        emit(run_hi, edge_hi - (edge_hi - edge_lo) * (remainder / kDelta));
+       }
+-
+-      app_stream << "S\n";
++      app_stream << " l S\n";
+     }
+   }
+ 
+@@ -2904,10 +3045,17 @@ bool GenerateStrikeOutAP(APGenerationTarget* target,
+       CFX_FloatRect rect = CPDF_Annot::RectFromQuadPoints(annot_dict, i);
+       rect.Normalize();
+ 
+-      float y = (rect.top + rect.bottom) / 2;
+       static constexpr int kLineWidth = 1;
+-      app_stream << kLineWidth << " w " << rect.left << " " << y << " m "
+-                 << rect.right << " " << y << " l S\n";
++      if (ResolveBentoMarkupAxis(annot_dict, rect) ==
++          BentoMarkupAxis::kHorizontal) {
++        float y = (rect.top + rect.bottom) / 2;
++        app_stream << kLineWidth << " w " << rect.left << " " << y << " m "
++                   << rect.right << " " << y << " l S\n";
++      } else {
++        float x = (rect.left + rect.right) / 2;
++        app_stream << kLineWidth << " w " << x << " " << rect.bottom << " m "
++                   << x << " " << rect.top << " l S\n";
++      }
+     }
+   }
  
 diff --git a/fpdfsdk/fpdf_annot.cpp b/fpdfsdk/fpdf_annot.cpp
 index dde86d33b..8a04f597b 100644
