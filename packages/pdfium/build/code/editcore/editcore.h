@@ -112,6 +112,12 @@ char* ec_document_info(FPDF_DOCUMENT doc);
 
 char* ec_test_bidi(const char* utf8, int base_dir);
 char* ec_test_arabic(const char* utf8, int mode);
+char* ec_test_pagetext(EC_SESSION session, FPDF_PAGE page);
+char* ec_test_paraadv(EC_SESSION session, FPDF_PAGE page, int para_id);
+char* ec_test_shape(const char* utf8, const unsigned char* font,
+                    unsigned long font_size);
+unsigned char* ec_test_subset(const unsigned char* font, unsigned long size,
+                              const char* utf8, unsigned long* out_size);
 
 int ec_move_paragraph(EC_SESSION session, FPDF_PAGE page, int para_id,
                       float dx, float dy);

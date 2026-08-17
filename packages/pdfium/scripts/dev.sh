@@ -47,6 +47,7 @@ echo "🔧  Patching PDFium build files…"
 cp -f "$PDFIUM/build/patch/build/config/BUILDCONFIG.gn" \
       "$SRC/build/config/BUILDCONFIG.gn"
 
+mkdir -p "$SRC/build/toolchain/wasm"
 cp -f "$PDFIUM/build/patch/build/toolchain/wasm/BUILD.gn" \
       "$SRC/build/toolchain/wasm/BUILD.gn"
 

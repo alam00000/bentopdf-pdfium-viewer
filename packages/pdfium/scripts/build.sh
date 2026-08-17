@@ -33,10 +33,6 @@ EOF
   rm "$ROOT/.gclient"
 fi
 
-if [[ ! -f "$OUT/args.gn" ]]; then
-  "$SRC/buildtools/linux64/gn" gen "$OUT" --root="$SRC" --args='is_debug=false treat_warnings_as_errors=false pdf_use_skia=false pdf_enable_xfa=false pdf_enable_v8=false is_component_build=false clang_use_chrome_plugins=false pdf_is_standalone=true use_debug_fission=false use_custom_libcxx=false use_sysroot=false pdf_is_complete_lib=true pdf_use_partition_alloc=false is_clang=false symbol_level=0 target_os="wasm" target_cpu="wasm"'
-fi
-
 ###############################################################################
 # 0.5 Apply our local build-system patches (always, they’re tiny)
 ###############################################################################
@@ -44,11 +40,16 @@ echo "🔧  Patching PDFium build files…"
 cp -f "$PDFIUM/build/patch/build/config/BUILDCONFIG.gn" \
       "$SRC/build/config/BUILDCONFIG.gn"
 
+mkdir -p "$SRC/build/toolchain/wasm"
 cp -f "$PDFIUM/build/patch/build/toolchain/wasm/BUILD.gn" \
       "$SRC/build/toolchain/wasm/BUILD.gn"
 
 if ! git -C "$SRC" apply --reverse --check "$PDFIUM/build/patch/editcore-pdfium.patch" >/dev/null 2>&1; then
   git -C "$SRC" apply "$PDFIUM/build/patch/editcore-pdfium.patch"
+fi
+
+if [[ ! -f "$OUT/args.gn" ]]; then
+  "$SRC/buildtools/linux64/gn" gen "$OUT" --root="$SRC" --args='is_debug=false treat_warnings_as_errors=false pdf_use_skia=false pdf_enable_xfa=false pdf_enable_v8=false is_component_build=false clang_use_chrome_plugins=false pdf_is_standalone=true use_debug_fission=false use_custom_libcxx=false use_sysroot=false pdf_is_complete_lib=true pdf_use_partition_alloc=false is_clang=false symbol_level=0 target_os="wasm" target_cpu="wasm"'
 fi
 
 ###############################################################################
