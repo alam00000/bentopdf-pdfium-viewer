@@ -46,7 +46,15 @@ jobs:
           tags: embedpdf/pdfium-dev
           load: true
           cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-to: type=gha,mode=min
+
+      - name: Restore ninja object cache
+        uses: actions/cache@v4
+        with:
+          path: packages/pdfium/pdfium-src/out/wasm
+          key: pdfium-out-${{ github.sha }}
+          restore-keys: |
+            pdfium-out-
 
       - name: Build pdfium.wasm
         working-directory: packages/pdfium
