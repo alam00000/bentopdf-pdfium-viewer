@@ -51,7 +51,7 @@ jobs:
       - name: Build pdfium.wasm
         working-directory: packages/pdfium
         run: |
-          docker compose run --rm --no-build pdfium-build
+          docker compose run --rm pdfium-build
 
       - name: Verify EditCore exports
         run: |
