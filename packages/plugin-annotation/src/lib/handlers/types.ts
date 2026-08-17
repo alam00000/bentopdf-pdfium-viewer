@@ -7,6 +7,7 @@ import {
   Size,
   AnnotationCreateContext,
   PdfAnnotationBorderStyle,
+  PdfAnnotationLineEnding,
   Position,
   LineEndings,
   PdfInkListObject,
@@ -85,6 +86,12 @@ export interface FreeTextPreviewData {
   textAlign?: PdfTextAlignment;
   verticalAlign?: PdfVerticalAlignment;
   contents?: string;
+  calloutLine?: Position[];
+  textBox?: Rect;
+  strokeColor?: string;
+  strokeWidth?: number;
+  lineEnding?: PdfAnnotationLineEnding;
+  color?: string;
 }
 
 /**

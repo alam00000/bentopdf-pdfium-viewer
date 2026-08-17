@@ -1328,6 +1328,35 @@ export const commands: Record<string, Command<State>> = {
     },
   },
 
+  'annotation:add-callout': {
+    id: 'annotation:add-callout',
+    labelKey: 'annotation.callout',
+    icon: 'callout',
+    iconProps: ({ state }) => ({
+      primaryColor: getToolDefaultsById(state.plugins.annotation, 'freeTextCallout')?.strokeColor,
+      secondaryColor: getToolDefaultsById(state.plugins.annotation, 'freeTextCallout')?.color,
+    }),
+    categories: ['annotation', 'annotation-text'],
+    action: ({ registry, documentId }) => {
+      const annotation = registry.getPlugin<AnnotationPlugin>(ANNOTATION_PLUGIN_ID)?.provides();
+      const annotationScope = annotation?.forDocument(documentId);
+      if (!annotationScope) return;
+
+      if (annotationScope.getActiveTool()?.id === 'freeTextCallout') {
+        annotationScope.setActiveTool(null);
+      } else {
+        annotationScope.setActiveTool('freeTextCallout');
+      }
+    },
+    active: ({ state, documentId }) => {
+      const annotation = state.plugins[ANNOTATION_PLUGIN_ID]?.documents[documentId];
+      return annotation?.activeToolId === 'freeTextCallout';
+    },
+    disabled: ({ state, documentId }) => {
+      return lacksPermission(state, documentId, PdfPermissionFlag.ModifyAnnotations);
+    },
+  },
+
   'annotation:add-comment': {
     id: 'annotation:add-comment',
     labelKey: 'annotation.comment',

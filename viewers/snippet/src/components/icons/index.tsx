@@ -82,6 +82,7 @@ import { GroupIcon } from './group';
 import { UngroupIcon } from './ungroup';
 import { RedactionSidebarIcon } from './redaction-sidebar';
 import { FreeTextIcon } from './free-text';
+import { CalloutIcon } from './callout';
 import { InsertTextIcon } from './insert-text';
 import { ReplaceTextIcon } from './replace-text';
 import { MessageIcon } from './message';
@@ -175,6 +176,7 @@ export const icons: Icons = {
   ungroup: UngroupIcon,
   redactionSidebar: RedactionSidebarIcon,
   freeText: FreeTextIcon,
+  callout: CalloutIcon,
   insertText: InsertTextIcon,
   replaceText: ReplaceTextIcon,
   message: MessageIcon,

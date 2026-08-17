@@ -241,6 +241,16 @@ export function standardFontCssProperties(font: PdfStandardFont): StandardFontCs
   };
 }
 
+export function freeTextFontCssProperties(
+  fontFamily: PdfStandardFont,
+  fontFamilyName?: string,
+): StandardFontCssProperties {
+  if (fontFamilyName && fontFamilyName.trim()) {
+    return { fontFamily: fontFamilyName, fontWeight: 'normal', fontStyle: 'normal' };
+  }
+  return standardFontCssProperties(fontFamily);
+}
+
 /* ─────────────────────────  UI helpers  ────────────────────────── */
 
 /** Family dropdown options (“Helvetica”, “Times”…). */

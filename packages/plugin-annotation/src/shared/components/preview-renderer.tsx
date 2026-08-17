@@ -6,6 +6,7 @@ import { blendModeToCss, PdfAnnotationSubtype, PdfBlendMode } from '@embedpdf/mo
 import { Polyline } from './annotations/polyline';
 import { Line } from './annotations/line';
 import { Ink } from './annotations/ink';
+import { CalloutFreeTextPreview } from './annotations/callout-free-text-preview';
 
 interface Props {
   preview: AnyPreviewState;
@@ -80,6 +81,24 @@ export function PreviewRenderer({ preview, scale }: Props) {
   }
 
   if (preview.type === PdfAnnotationSubtype.FREETEXT) {
+    if (preview.data.calloutLine) {
+      return (
+        <div style={style}>
+          <CalloutFreeTextPreview
+            calloutLine={preview.data.calloutLine}
+            textBox={preview.data.textBox}
+            bounds={preview.bounds}
+            scale={scale}
+            strokeColor={preview.data.strokeColor}
+            strokeWidth={preview.data.strokeWidth}
+            color={preview.data.color}
+            backgroundColor={preview.data.backgroundColor}
+            opacity={preview.data.opacity}
+            lineEnding={preview.data.lineEnding}
+          />
+        </div>
+      );
+    }
     return (
       <div style={style}>
         {/* Render a simple dashed border preview */}

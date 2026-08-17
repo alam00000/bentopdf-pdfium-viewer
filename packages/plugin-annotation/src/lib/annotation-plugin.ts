@@ -11,6 +11,7 @@ import {
   AnnotationCreateContext,
   uuidV4,
   PdfAnnotationSubtype,
+  PdfFreeTextAnnoObject,
   PdfPermissionFlag,
   Position,
   Rect,
@@ -123,6 +124,7 @@ import {
   patchCircle,
   patchSquare,
   patchFreeText,
+  patchCalloutFreeText,
   patchStamp,
 } from './patching/patches';
 import {
@@ -271,7 +273,13 @@ export class AnnotationPlugin extends BasePlugin<
     this.patchRegistry.register(PdfAnnotationSubtype.POLYGON, patchPolygon);
     this.patchRegistry.register(PdfAnnotationSubtype.CIRCLE, patchCircle);
     this.patchRegistry.register(PdfAnnotationSubtype.SQUARE, patchSquare);
-    this.patchRegistry.register(PdfAnnotationSubtype.FREETEXT, patchFreeText);
+    this.patchRegistry.register<PdfFreeTextAnnoObject>(
+      PdfAnnotationSubtype.FREETEXT,
+      (original, context) =>
+        original.intent === 'FreeTextCallout'
+          ? patchCalloutFreeText(original, context)
+          : patchFreeText(original, context),
+    );
     this.patchRegistry.register(PdfAnnotationSubtype.STAMP, patchStamp);
   }
 
@@ -599,8 +607,9 @@ export class AnnotationPlugin extends BasePlugin<
       4) as Rotation;
 
     for (const tool of this.state.tools) {
-      if (!tool.defaults.type) continue;
-      const factory = this.handlerFactories.get(tool.defaults.type);
+      const factory =
+        tool.pointerHandler ??
+        (tool.defaults.type ? this.handlerFactories.get(tool.defaults.type) : undefined);
       if (!factory) continue;
 
       const context: HandlerContext<PdfAnnotationObject> = {

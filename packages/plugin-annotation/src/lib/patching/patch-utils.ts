@@ -3,6 +3,8 @@ import {
   Position,
   LineEndings,
   PdfAnnotationLineEnding,
+  PdfRectDifferences,
+  PdfFreeTextAnnoObject,
   rotateAndTranslatePoint,
   rectFromPoints,
   expandRect,
@@ -194,3 +196,130 @@ export function compensateRotatedVertexEdit(
 
   return vertices.map((v) => ({ x: v.x + qx, y: v.y + qy }));
 }
+
+export function computeTextBoxFromRD(rect: Rect, rd: PdfRectDifferences | undefined): Rect {
+  if (!rd) return rect;
+  return {
+    origin: { x: rect.origin.x + rd.left, y: rect.origin.y + rd.top },
+    size: {
+      width: Math.max(0, rect.size.width - rd.left - rd.right),
+      height: Math.max(0, rect.size.height - rd.top - rd.bottom),
+    },
+  };
+}
+
+export function computeRDFromTextBox(overallRect: Rect, textBox: Rect): PdfRectDifferences {
+  return {
+    left: textBox.origin.x - overallRect.origin.x,
+    top: textBox.origin.y - overallRect.origin.y,
+    right: overallRect.origin.x + overallRect.size.width - (textBox.origin.x + textBox.size.width),
+    bottom:
+      overallRect.origin.y + overallRect.size.height - (textBox.origin.y + textBox.size.height),
+  };
+}
+
+export function computeCalloutConnectionPoint(knee: Position, textBox: Rect): Position {
+  const cx = textBox.origin.x + textBox.size.width / 2;
+  const cy = textBox.origin.y + textBox.size.height / 2;
+  const dx = knee.x - cx;
+  const dy = knee.y - cy;
+
+  if (Math.abs(dx) >= Math.abs(dy)) {
+    return dx > 0
+      ? { x: textBox.origin.x + textBox.size.width, y: cy }
+      : { x: textBox.origin.x, y: cy };
+  }
+  return dy > 0
+    ? { x: cx, y: textBox.origin.y + textBox.size.height }
+    : { x: cx, y: textBox.origin.y };
+}
+
+export function computeCalloutOverallRect(
+  textBox: Rect,
+  calloutLine: Position[],
+  lineEnding: PdfAnnotationLineEnding | undefined,
+  strokeWidth: number,
+): Rect {
+  const linePoints = [...calloutLine];
+
+  if (lineEnding && calloutLine.length >= 2) {
+    const handler = LINE_ENDING_HANDLERS[lineEnding];
+    if (handler) {
+      const angle = Math.atan2(
+        calloutLine[1].y - calloutLine[0].y,
+        calloutLine[1].x - calloutLine[0].x,
+      );
+      const localPts = handler.getLocalPoints(strokeWidth);
+      const rotationAngle = handler.getRotation(angle + Math.PI);
+      const transformed = localPts.map((p) =>
+        rotateAndTranslatePoint(p, rotationAngle, calloutLine[0]),
+      );
+      linePoints.push(...transformed);
+    }
+  }
+
+  const lineBbox = expandRect(rectFromPoints(linePoints), strokeWidth);
+
+  const tbRight = textBox.origin.x + textBox.size.width;
+  const tbBottom = textBox.origin.y + textBox.size.height;
+  const lnRight = lineBbox.origin.x + lineBbox.size.width;
+  const lnBottom = lineBbox.origin.y + lineBbox.size.height;
+
+  const minX = Math.min(textBox.origin.x, lineBbox.origin.x);
+  const minY = Math.min(textBox.origin.y, lineBbox.origin.y);
+  const maxX = Math.max(tbRight, lnRight);
+  const maxY = Math.max(tbBottom, lnBottom);
+
+  return {
+    origin: { x: minX, y: minY },
+    size: { width: maxX - minX, height: maxY - minY },
+  };
+}
+
+export const calloutVertexConfig = {
+  extractVertices: (a: PdfFreeTextAnnoObject): Position[] => {
+    const textBox = computeTextBoxFromRD(a.rect, a.rectangleDifferences);
+    const cl = a.calloutLine;
+    if (!cl || cl.length < 3) {
+      return [
+        { x: a.rect.origin.x, y: a.rect.origin.y },
+        { x: a.rect.origin.x, y: a.rect.origin.y },
+        { x: textBox.origin.x, y: textBox.origin.y },
+        { x: textBox.origin.x + textBox.size.width, y: textBox.origin.y + textBox.size.height },
+      ];
+    }
+    return [
+      cl[0],
+      cl[1],
+      { x: textBox.origin.x, y: textBox.origin.y },
+      { x: textBox.origin.x + textBox.size.width, y: textBox.origin.y + textBox.size.height },
+    ];
+  },
+  transformAnnotation: (a: PdfFreeTextAnnoObject, vertices: Position[]) => {
+    if (vertices.length < 4) return {};
+    const arrowTip = vertices[0];
+    const knee = vertices[1];
+    const tbTL = vertices[2];
+    const tbBR = vertices[3];
+    const textBox = {
+      origin: { x: Math.min(tbTL.x, tbBR.x), y: Math.min(tbTL.y, tbBR.y) },
+      size: {
+        width: Math.abs(tbBR.x - tbTL.x),
+        height: Math.abs(tbBR.y - tbTL.y),
+      },
+    };
+    const connectionPoint = computeCalloutConnectionPoint(knee, textBox);
+    const calloutLine = [arrowTip, knee, connectionPoint];
+    const overallRect = computeCalloutOverallRect(
+      textBox,
+      calloutLine,
+      a.lineEnding,
+      a.strokeWidth ?? 1,
+    );
+    return {
+      calloutLine,
+      rect: overallRect,
+      rectangleDifferences: computeRDFromTextBox(overallRect, textBox),
+    };
+  },
+};

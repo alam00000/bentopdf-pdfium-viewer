@@ -107,7 +107,7 @@
     "@embedpdf/fonts-sc": "workspace:*",
     "@embedpdf/fonts-tc": "workspace:*",
     "@embedpdf/models": "workspace:*",
-    "@embedpdf/pdfium": "workspace:*"
+    "@embedpdf/pdfium": "2.14.0"
   },
   "peerDependencies": {
     "preact": "^10.26.4",

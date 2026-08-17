@@ -1294,6 +1294,7 @@ export enum PdfAnnotationColorType {
   Color = 0,
   InteriorColor = 1,
   OverlayColor = 2,
+  TextColor = 3,
 }
 
 /**
@@ -2126,6 +2127,9 @@ export interface PdfFreeTextAnnoObject extends PdfAnnotationObjectBase {
    * Font family of the free text annotation
    */
   fontFamily: PdfStandardFont;
+  fontFamilyName?: string;
+  fontPostScriptName?: string;
+  fontFaceName?: string;
   /**
    * Font size of the free text annotation
    */
@@ -2166,6 +2170,10 @@ export interface PdfFreeTextAnnoObject extends PdfAnnotationObjectBase {
    * Rectangle Differences (/RD) - inset padding from Rect to the drawn area.
    */
   rectangleDifferences?: PdfRectDifferences;
+  calloutLine?: Position[];
+  lineEnding?: PdfAnnotationLineEnding;
+  strokeWidth?: number;
+  strokeColor?: string;
 }
 
 /**

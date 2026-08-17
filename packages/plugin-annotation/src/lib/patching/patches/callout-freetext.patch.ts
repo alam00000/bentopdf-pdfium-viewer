@@ -1,0 +1,121 @@
+import { PdfFreeTextAnnoObject, Position } from '@embedpdf/models';
+
+import { PatchFunction } from '../patch-registry';
+import {
+  computeTextBoxFromRD,
+  computeRDFromTextBox,
+  computeCalloutConnectionPoint,
+  computeCalloutOverallRect,
+} from '../patch-utils';
+import { baseMoveChanges, baseRotateChanges, rotateOrbitDelta } from '../base-patch';
+import { freeTextFontChanged, measureFreeTextContentHeight } from '../measure-free-text';
+
+function rebuildFromVertices(
+  orig: PdfFreeTextAnnoObject,
+  arrowTip: Position,
+  knee: Position,
+  tbTL: Position,
+  tbBR: Position,
+): Partial<PdfFreeTextAnnoObject> {
+  const textBox = {
+    origin: { x: Math.min(tbTL.x, tbBR.x), y: Math.min(tbTL.y, tbBR.y) },
+    size: {
+      width: Math.abs(tbBR.x - tbTL.x),
+      height: Math.abs(tbBR.y - tbTL.y),
+    },
+  };
+  const connectionPoint = computeCalloutConnectionPoint(knee, textBox);
+  const calloutLine = [arrowTip, knee, connectionPoint];
+  const overallRect = computeCalloutOverallRect(
+    textBox,
+    calloutLine,
+    orig.lineEnding,
+    orig.strokeWidth ?? 1,
+  );
+  return {
+    calloutLine,
+    rect: overallRect,
+    rectangleDifferences: computeRDFromTextBox(overallRect, textBox),
+  };
+}
+
+export const patchCalloutFreeText: PatchFunction<PdfFreeTextAnnoObject> = (orig, ctx) => {
+  switch (ctx.type) {
+    case 'vertex-edit': {
+      if (!ctx.changes.calloutLine) return ctx.changes;
+      const verts = ctx.changes.calloutLine as Position[];
+      if (verts.length < 4) return ctx.changes;
+      return rebuildFromVertices(orig, verts[0], verts[1], verts[2], verts[3]);
+    }
+
+    case 'move': {
+      if (!ctx.changes.rect) return ctx.changes;
+      const { dx, dy, rects } = baseMoveChanges(orig, ctx.changes.rect);
+      const movedLine = orig.calloutLine?.map((p) => ({ x: p.x + dx, y: p.y + dy }));
+      return {
+        ...rects,
+        ...(movedLine && { calloutLine: movedLine }),
+      };
+    }
+
+    case 'rotate': {
+      const result = baseRotateChanges(orig, ctx);
+      if (!result) return ctx.changes;
+      const { dx, dy } = rotateOrbitDelta(orig, result);
+      const movedLine = orig.calloutLine?.map((p) => ({ x: p.x + dx, y: p.y + dy }));
+      return {
+        ...result,
+        ...(movedLine && { calloutLine: movedLine }),
+      };
+    }
+
+    case 'property-update': {
+      const merged = { ...orig, ...ctx.changes };
+      const strokeChanged =
+        ctx.changes.lineEnding !== undefined || ctx.changes.strokeWidth !== undefined;
+
+      let textBox = computeTextBoxFromRD(orig.rect, orig.rectangleDifferences);
+      let textBoxGrew = false;
+      if (freeTextFontChanged(ctx.changes) && !orig.rotation) {
+        const inset = (merged.strokeWidth ?? 1) + 4;
+        const needed = measureFreeTextContentHeight(
+          merged,
+          Math.max(1, textBox.size.width - inset),
+        );
+        if (needed != null && needed + inset > textBox.size.height + 0.5) {
+          textBox = {
+            origin: textBox.origin,
+            size: { width: textBox.size.width, height: needed + inset },
+          };
+          textBoxGrew = true;
+        }
+      }
+
+      if ((strokeChanged || textBoxGrew) && merged.calloutLine && merged.calloutLine.length >= 3) {
+        const calloutLine = textBoxGrew
+          ? [
+              merged.calloutLine[0],
+              merged.calloutLine[1],
+              computeCalloutConnectionPoint(merged.calloutLine[1], textBox),
+            ]
+          : merged.calloutLine;
+        const overallRect = computeCalloutOverallRect(
+          textBox,
+          calloutLine,
+          merged.lineEnding,
+          merged.strokeWidth ?? 1,
+        );
+        return {
+          ...ctx.changes,
+          ...(textBoxGrew && { calloutLine }),
+          rect: overallRect,
+          rectangleDifferences: computeRDFromTextBox(overallRect, textBox),
+        };
+      }
+      return ctx.changes;
+    }
+
+    default:
+      return ctx.changes;
+  }
+};

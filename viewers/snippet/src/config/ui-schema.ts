@@ -348,6 +348,7 @@ export const viewerUISchema: UISchema = {
               'add-insert-text',
               'add-replace-text',
               'add-comment',
+              'add-callout',
             ],
             show: ['overflow-annotation-tools'],
           },
@@ -362,6 +363,7 @@ export const viewerUISchema: UISchema = {
               'add-insert-text',
               'add-replace-text',
               'add-comment',
+              'add-callout',
             ],
           },
         },
@@ -445,6 +447,13 @@ export const viewerUISchema: UISchema = {
               commandId: 'annotation:add-comment',
               variant: 'icon',
               categories: ['annotation', 'annotation-comment-tool'],
+            },
+            {
+              type: 'command-button',
+              id: 'add-callout',
+              commandId: 'annotation:add-callout',
+              variant: 'icon',
+              categories: ['annotation', 'annotation-text'],
             },
             {
               type: 'command-button',
@@ -1102,6 +1111,12 @@ export const viewerUISchema: UISchema = {
           id: 'annotation:add-comment',
           commandId: 'annotation:add-comment',
           categories: ['annotation', 'annotation-comment-tool'],
+        },
+        {
+          type: 'command',
+          id: 'annotation:add-callout',
+          commandId: 'annotation:add-callout',
+          categories: ['annotation', 'annotation-text'],
         },
         {
           type: 'command',

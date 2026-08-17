@@ -1,6 +1,7 @@
 import {
   PdfAnnotationBorderStyle,
   PdfAnnotationLineEnding,
+  PdfAnnotationObject,
   PdfAnnotationSubtype,
   PdfBlendMode,
   PdfStandardFont,
@@ -8,6 +9,8 @@ import {
   PdfVerticalAlignment,
 } from '@embedpdf/models';
 import { AnnoOf } from '../helpers';
+import { calloutFreeTextHandlerFactory } from '../handlers/callout-free-text.handler';
+import type { HandlerFactory } from '../handlers/types';
 import { AnnotationTool } from './types';
 
 const inkTools: readonly AnnotationTool<AnnoOf<PdfAnnotationSubtype.INK>>[] = [
@@ -407,7 +410,8 @@ export const defaultTools = [
   {
     id: 'freeText' as const,
     name: 'Free Text',
-    matchScore: (a) => (a.type === PdfAnnotationSubtype.FREETEXT ? 1 : 0),
+    matchScore: (a) =>
+      a.type === PdfAnnotationSubtype.FREETEXT && a.intent !== 'FreeTextCallout' ? 1 : 0,
     interaction: {
       exclusive: false,
       cursor: 'crosshair',
@@ -442,6 +446,40 @@ export const defaultTools = [
       editAfterCreate: true,
       selectAfterCreate: true,
     },
+  },
+  {
+    id: 'freeTextCallout' as const,
+    name: 'Callout',
+    matchScore: (a) =>
+      a.type === PdfAnnotationSubtype.FREETEXT && a.intent === 'FreeTextCallout' ? 10 : 0,
+    interaction: {
+      exclusive: false,
+      cursor: 'crosshair',
+      isDraggable: true,
+      isResizable: false,
+      isRotatable: false,
+    },
+    defaults: {
+      type: PdfAnnotationSubtype.FREETEXT,
+      intent: 'FreeTextCallout',
+      contents: 'Insert text',
+      fontSize: 14,
+      fontColor: '#E44234',
+      fontFamily: PdfStandardFont.Helvetica,
+      textAlign: PdfTextAlignment.Left,
+      verticalAlign: PdfVerticalAlignment.Top,
+      color: 'transparent',
+      opacity: 1,
+      lineEnding: PdfAnnotationLineEnding.OpenArrow,
+      strokeColor: '#E44234',
+      strokeWidth: 1,
+    },
+    behavior: {
+      insertUpright: true,
+      editAfterCreate: true,
+      selectAfterCreate: true,
+    },
+    pointerHandler: calloutFreeTextHandlerFactory as unknown as HandlerFactory<PdfAnnotationObject>,
   },
   {
     id: 'stamp' as const,

@@ -1,5 +1,7 @@
 import { PdfAnnotationObject, PdfAnnotationSubtype, Size } from '@embedpdf/models';
 
+import type { HandlerFactory } from '../handlers/types';
+
 /**
  * A dynamic boolean property that can be either a static boolean
  * or a function that receives the annotation and returns a boolean.
@@ -203,6 +205,9 @@ export type AnnotationTool<T extends PdfAnnotationObject = PdfAnnotationObject> 
     /** Whether this annotation can be rotated when part of a group. Defaults to isRotatable. Can be dynamic based on annotation. */
     isGroupRotatable?: DynamicBooleanProp;
   };
+
+  /** Pointer-based creation handler (drag-to-create, click-to-place). */
+  pointerHandler?: HandlerFactory<PdfAnnotationObject>;
 
   /** Tool-specific behavior settings that override plugin defaults */
   behavior?: {

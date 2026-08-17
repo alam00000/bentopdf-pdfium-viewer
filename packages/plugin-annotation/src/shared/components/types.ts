@@ -149,6 +149,8 @@ export interface AnnotationRendererProps<T extends PdfAnnotationObject = PdfAnno
   /** When true, AP canvas provides the visual; component should only render hit area */
   appearanceActive: boolean;
   pageRotation: number;
+  pageWidth: number;
+  pageHeight: number;
 }
 
 /**
@@ -198,7 +200,7 @@ export interface AnnotationRendererEntry<T extends PdfAnnotationObject = PdfAnno
   };
 
   /** Whether this annotation type uses AP rendering before editing (default: true) */
-  useAppearanceStream?: boolean;
+  useAppearanceStream?: boolean | ((annotation: T, pageRotation: number) => boolean);
 
   /** Override resolved isDraggable (e.g., FreeText disables drag while editing) */
   isDraggable?: (toolDraggable: boolean, context: { isEditing: boolean }) => boolean;
@@ -236,7 +238,7 @@ export interface BoxedAnnotationRenderer {
     isRotatable?: boolean;
     lockAspectRatio?: boolean;
   };
-  useAppearanceStream?: boolean;
+  useAppearanceStream?: boolean | ((annotation: PdfAnnotationObject, pageRotation: number) => boolean);
   isDraggable?: (toolDraggable: boolean, context: { isEditing: boolean }) => boolean;
   onDoubleClick?: (annotationId: string, setEditingId: (id: string) => void) => void;
   selectOverride?: (
@@ -265,7 +267,10 @@ export function createRenderer<T extends PdfAnnotationObject>(
       | ((annotation: PdfAnnotationObject) => CSSProperties)
       | undefined,
     interactionDefaults: entry.interactionDefaults,
-    useAppearanceStream: entry.useAppearanceStream,
+    useAppearanceStream: entry.useAppearanceStream as
+      | boolean
+      | ((annotation: PdfAnnotationObject, pageRotation: number) => boolean)
+      | undefined,
     isDraggable: entry.isDraggable,
     onDoubleClick: entry.onDoubleClick,
     selectOverride: entry.selectOverride as BoxedAnnotationRenderer['selectOverride'],

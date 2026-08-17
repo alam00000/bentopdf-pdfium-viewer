@@ -295,7 +295,12 @@ export function Annotations(annotationsProps: AnnotationsProps) {
           ? renderer.isDraggable(resolvedDraggable, { isEditing })
           : resolvedDraggable;
 
-        const useAP = tool?.behavior?.useAppearanceStream ?? renderer.useAppearanceStream ?? true;
+        const useAPSetting =
+          tool?.behavior?.useAppearanceStream ?? renderer.useAppearanceStream ?? true;
+        const useAP =
+          typeof useAPSetting === 'function'
+            ? useAPSetting(annotation.object, annotationsProps.rotation)
+            : useAPSetting;
 
         const onSelect = renderer.selectOverride
           ? (e: AnnotationInteractionEvent) =>
@@ -358,6 +363,8 @@ export function Annotations(annotationsProps: AnnotationsProps) {
                 onClick: onSelect,
                 appearanceActive,
                 pageRotation: annotationsProps.rotation,
+                pageWidth,
+                pageHeight,
               })
             }
           </AnnotationContainer>

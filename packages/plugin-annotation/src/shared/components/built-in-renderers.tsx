@@ -19,6 +19,7 @@ import {
   PdfBlendMode,
 } from '@embedpdf/models';
 import { Fragment } from '@framework';
+import { patching } from '@embedpdf/plugin-annotation';
 import { BoxedAnnotationRenderer, createRenderer } from './types';
 import { Ink } from './annotations/ink';
 import { Square } from './annotations/square';
@@ -28,6 +29,7 @@ import { Polyline } from './annotations/polyline';
 import { Polygon } from './annotations/polygon';
 import { Text } from './annotations/text';
 import { FreeText } from './annotations/free-text';
+import { CalloutFreeText } from './annotations/callout-free-text';
 import { Stamp } from './annotations/stamp';
 import { Link } from './annotations/link';
 import { Highlight } from './text-markup/highlight';
@@ -257,8 +259,9 @@ export const builtInRenderers: BoxedAnnotationRenderer[] = [
   // --- FreeText ---
 
   createRenderer<PdfFreeTextAnnoObject>({
-    id: 'freeText',
-    matches: (a): a is PdfFreeTextAnnoObject => a.type === PdfAnnotationSubtype.FREETEXT,
+    id: 'freeTextCallout',
+    matches: (a): a is PdfFreeTextAnnoObject =>
+      a.type === PdfAnnotationSubtype.FREETEXT && a.intent === 'FreeTextCallout',
     render: ({
       annotation,
       currentObject,
@@ -269,6 +272,42 @@ export const builtInRenderers: BoxedAnnotationRenderer[] = [
       documentId,
       onClick,
       appearanceActive,
+      pageRotation,
+    }) => (
+      <CalloutFreeText
+        documentId={documentId}
+        isSelected={isSelected}
+        isEditing={isEditing}
+        annotation={{ ...annotation, object: currentObject }}
+        pageIndex={pageIndex}
+        scale={scale}
+        onClick={onClick}
+        appearanceActive={appearanceActive}
+        pageRotation={pageRotation}
+      />
+    ),
+    useAppearanceStream: (a, pageRotation) => !a.fontFamilyName?.trim() && pageRotation === 0,
+    vertexConfig: patching.calloutVertexConfig,
+    interactionDefaults: { isDraggable: true, isResizable: false, isRotatable: false },
+    isDraggable: (toolDraggable) => toolDraggable,
+    onDoubleClick: (id, setEditingId) => setEditingId(id),
+  }),
+
+  createRenderer<PdfFreeTextAnnoObject>({
+    id: 'freeText',
+    matches: (a): a is PdfFreeTextAnnoObject =>
+      a.type === PdfAnnotationSubtype.FREETEXT && a.intent !== 'FreeTextCallout',
+    render: ({
+      annotation,
+      currentObject,
+      isSelected,
+      isEditing,
+      scale,
+      pageIndex,
+      documentId,
+      onClick,
+      appearanceActive,
+      pageWidth,
     }) => (
       <FreeText
         documentId={documentId}
@@ -279,8 +318,10 @@ export const builtInRenderers: BoxedAnnotationRenderer[] = [
         scale={scale}
         onClick={onClick}
         appearanceActive={appearanceActive}
+        pageWidth={pageWidth}
       />
     ),
+    useAppearanceStream: (a) => !a.fontFamilyName?.trim(),
     interactionDefaults: { isDraggable: true, isResizable: true, isRotatable: true },
     isDraggable: (toolDraggable, { isEditing }) => toolDraggable && !isEditing,
     onDoubleClick: (id, setEditingId) => setEditingId(id),

@@ -11,6 +11,7 @@ import {
   PdfTextAlignment,
   PdfVerticalAlignment,
   standardFontFamily,
+  standardFontFamilyLabel,
   standardFontIsBold,
   standardFontIsItalic,
   makeStandardFont,
@@ -25,13 +26,13 @@ import {
   Slider,
   StrokeStyleSelect,
   LineEndingSelect,
-  FontFamilySelect,
   FontSizeInputSelect,
   RotationInput,
   Section,
   SectionLabel,
   ValueDisplay,
 } from './ui';
+import { SystemFontPicker, FontPick, SystemFontVariant } from './system-font-picker';
 import { Icon } from '../ui/icon';
 import { ToggleButton } from '../ui/toggle-button';
 
@@ -278,8 +279,36 @@ function LineEndingsSection({ config, value, onChange, translate }: PropertySect
 
 /* ─── Font Family Section ───────────────────────────────────────────────── */
 
+interface FontFamilyComposite {
+  fontFamily?: PdfStandardFont;
+  fontFamilyName?: string;
+  fontPostScriptName?: string;
+  fontFaceName?: string;
+}
+
+function nearestStandardFont(v: SystemFontVariant): PdfStandardFont {
+  const hay = `${v.family} ${v.style} ${v.postscriptName}`.toLowerCase();
+  const bold = /bold|black|heavy|semibold|\bdemi/.test(hay);
+  const italic = /italic|oblique/.test(hay);
+  let family: PdfStandardFontFamily;
+  if (/courier|\bmono\b|consol/.test(hay)) {
+    family = PdfStandardFontFamily.Courier;
+  } else if (/times|serif|georgia|garamond|roman|minion|cambria/.test(hay) && !/sans/.test(hay)) {
+    family = PdfStandardFontFamily.Times;
+  } else {
+    family = PdfStandardFontFamily.Helvetica;
+  }
+  return makeStandardFont(family, { bold, italic });
+}
+
 function FontFamilySection({ config, value, onChange, translate }: PropertySectionProps) {
-  const baseFont: PdfStandardFont = value ?? PdfStandardFont.Helvetica;
+  const comp: FontFamilyComposite =
+    value && typeof value === 'object'
+      ? (value as FontFamilyComposite)
+      : { fontFamily: (value as PdfStandardFont | undefined) ?? PdfStandardFont.Helvetica };
+
+  const baseFont = comp.fontFamily ?? PdfStandardFont.Helvetica;
+  const hasSystemFont = !!comp.fontPostScriptName?.trim();
   const baseFamily = standardFontFamily(baseFont);
   const baseBold = standardFontIsBold(baseFont);
   const baseItalic = standardFontIsItalic(baseFont);
@@ -289,62 +318,93 @@ function FontFamilySection({ config, value, onChange, translate }: PropertySecti
   const [italic, setItalic] = useState(baseItalic);
 
   useEffect(() => {
-    const font: PdfStandardFont = value ?? PdfStandardFont.Helvetica;
-    setFontFamily(standardFontFamily(font));
-    setBold(standardFontIsBold(font));
-    setItalic(standardFontIsItalic(font));
+    setFontFamily(baseFamily);
+    setBold(baseBold);
+    setItalic(baseItalic);
   }, [value]);
 
-  const updateFontEnum = (fam: PdfStandardFontFamily, b: boolean, i: boolean) => {
-    const id = makeStandardFont(fam, { bold: b, italic: i });
-    onChange(id);
+  const emitStandard = (fam: PdfStandardFontFamily, b: boolean, i: boolean) => {
+    onChange({
+      fontFamily: makeStandardFont(fam, { bold: b, italic: i }),
+      fontFamilyName: '',
+      fontPostScriptName: '',
+      fontFaceName: '',
+    });
   };
 
-  const onFamilyChange = (fam: PdfStandardFontFamily) => {
-    const supportsBold = standardFontIsBold(makeStandardFont(fam, { bold: true, italic: false }));
-    const supportsItalic = standardFontIsItalic(
-      makeStandardFont(fam, { bold: false, italic: true }),
-    );
-    const newBold = supportsBold ? bold : false;
-    const newItalic = supportsItalic ? italic : false;
+  const handlePick = (pick: FontPick) => {
+    if (pick.kind === 'standard') {
+      const fam = pick.family;
+      const supportsBold = standardFontIsBold(makeStandardFont(fam, { bold: true, italic: false }));
+      const supportsItalic = standardFontIsItalic(
+        makeStandardFont(fam, { bold: false, italic: true }),
+      );
+      const newBold = supportsBold ? bold : false;
+      const newItalic = supportsItalic ? italic : false;
 
-    setFontFamily(fam);
-    setBold(newBold);
-    setItalic(newItalic);
-    updateFontEnum(fam, newBold, newItalic);
+      setFontFamily(fam);
+      setBold(newBold);
+      setItalic(newItalic);
+      emitStandard(fam, newBold, newItalic);
+      return;
+    }
+    const variant = pick.variant;
+    const styled =
+      variant.style && variant.style.trim().toLowerCase() !== 'regular'
+        ? `${variant.family} ${variant.style}`
+        : variant.family;
+    onChange({
+      fontFamily: nearestStandardFont(variant),
+      fontFamilyName: variant.cssFamily,
+      fontPostScriptName: variant.postscriptName,
+      fontFaceName: styled,
+    });
   };
 
   const toggleBold = () => {
+    if (hasSystemFont) return;
     const supports = standardFontIsBold(
       makeStandardFont(fontFamily, { bold: true, italic: false }),
     );
     if (!supports) return;
     const newBold = !bold;
     setBold(newBold);
-    updateFontEnum(fontFamily, newBold, italic);
+    emitStandard(fontFamily, newBold, italic);
   };
 
   const toggleItalic = () => {
+    if (hasSystemFont) return;
     const supports = standardFontIsItalic(
       makeStandardFont(fontFamily, { bold: false, italic: true }),
     );
     if (!supports) return;
     const newItalic = !italic;
     setItalic(newItalic);
-    updateFontEnum(fontFamily, bold, newItalic);
+    emitStandard(fontFamily, bold, newItalic);
   };
+
+  const triggerLabel = hasSystemFont
+    ? comp.fontFaceName || comp.fontPostScriptName || ''
+    : standardFontFamilyLabel(fontFamily);
 
   return (
     <Section>
       <SectionLabel>{translate(config.labelKey)}</SectionLabel>
       <div class="mb-3">
-        <FontFamilySelect value={fontFamily} onChange={onFamilyChange} />
+        <SystemFontPicker
+          label={triggerLabel}
+          activePostScriptName={hasSystemFont ? comp.fontPostScriptName : undefined}
+          activeStandardFamily={fontFamily}
+          onPick={handlePick}
+          translate={translate}
+        />
       </div>
       <div class="flex gap-2">
         <ToggleButton
           title="Bold"
-          active={bold}
+          active={!hasSystemFont && bold}
           disabled={
+            hasSystemFont ||
             !standardFontIsBold(makeStandardFont(fontFamily, { bold: true, italic: false }))
           }
           onClick={toggleBold}
@@ -354,8 +414,9 @@ function FontFamilySection({ config, value, onChange, translate }: PropertySecti
         </ToggleButton>
         <ToggleButton
           title="Italic"
-          active={italic}
+          active={!hasSystemFont && italic}
           disabled={
+            hasSystemFont ||
             !standardFontIsItalic(makeStandardFont(fontFamily, { bold: false, italic: true }))
           }
           onClick={toggleItalic}

@@ -7,6 +7,7 @@ import {
   baseResizeScaling,
   basePropertyRotationChanges,
 } from '../base-patch';
+import { freeTextFontChanged, measureFreeTextContentHeight } from '../measure-free-text';
 
 export const patchFreeText: PatchFunction<PdfFreeTextAnnoObject> = (orig, ctx) => {
   switch (ctx.type) {
@@ -24,6 +25,19 @@ export const patchFreeText: PatchFunction<PdfFreeTextAnnoObject> = (orig, ctx) =
     case 'property-update':
       if (ctx.changes.rotation !== undefined) {
         return { ...ctx.changes, ...basePropertyRotationChanges(orig, ctx.changes.rotation) };
+      }
+      if (freeTextFontChanged(ctx.changes) && !orig.rotation) {
+        const merged = { ...orig, ...ctx.changes };
+        const needed = measureFreeTextContentHeight(merged, orig.rect.size.width);
+        if (needed != null && needed > orig.rect.size.height + 0.5) {
+          return {
+            ...ctx.changes,
+            rect: {
+              origin: orig.rect.origin,
+              size: { width: orig.rect.size.width, height: needed },
+            },
+          };
+        }
       }
       return ctx.changes;
 

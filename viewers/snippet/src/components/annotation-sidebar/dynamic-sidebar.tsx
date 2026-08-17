@@ -1,6 +1,11 @@
 import { h, Fragment } from 'preact';
 
-import { PdfAnnotationObject, PdfAnnotationSubtype } from '@embedpdf/models';
+import {
+  PdfAnnotationObject,
+  PdfAnnotationSubtype,
+  PdfFreeTextAnnoObject,
+  PdfStandardFont,
+} from '@embedpdf/models';
 import { AnnotationTool, TrackedAnnotation } from '@embedpdf/plugin-annotation';
 import { useAnnotationCapability } from '@embedpdf/plugin-annotation/preact';
 import { useTranslations } from '@embedpdf/plugin-i18n/preact';
@@ -119,6 +124,16 @@ export function DynamicSidebar({
       };
     }
 
+    if (config.type === 'fontFamily') {
+      const obj = source as Partial<PdfFreeTextAnnoObject>;
+      return {
+        fontFamily: obj.fontFamily,
+        fontFamilyName: obj.fontFamilyName,
+        fontPostScriptName: obj.fontPostScriptName,
+        fontFaceName: obj.fontFaceName,
+      };
+    }
+
     return (source as any)[config.key];
   };
 
@@ -145,6 +160,22 @@ export function DynamicSidebar({
     // Special case: lineEndings returns the full object
     if (config.type === 'lineEndings') {
       applyPatch({ lineEndings: value });
+      return;
+    }
+
+    if (config.type === 'fontFamily' && value && typeof value === 'object') {
+      const v = value as {
+        fontFamily?: PdfStandardFont;
+        fontFamilyName?: string;
+        fontPostScriptName?: string;
+        fontFaceName?: string;
+      };
+      applyPatch({
+        fontFamily: v.fontFamily,
+        fontFamilyName: v.fontFamilyName,
+        fontPostScriptName: v.fontPostScriptName,
+        fontFaceName: v.fontFaceName,
+      } as Partial<PdfAnnotationObject>);
       return;
     }
 
