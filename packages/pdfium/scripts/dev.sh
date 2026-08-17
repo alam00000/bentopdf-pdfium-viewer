@@ -10,6 +10,8 @@ PDFIUM=$ROOT/packages/pdfium
 # make them visible in child shells
 export ROOT SRC OUT PDFIUM
 
+git config --global --add safe.directory '*' >/dev/null 2>&1 || true
+
 mkdir -p $OUT
 
 export PATH="$HOME/.cargo/bin:$PATH" 
@@ -17,7 +19,7 @@ export PATH="$HOME/.cargo/bin:$PATH"
 ###############################################################################
 # 0.  Bring in Chromium build tool-chain (first run only)
 ###############################################################################
-if [[ ! -d "$SRC/third_party/llvm-build" ]]; then
+if [[ ! -d "$SRC/third_party/llvm-build" || ! -x "$SRC/buildtools/linux64/gn" ]]; then
   echo "⏬  Running first-time gclient sync (few minutes)…"
 
   # minimal helper .gclient so `sync` knows where it is
@@ -48,7 +50,6 @@ cp -f "$PDFIUM/build/patch/build/config/BUILDCONFIG.gn" \
 cp -f "$PDFIUM/build/patch/build/toolchain/wasm/BUILD.gn" \
       "$SRC/build/toolchain/wasm/BUILD.gn"
 
-git config --global --add safe.directory '*' >/dev/null 2>&1 || true
 if ! git -C "$SRC" apply --reverse --check "$PDFIUM/build/patch/editcore-pdfium.patch" >/dev/null 2>&1; then
   git -C "$SRC" apply "$PDFIUM/build/patch/editcore-pdfium.patch"
 fi

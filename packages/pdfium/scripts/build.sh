@@ -12,10 +12,12 @@ mkdir -p $OUT
 export ROOT SRC OUT PDFIUM
 export PATH="$HOME/.cargo/bin:$PATH"
 
+git config --global --add safe.directory '*' >/dev/null 2>&1 || true
+
 ###############################################################################
 # step 0 – make sure tool-chain & GN args exist (same logic as dev.sh)
 ###############################################################################
-if [[ ! -d "$SRC/third_party/llvm-build" ]]; then
+if [[ ! -d "$SRC/third_party/llvm-build" || ! -x "$SRC/buildtools/linux64/gn" ]]; then
   echo "⏬  First-time gclient sync…"
   cat > "$ROOT/.gclient" <<'EOF'
 solutions = [
@@ -46,7 +48,6 @@ cp -f "$PDFIUM/build/patch/build/config/BUILDCONFIG.gn" \
 cp -f "$PDFIUM/build/patch/build/toolchain/wasm/BUILD.gn" \
       "$SRC/build/toolchain/wasm/BUILD.gn"
 
-git config --global --add safe.directory '*' >/dev/null 2>&1 || true
 if ! git -C "$SRC" apply --reverse --check "$PDFIUM/build/patch/editcore-pdfium.patch" >/dev/null 2>&1; then
   git -C "$SRC" apply "$PDFIUM/build/patch/editcore-pdfium.patch"
 fi
@@ -77,7 +78,7 @@ cd "$SRC"
 # real build (no watcher)
 ###############################################################################
 echo "🛠  Building pdfium (once)…"
-ninja -C "$OUT" pdfium -v
+ninja -C "$OUT" pdfium -j4
 gen_exports
 
 cd "$PDFIUM/build"
