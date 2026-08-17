@@ -1,5 +1,5 @@
 em++ $(ls ./code/cpp/*.cpp) $(ls ./code/editcore/*.cpp) \
-  /workspace/packages/pdfium/pdfium-src/out/wasm/obj/libpdfium.a \
+  /workspace/packages/pdfium/pdfium-src/out/wasm/obj/libembedpdf.a \
   -v \
   -sENVIRONMENT=node,worker,web,shell \
   -sMODULARIZE=1 \
@@ -11,7 +11,7 @@ em++ $(ls ./code/cpp/*.cpp) $(ls ./code/editcore/*.cpp) \
   -sASSERTIONS=1 \
   -sEXPORTED_RUNTIME_METHODS=$(cat ./wasm/exported-runtime-methods.txt) \
   -sEXPORTED_FUNCTIONS=$(cat ./wasm/exported-functions.txt) \
-  -lpdfium \
+  -lembedpdf \
   -L/workspace/packages/pdfium/pdfium-src/out/wasm/obj \
   -I/workspace/packages/pdfium/pdfium-src/public \
   -I./code/editcore \
