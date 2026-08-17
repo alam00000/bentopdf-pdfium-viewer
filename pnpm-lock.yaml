@@ -877,8 +877,8 @@ importers:
         specifier: workspace:*
         version: link:../models
       '@embedpdf/pdfium':
-        specifier: 2.14.0
-        version: 2.14.0
+        specifier: workspace:*
+        version: link:../pdfium
       preact:
         specifier: ^10.26.4
         version: 10.28.3
@@ -2228,8 +2228,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/models
       '@embedpdf/pdfium':
-        specifier: 2.14.0
-        version: 2.14.0
+        specifier: workspace:*
+        version: link:../../packages/pdfium
       '@embedpdf/plugin-annotation':
         specifier: workspace:*
         version: link:../../packages/plugin-annotation
@@ -3154,9 +3154,6 @@ packages:
   '@cspotcode/source-map-support@0.8.1':
     resolution: {integrity: sha512-IchNf6dN4tHoMFIn/7OE8LWZ19Y6q/67Bmf6vnGREv8RSbBVb9LPJxEcnwrcwX6ixSvaiGoomAUvu4YSxXrVgw==}
     engines: {node: '>=12'}
-
-  '@embedpdf/pdfium@2.14.0':
-    resolution: {integrity: sha512-yOg1VcIZPXASrzNmS4ZRjo78SUxf9ohey2zTSP7qOR+opMS0OenI/iXtbFGizpZFtk0gfK1Y1HQOxvDpuIiOEw==}
 
   '@emnapi/core@1.8.1':
     resolution: {integrity: sha512-AvT9QFpxK0Zd8J0jopedNm+w/2fIzvtPKPjqyw9jwvBaReTTqPBk9Hixaz7KbjimP+QNz605/XnjFcDAL2pqBg==}
@@ -10272,8 +10269,6 @@ snapshots:
     dependencies:
       '@jridgewell/trace-mapping': 0.3.9
     optional: true
-
-  '@embedpdf/pdfium@2.14.0': {}
 
   '@emnapi/core@1.8.1':
     dependencies:
