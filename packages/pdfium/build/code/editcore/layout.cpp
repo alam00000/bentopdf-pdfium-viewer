@@ -346,6 +346,40 @@ FPDF_FONT resolveFont(Session& s, const RunStyle& style, FPDF_FONT preferred,
         }
     }
 
+    if (avoid && fontCovers(s, avoid, codepoints)) {
+        uint32_t cph = 2166136261u;
+        for (uint32_t cp : codepoints) {
+            cph ^= cp;
+            cph *= 16777619u;
+        }
+        char okey[48];
+        snprintf(okey, sizeof(okey), "orig:%p:%08x",
+                 static_cast<void*>(avoid), cph);
+        auto oit = s.fontCache.find(okey);
+        if (oit != s.fontCache.end() &&
+            fontCovers(s, oit->second, codepoints))
+            return oit->second;
+        std::set<uint32_t> want(codepoints.begin(), codepoints.end());
+        want.insert(u' ');
+        bool dis = false;
+        std::vector<uint8_t> bytes =
+            synthesizeSfnt(avoid, want, nullptr, &dis, false,
+                           "ECO" + style.family);
+        if (!dis && !bytes.empty() &&
+            fontAllowsEditableEmbed(bytes.data(), bytes.size())) {
+            FPDF_FONT f = FPDFText_LoadFont(
+                s.doc, bytes.data(), static_cast<unsigned int>(bytes.size()),
+                FPDF_FONT_TRUETYPE, 1);
+            if (f) {
+                s.fontBytes[f].assign(bytes.begin(), bytes.end());
+                if (fontCovers(s, f, codepoints)) {
+                    s.fontCache[okey] = f;
+                    return f;
+                }
+            }
+        }
+    }
+
     RunStyle hinted = style;
     if (fontLooksMono(preferred, style.family)) hinted.family += " mono";
     else if (fontLooksSerif(preferred, style.family)) hinted.family += " serif";
