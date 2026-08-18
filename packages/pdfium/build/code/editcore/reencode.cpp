@@ -350,7 +350,7 @@ int reencodePageFonts(Session& s, FPDF_PAGE page,
     FPDFText_ClosePage(tp);
     if (rebuilt > 0) {
 
-        historyClear(s);
+        historyDropPage(s, page);
     }
     return rebuilt;
 }

@@ -208,6 +208,38 @@ void historyEnd(Session& s, FPDF_PAGE page) {
     }
 }
 
+void historyDropPage(Session& s, FPDF_PAGE page) {
+    if (s.recording && s.recording->page == page) historyAbort(s);
+    for (std::vector<EditCommand>* st : {&s.undoStack, &s.redoStack}) {
+        for (auto it = st->begin(); it != st->end();) {
+            if (it->page == page) {
+                releaseOps(it->ops);
+                it = st->erase(it);
+            } else {
+                ++it;
+            }
+        }
+    }
+}
+
+namespace {
+void dropCommandsUsing(Session& s, FPDF_PAGEOBJECT obj) {
+    for (std::vector<EditCommand>* st : {&s.undoStack, &s.redoStack}) {
+        for (auto it = st->begin(); it != st->end();) {
+            bool uses = false;
+            for (const EditOp& op : it->ops)
+                if (op.object == obj) { uses = true; break; }
+            if (uses) {
+                releaseOps(it->ops);
+                it = st->erase(it);
+            } else {
+                ++it;
+            }
+        }
+    }
+}
+}
+
 bool historyRemoveObject(Session& s, FPDF_PAGE page, FPDF_PAGEOBJECT container,
                          FPDF_PAGEOBJECT obj) {
     if (!obj) return false;
@@ -231,10 +263,7 @@ bool historyRemoveObject(Session& s, FPDF_PAGE page, FPDF_PAGEOBJECT container,
         historyAbort(s);
     }
 
-    if (stackReferences(s, obj)) {
-        releaseStack(s.undoStack);
-        releaseStack(s.redoStack);
-    }
+    if (stackReferences(s, obj)) dropCommandsUsing(s, obj);
     FPDFPageObj_Destroy(obj);
     return true;
 }
@@ -349,12 +378,10 @@ bool stepIsSafe(const EditCommand& cmd, FPDF_PAGE page, bool forward) {
 bool applyStep(Session& s, FPDF_PAGE page, std::vector<EditCommand>& from,
                std::vector<EditCommand>& to, bool forward) {
     if (from.empty()) return false;
+
+    if (from.back().page != page) return false;
     EditCommand cmd = std::move(from.back());
     from.pop_back();
-    if (cmd.page != page) {
-        releaseOps(cmd.ops);
-        return false;
-    }
     if (!stepIsSafe(cmd, page, forward)) {
 
         releaseOps(cmd.ops);
@@ -387,6 +414,11 @@ bool historyUndo(Session& s, FPDF_PAGE page) {
 
 bool historyRedo(Session& s, FPDF_PAGE page) {
     return applyStep(s, page, s.redoStack, s.undoStack,  true);
+}
+
+FPDF_PAGE historyNextPage(const Session& s, int which) {
+    const std::vector<EditCommand>& st = which ? s.redoStack : s.undoStack;
+    return st.empty() ? nullptr : st.back().page;
 }
 
 void historyClear(Session& s) {

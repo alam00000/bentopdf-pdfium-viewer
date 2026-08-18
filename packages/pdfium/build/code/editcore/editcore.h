@@ -135,6 +135,7 @@ int ec_history_undo(EC_SESSION session, FPDF_PAGE page);
 int ec_history_redo(EC_SESSION session, FPDF_PAGE page);
 
 int ec_history_depth(EC_SESSION session, int which);
+FPDF_PAGE ec_history_next_page(EC_SESSION session, int which);
 
 void ec_history_clear(EC_SESSION session);
 

@@ -2521,6 +2521,12 @@ int ec_history_redo(EC_SESSION session, FPDF_PAGE page) {
     return historyRedo(*s, page) ? 1 : 0;
 }
 
+FPDF_PAGE ec_history_next_page(EC_SESSION session, int which) {
+    Session* s = asSession(session);
+    if (!s) return nullptr;
+    return historyNextPage(*s, which);
+}
+
 int ec_history_depth(EC_SESSION session, int which) {
     Session* s = asSession(session);
     if (!s) return 0;

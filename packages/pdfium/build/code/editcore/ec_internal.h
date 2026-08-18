@@ -326,6 +326,9 @@ void historyClear(Session& s);
 
 bool historyScratchRevert(Session& s, FPDF_PAGE page);
 
+void historyDropPage(Session& s, FPDF_PAGE page);
+FPDF_PAGE historyNextPage(const Session& s, int which);
+
 void liveEndIfOpen(Session& s);
 
 const Paragraph* livePristinePara(Session& s, FPDF_PAGE page, int para_id);
