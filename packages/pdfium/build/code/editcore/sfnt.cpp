@@ -732,9 +732,12 @@ unsigned char* ec_synth_run_font(EC_SESSION session, FPDF_PAGE page,
     if (out_size) *out_size = 0;
     Session* s = static_cast<Session*>(session);
     if (!s || !page || !out_size) return nullptr;
+    const Paragraph* p = livePristinePara(*s, page, para_id);
+    const bool fromPristine = p != nullptr;
+    if (!p) liveEndIfOpen(*s);
     auto it = s->pages.find(page);
     if (it == s->pages.end()) return nullptr;
-    Paragraph* p = it->second.find(para_id);
+    if (!p) p = it->second.find(para_id);
     if (!p || run_index < 0 || run_index >= static_cast<int>(p->runs.size()))
         return nullptr;
     const ParaRun& run = p->runs[static_cast<size_t>(run_index)];
@@ -781,7 +784,9 @@ unsigned char* ec_synth_run_font(EC_SESSION session, FPDF_PAGE page,
             if (em > 0) expected.emplace(static_cast<uint32_t>(c), em);
         }
     };
-    for (const Paragraph& q : it->second.paras)
+    const std::vector<Paragraph>& paraSrc =
+        fromPristine ? s->recording->before : it->second.paras;
+    for (const Paragraph& q : paraSrc)
         for (const ParaRun& r : q.runs)
             if (r.originalFont == run.originalFont) sampleRun(r);
 

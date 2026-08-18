@@ -890,12 +890,21 @@ void ec_set_flatten_forms(EC_SESSION session, int enabled) {
     if (Session* s = asSession(session)) s->flattenForms = enabled != 0;
 }
 
-static void liveEndIfOpen(Session& s) {
+void ec::liveEndIfOpen(Session& s) {
     if (s.recording && s.recording->label == "__live_preview__")
         historyScratchRevert(s, s.recording->page);
     s.livePage = nullptr;
     s.livePara = -1;
     s.liveTicks = 0;
+}
+
+const Paragraph* ec::livePristinePara(Session& s, FPDF_PAGE page, int para_id) {
+    if (!(s.recording && s.recording->label == "__live_preview__" &&
+          s.livePage == page && s.livePara == para_id))
+        return nullptr;
+    for (const Paragraph& q : s.recording->before)
+        if (q.id == para_id) return &q;
+    return nullptr;
 }
 
 char* ec_build_page_model(EC_SESSION session, FPDF_PAGE page) {
@@ -1069,9 +1078,11 @@ unsigned long ec_get_run_font_data(EC_SESSION session, FPDF_PAGE page,
                                    unsigned char* out, unsigned long capacity) {
     Session* s = asSession(session);
     if (!s) return 0;
+    const Paragraph* p = livePristinePara(*s, page, para_id);
+    if (!p) liveEndIfOpen(*s);
     auto it = s->pages.find(page);
     if (it == s->pages.end()) return 0;
-    Paragraph* p = it->second.find(para_id);
+    if (!p) p = it->second.find(para_id);
     if (!p || run_index < 0 || run_index >= static_cast<int>(p->runs.size())) return 0;
     const ParaRun& rr = p->runs[static_cast<size_t>(run_index)];
 
@@ -1169,20 +1180,22 @@ char* ec_preview_paragraph(EC_SESSION session, FPDF_PAGE page, int para_id,
                            const ec_para_format* fmt) {
     Session* s = asSession(session);
     if (!s || !page || !runs || run_count <= 0) return nullptr;
+    const Paragraph* base = livePristinePara(*s, page, para_id);
+    if (!base) liveEndIfOpen(*s);
     auto it = s->pages.find(page);
     if (it == s->pages.end()) return nullptr;
-    Paragraph* p = it->second.find(para_id);
-    if (!p || p->vertical) return nullptr;
+    if (!base) base = it->second.find(para_id);
+    if (!base || base->vertical) return nullptr;
 
-    Paragraph tmp = *p;
+    Paragraph tmp = *base;
     tmp.objects.clear();
     tmp.flattenForms.clear();
-    tmp.runs = runsFromInput(runs, run_count, &p->runs);
-    inheritOriginalFonts(*p, tmp);
+    tmp.runs = runsFromInput(runs, run_count, &base->runs);
+    inheritOriginalFonts(*base, tmp);
     applyFormat(tmp, fmt);
     if (tmp.runs.empty()) return nullptr;
 
-    pinSourceBreaks(*p, tmp);
+    pinSourceBreaks(*base, tmp);
 
     std::string json;
     if (!layoutParagraph(*s, page, tmp,  true, &json) ||
@@ -1192,11 +1205,10 @@ char* ec_preview_paragraph(EC_SESSION session, FPDF_PAGE page, int para_id,
     return dupString(json);
 }
 
-char* ec_commit_paragraph(EC_SESSION session, FPDF_PAGE page, int para_id,
-                          const ec_run_in* runs, int run_count,
-                          const ec_para_format* fmt) {
-    Session* s = asSession(session);
-    if (!s || !page || !runs || run_count < 0) return nullptr;
+static char* commitParagraphImpl(Session* s, FPDF_PAGE page, int para_id,
+                                 const ec_run_in* runs, int run_count,
+                                 const ec_para_format* fmt,
+                                 const Paragraph* srcOverride) {
     auto it = s->pages.find(page);
     if (it == s->pages.end()) return nullptr;
     Paragraph* p = it->second.find(para_id);
@@ -1205,14 +1217,15 @@ char* ec_commit_paragraph(EC_SESSION session, FPDF_PAGE page, int para_id,
     HistoryStep step(*s, page, "edit text");
     if (!p->editable) return nullptr;
 
+    const Paragraph* src = srcOverride ? srcOverride : p;
     Paragraph updated = *p;
-    updated.runs = runsFromInput(runs, run_count, &p->runs);
+    updated.runs = runsFromInput(runs, run_count, &src->runs);
 
     {
         std::set<FPDF_PAGEOBJECT> kept;
         for (const auto& nr : updated.runs)
             if (nr.atomicObject) kept.insert(nr.atomicObject);
-        for (const auto& orun : p->runs) {
+        for (const auto& orun : src->runs) {
             if (!orun.atomicObject || kept.count(orun.atomicObject)) continue;
 
             historyRemoveObject(*s, page, orun.atomicContainer,
@@ -1250,9 +1263,10 @@ char* ec_commit_paragraph(EC_SESSION session, FPDF_PAGE page, int para_id,
         }
         p = it->second.find(para_id);
         if (!p) return nullptr;
+        if (!srcOverride) src = p;
         updated.sharesObjects = false;
     }
-    inheritOriginalFonts(*p, updated);
+    inheritOriginalFonts(*src, updated);
     applyFormat(updated, fmt);
 
     if (commitParagraphSurgical(*s, page, *p, updated.runs, updated)) {
@@ -1295,11 +1309,20 @@ char* ec_commit_paragraph(EC_SESSION session, FPDF_PAGE page, int para_id,
         return dupString(j);
     }
 
-    pinSourceBreaks(*p, updated);
+    pinSourceBreaks(*src, updated);
 
     if (!layoutParagraph(*s, page, updated,  true)) return nullptr;
     *p = updated;
     return dupString(paragraphToJson(*p));
+}
+
+char* ec_commit_paragraph(EC_SESSION session, FPDF_PAGE page, int para_id,
+                          const ec_run_in* runs, int run_count,
+                          const ec_para_format* fmt) {
+    Session* s = asSession(session);
+    if (!s || !page || !runs || run_count < 0) return nullptr;
+    liveEndIfOpen(*s);
+    return commitParagraphImpl(s, page, para_id, runs, run_count, fmt, nullptr);
 }
 
 int ec_render_paragraph_live_end(EC_SESSION session, FPDF_PAGE page) {
@@ -1351,8 +1374,10 @@ unsigned char* ec_render_paragraph_live(EC_SESSION session, FPDF_PAGE page,
         s->livePara = para_id;
         s->liveTicks = 0;
     }
+    const Paragraph* pristine =
+        liveOpen ? livePristinePara(*s, page, para_id) : nullptr;
     char* json =
-        ec_commit_paragraph(session, page, para_id, runs, run_count, fmt);
+        commitParagraphImpl(s, page, para_id, runs, run_count, fmt, pristine);
     if (!json) {
         liveEndIfOpen(*s);
         return nullptr;
@@ -1401,6 +1426,7 @@ char* ec_add_paragraph(EC_SESSION session, FPDF_PAGE page, float x, float y_top,
                        const ec_para_format* fmt) {
     Session* s = asSession(session);
     if (!s || !page || !runs || run_count <= 0) return nullptr;
+    liveEndIfOpen(*s);
 
     HistoryStep step(*s, page, "add text");
     Paragraph p;
@@ -1422,6 +1448,7 @@ char* ec_duplicate_paragraph(EC_SESSION session, FPDF_PAGE page, int para_id,
                              float dx, float dy) {
     Session* s = asSession(session);
     if (!s || !page) return nullptr;
+    liveEndIfOpen(*s);
     auto it = s->pages.find(page);
     if (it == s->pages.end()) return nullptr;
     Paragraph* src = it->second.find(para_id);
@@ -1463,6 +1490,7 @@ int ec_clone_marker(EC_SESSION session, FPDF_PAGE page, int src_para_id,
                     int dst_para_id) {
     Session* s = asSession(session);
     if (!s || !page) return 0;
+    liveEndIfOpen(*s);
     auto it = s->pages.find(page);
     if (it == s->pages.end()) return 0;
     Paragraph* src = it->second.find(src_para_id);
@@ -1611,6 +1639,7 @@ int ec_move_paragraph(EC_SESSION session, FPDF_PAGE page, int para_id, float dx,
                       float dy) {
     Session* s = asSession(session);
     if (!s) return 0;
+    liveEndIfOpen(*s);
     auto it = s->pages.find(page);
     if (it == s->pages.end()) return 0;
     Paragraph* p = it->second.find(para_id);
@@ -1669,6 +1698,7 @@ char* ec_resize_paragraph(EC_SESSION session, FPDF_PAGE page, int para_id,
                           float new_width) {
     Session* s = asSession(session);
     if (!s || new_width < 20.0f) return nullptr;
+    liveEndIfOpen(*s);
     auto it = s->pages.find(page);
     if (it == s->pages.end()) return nullptr;
     Paragraph* p = it->second.find(para_id);
@@ -1685,6 +1715,7 @@ char* ec_resize_paragraph(EC_SESSION session, FPDF_PAGE page, int para_id,
 int ec_reencode_page_fonts(EC_SESSION session, FPDF_PAGE page) {
     Session* s = asSession(session);
     if (!s || !page) return 0;
+    liveEndIfOpen(*s);
 
     if (s->saveTextOnly.count(page)) return 0;
 
@@ -1719,6 +1750,7 @@ int ec_reencode_page_fonts(EC_SESSION session, FPDF_PAGE page) {
 int ec_dealias_page_fonts(EC_SESSION session, FPDF_PAGE page) {
     Session* s = asSession(session);
     if (!s || !page) return 0;
+    liveEndIfOpen(*s);
 
     return dealiasPageFonts(*s, page);
 }
@@ -1950,6 +1982,7 @@ void ec_mark_fonts_fragile(EC_SESSION session, FPDF_PAGE page) {
 int ec_page_has_cid_fonts(EC_SESSION session, FPDF_PAGE page) {
     Session* s = asSession(session);
     if (!s || !page) return 0;
+    liveEndIfOpen(*s);
     return pageNeedsReencode(*s, page) ? 1 : 0;
 }
 
@@ -2086,6 +2119,7 @@ int ec_normalize_page_paint(FPDF_PAGE page) {
 int ec_page_regen_is_lossy(EC_SESSION session, FPDF_PAGE page, int pageIndex) {
     Session* s = asSession(session);
     if (!s || !page || pageIndex < 0) return 0;
+    liveEndIfOpen(*s);
 
     unsigned long n0 = 0;
     unsigned char* buf0 = ec_save_document(s->doc, 1, &n0);
@@ -2521,6 +2555,7 @@ void ec_history_clear(EC_SESSION session) {
 int ec_delete_paragraph(EC_SESSION session, FPDF_PAGE page, int para_id) {
     Session* s = asSession(session);
     if (!s) return 0;
+    liveEndIfOpen(*s);
     auto it = s->pages.find(page);
     if (it == s->pages.end()) return 0;
     PageState& st = it->second;
