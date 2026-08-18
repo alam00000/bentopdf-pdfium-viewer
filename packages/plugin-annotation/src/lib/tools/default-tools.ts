@@ -475,7 +475,6 @@ export const defaultTools = [
       strokeWidth: 1,
     },
     behavior: {
-      insertUpright: true,
       editAfterCreate: true,
       selectAfterCreate: true,
     },

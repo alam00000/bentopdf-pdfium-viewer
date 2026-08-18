@@ -139,25 +139,34 @@ export function CalloutFreeText({
 
   const { adjustedFontPx, wrapperStyle } = useIOSZoomPrevention(obj.fontSize * scale, isEditing);
 
-  const textCounterRotation = useMemo(() => {
-    const counterDeg = ((4 - (pageRotation & 3)) % 4) * 90;
-    if (counterDeg === 0) return null;
-    const quarterTurned = counterDeg === 90 || counterDeg === 270;
-    const width = quarterTurned ? textBoxRelative.height : textBoxRelative.width;
-    const height = quarterTurned ? textBoxRelative.width : textBoxRelative.height;
-    return {
-      left: textBoxRelative.left + (textBoxRelative.width - width) / 2,
-      top: textBoxRelative.top + (textBoxRelative.height - height) / 2,
-      width,
-      height,
-      transform: `rotate(${counterDeg}deg)`,
-    };
-  }, [pageRotation, textBoxRelative]);
-
-  const textLayout = textCounterRotation ?? textBoxRelative;
-  const composedTransform = [wrapperStyle?.transform, textCounterRotation?.transform]
-    .filter(Boolean)
-    .join(' ');
+  const counterRotate = ((pageRotation % 4) + 4) % 4;
+  const rotWrapStyle = useMemo(() => {
+    const { left, top, width, height } = textBoxRelative;
+    switch (counterRotate) {
+      case 1:
+        return {
+          left,
+          top,
+          width: height,
+          height: width,
+          transform: `translate(0px, ${height}px) rotate(-90deg)`,
+          transformOrigin: '0 0',
+        };
+      case 2:
+        return { left, top, width, height, transform: 'rotate(180deg)' };
+      case 3:
+        return {
+          left,
+          top,
+          width: height,
+          height: width,
+          transform: `translate(${width}px, 0px) rotate(90deg)`,
+          transformOrigin: '0 0',
+        };
+      default:
+        return { left, top, width, height };
+    }
+  }, [textBoxRelative, counterRotate]);
 
   useEffect(() => {
     const editor = editorRef.current;
@@ -376,6 +385,7 @@ export function CalloutFreeText({
         }}
       />
 
+      <div style={{ position: 'absolute', pointerEvents: 'none', ...rotWrapStyle }}>
       <span
         ref={editorRef}
         onBlur={handleBlur}
@@ -386,10 +396,10 @@ export function CalloutFreeText({
         dir="auto"
         style={{
           position: 'absolute',
-          left: textLayout.left,
-          top: textLayout.top,
-          width: textLayout.width,
-          height: textLayout.height,
+          left: 0,
+          top: 0,
+          width: '100%',
+          height: '100%',
           color: obj.fontColor,
           fontSize: adjustedFontPx,
           ...freeTextFontCssProperties(obj.fontFamily, obj.fontFamilyName),
@@ -410,14 +420,11 @@ export function CalloutFreeText({
           outline: 'none',
           pointerEvents: isEditing ? 'auto' : 'none',
           ...wrapperStyle,
-          ...(textCounterRotation && {
-            transform: composedTransform,
-            transformOrigin: 'center center',
-          }),
         }}
         contentEditable={isEditing}
         {...suppressContentEditableWarningProps}
       />
+      </div>
     </div>
   );
 }
