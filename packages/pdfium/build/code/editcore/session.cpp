@@ -921,10 +921,6 @@ char* ec_build_page_model(EC_SESSION session, FPDF_PAGE page) {
     flattenContentForms(*s, page);
     bakeWordSpacedText(*s, page);
 
-    if ((!s->undoStack.empty() && s->undoStack.back().page != page) ||
-        (!s->redoStack.empty() && s->redoStack.back().page != page)) {
-        historyClear(*s);
-    }
     s->pages[page] = buildPageModel(*s, page);
     const PageState& st = s->pages[page];
     std::string j = "{\"paragraphs\":[";
@@ -2519,6 +2515,12 @@ int ec_history_redo(EC_SESSION session, FPDF_PAGE page) {
     if (!s || !page) return 0;
     if (s) liveEndIfOpen(*s);
     return historyRedo(*s, page) ? 1 : 0;
+}
+
+void ec_history_drop_page(EC_SESSION session, FPDF_PAGE page) {
+    Session* s = asSession(session);
+    if (!s || !page) return;
+    historyDropPage(*s, page);
 }
 
 FPDF_PAGE ec_history_next_page(EC_SESSION session, int which) {
