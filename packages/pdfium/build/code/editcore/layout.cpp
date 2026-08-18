@@ -1243,6 +1243,26 @@ bool layoutParagraph(Session& s, FPDF_PAGE page, Paragraph& p, bool autoWiden,
                resolved[ri].hScale;
     };
 
+    auto srcAdvMatchesFont = [&](int ri) {
+        const ParaRun& lr = layoutRuns[static_cast<size_t>(ri)];
+        if (resolved[static_cast<size_t>(ri)].font == lr.originalFont)
+            return true;
+        float have = 0.0f, want = 0.0f;
+        int n = 0;
+        for (size_t ci = 0; ci < lr.text.size() && n < 8; ci++) {
+            const char16_t u = lr.text[ci];
+            if (u < 0x21 || (u >= 0xD800 && u <= 0xDFFF)) continue;
+            const float a = lr.srcAdv[ci];
+            if (a <= 0.0f) continue;
+            have += advanceOf(ri, u);
+            want += a;
+            n++;
+        }
+        if (!n || want <= 0.001f) return false;
+        const float ratio = have / want;
+        return ratio > 0.97f && ratio < 1.03f;
+    };
+
     struct ShapedEntry {
         std::vector<ShapedGlyph> g;
         std::vector<uint32_t> cids;
@@ -1366,7 +1386,8 @@ bool layoutParagraph(Session& s, FPDF_PAGE page, Paragraph& p, bool autoWiden,
 
         const std::vector<float>* sa =
             (srcAdvOk && !resolved[ri].complex &&
-             layoutRuns[ri].srcAdv.size() == text.size())
+             layoutRuns[ri].srcAdv.size() == text.size() &&
+             srcAdvMatchesFont(static_cast<int>(ri)))
                 ? &layoutRuns[ri].srcAdv
                 : nullptr;
         if (sa) srcAdvUsed++;
