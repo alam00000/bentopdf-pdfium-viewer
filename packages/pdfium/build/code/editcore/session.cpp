@@ -890,7 +890,10 @@ void ec_set_flatten_forms(EC_SESSION session, int enabled) {
     if (Session* s = asSession(session)) s->flattenForms = enabled != 0;
 }
 
-void ec::liveEndIfOpen(Session& s) {
+extern "C++" {
+namespace ec {
+
+void liveEndIfOpen(Session& s) {
     if (s.recording && s.recording->label == "__live_preview__")
         historyScratchRevert(s, s.recording->page);
     s.livePage = nullptr;
@@ -898,13 +901,16 @@ void ec::liveEndIfOpen(Session& s) {
     s.liveTicks = 0;
 }
 
-const Paragraph* ec::livePristinePara(Session& s, FPDF_PAGE page, int para_id) {
+const Paragraph* livePristinePara(Session& s, FPDF_PAGE page, int para_id) {
     if (!(s.recording && s.recording->label == "__live_preview__" &&
           s.livePage == page && s.livePara == para_id))
         return nullptr;
     for (const Paragraph& q : s.recording->before)
         if (q.id == para_id) return &q;
     return nullptr;
+}
+
+}
 }
 
 char* ec_build_page_model(EC_SESSION session, FPDF_PAGE page) {
