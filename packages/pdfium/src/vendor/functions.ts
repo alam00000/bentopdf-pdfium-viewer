@@ -36,6 +36,7 @@ export const functions = {
   ec_preview_paragraph: [["number","number","number","number","number","number"] as const, 'number'] as const,
   ec_reencode_page_fonts: [["number","number"] as const, 'number'] as const,
   ec_render_paragraph_live: [["number","number","number","number","number","number","number","number","number","number","number","number","number"] as const, 'number'] as const,
+  ec_render_paragraph_live_end: [["number","number"] as const, 'number'] as const,
   ec_resize_paragraph: [["number","number","number","number"] as const, 'number'] as const,
   ec_save_document: [["number","number","number"] as const, 'number'] as const,
   ec_select_text: [["number","number","number","number","number","number","number"] as const, 'number'] as const,
