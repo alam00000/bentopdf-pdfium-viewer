@@ -11,6 +11,7 @@ import {
   centeredParagraphPdf,
   doubleSpacedPdf,
   greetingAndParagraphPdf,
+  markerColumnPdf,
   twoPagePdf,
   privateUseFontPdf,
   PARA_A,
@@ -86,6 +87,13 @@ describe('paragraph grouping', () => {
     assert.equal(model.length, 2);
     assert.equal(paragraphText(model[0]), 'Hi, APA Styler!');
     assert.ok(paragraphText(model[1]).startsWith('Thank you for using'));
+  });
+
+  test('keeps an interleaved marker column together', () => {
+    const model = build(markerColumnPdf());
+    const markers = model.filter((p) => /^-+$/.test(paragraphText(p).trim()));
+    assert.equal(markers.length, 1, 'the marker column should be one paragraph');
+    assert.equal(markers[0].lines.length, 4);
   });
 
   test('groups a double-spaced paragraph into one box', () => {

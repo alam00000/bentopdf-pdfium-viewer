@@ -104,6 +104,15 @@ export function greetingAndParagraphPdf() {
   });
 }
 
+export function markerColumnPdf() {
+  let content = '';
+  for (let i = 0; i < 4; i++) {
+    content += textLine('F1', 11, 90, 700 - i * 20, '-');
+    content += textLine('F1', 11, 120, 695 - i * 20, `List item number ${i + 1}`);
+  }
+  return buildTextPdf({ content });
+}
+
 export function doubleSpacedPdf(leading = 24) {
   return buildTextPdf({ content: paragraphContent(PARA_A, 72, 700, 12, leading) });
 }

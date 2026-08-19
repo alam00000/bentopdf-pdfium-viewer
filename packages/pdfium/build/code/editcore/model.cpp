@@ -2492,17 +2492,20 @@ PageState buildPageModel(Session& s, FPDF_PAGE page) {
                 float nextGap = -1.0f;
                 const size_t lineIdx =
                     static_cast<size_t>(&line - lines.data());
-                if (lineIdx + 1 < lines.size()) {
-                    const ExtractedLine& nxt = lines[lineIdx + 1];
+                for (size_t j = lineIdx + 1; j < lines.size(); j++) {
+                    const ExtractedLine& nxt = lines[j];
                     const float aheadGap = line.baseline - nxt.baseline;
+                    if (aheadGap <= 0.3f * sizeRef) continue;
+                    if (aheadGap > 3.0f * sizeRef) break;
                     const float aheadOverlap = std::min(line.maxX, nxt.maxX) -
                                                std::max(line.minX, nxt.minX);
                     const float aheadNarrower =
                         std::min(line.maxX - line.minX, nxt.maxX - nxt.minX);
-                    if (aheadGap > 0.3f * sizeRef &&
-                        (aheadNarrower <= 0 ||
-                         aheadOverlap >= 0.35f * aheadNarrower))
-                        nextGap = aheadGap;
+                    if (aheadNarrower > 0 &&
+                        aheadOverlap < 0.35f * aheadNarrower)
+                        continue;
+                    nextGap = aheadGap;
+                    break;
                 }
                 spanGapOk = nextGap > 0.0f
                                 ? gap <= nextGap * 1.35f
@@ -2529,7 +2532,7 @@ PageState buildPageModel(Session& s, FPDF_PAGE page) {
 
             if (std::abs(prev.rotation - line.rotation) <= 0.01f &&
                 gap > 0.3f * sizeRef && gap <= threshold && spanGapOk &&
-                !overlapsSettled && sizeCompatible &&
+                sizeCompatible &&
                 alignCompatible && !endsAsTocRow(prev) &&
                 !(line.rotation == 0 && horizontalRulingBetween(prev, line)) &&
                 (narrower <= 0 || overlap >= 0.35f * narrower)) {
