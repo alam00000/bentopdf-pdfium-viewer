@@ -2486,7 +2486,8 @@ PageState buildPageModel(Session& s, FPDF_PAGE page) {
             }
             const float prevSpan = std::max(1.0f, prev.maxY - prev.minY);
             const float lineSpan = std::max(1.0f, line.maxY - line.minY);
-            const bool spanGapOk = gap <= 0.65f * (prevSpan + lineSpan);
+            const bool spanGapOk =
+                !acc.gaps.empty() || gap <= 0.95f * (prevSpan + lineSpan);
 
             bool overlapsSettled = false;
             {
