@@ -421,6 +421,7 @@ FPDF_FONT resolveFont(Session& s, const RunStyle& style, FPDF_FONT preferred,
             free(data);
             if (f) {
                 s.fontCache[key] = f;
+                s.providerFonts.insert(f);
 
                 if (fontCovers(s, f, codepoints)) return f;
             }
@@ -1220,8 +1221,15 @@ bool layoutParagraph(Session& s, FPDF_PAGE page, Paragraph& p, bool autoWiden,
         const std::u16string& logical = rr.run->text;
         const bool script = textNeedsComplexShaping(logical);
         const bool rtlHb = paraRtl && rtlShapable(logical);
-        if (!script && !rtlHb) continue;
+        const bool providerSubset =
+            rr.font && s.providerFonts.count(rr.font) > 0 &&
+            rr.font != rr.run->originalFont;
+        if (!script && !rtlHb && !providerSubset) continue;
         rr.hbBytes = fontBytesFor(s, rr.font);
+        if (rr.hbBytes && !script && !rtlHb && providerSubset) {
+            rr.complex = true;
+            continue;
+        }
         if (rr.hbBytes && !script && rtlHb &&
             !hbQualifies(rr.hbBytes, logical)) {
             rr.hbBytes = nullptr;

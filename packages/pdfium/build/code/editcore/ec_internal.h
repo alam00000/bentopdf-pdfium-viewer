@@ -264,6 +264,7 @@ struct Session {
     std::map<FPDF_FONT, FPDF_FONT> reembedCache;
 
     std::map<FPDF_FONT, std::vector<uint8_t>> fontBytes;
+    std::set<FPDF_FONT> providerFonts;
 
     std::map<std::string, FPDF_FONT> cidFontCache;
 
