@@ -2898,7 +2898,7 @@ PageState buildPageModel(Session& s, FPDF_PAGE page) {
                 {
                     int undec = 0;
                     for (char16_t c : er.text)
-                        if (isUndecodableChar(c)) undec++;
+                        if (isHardUndecodableChar(c)) undec++;
                     if ((undec > 0 || fontIsJunk(er.font)) && er.object &&
                         er.rotation == 0) {
                         ParaRun pr;
@@ -3512,36 +3512,12 @@ PageState buildPageModel(Session& s, FPDF_PAGE page) {
             if (run.style.renderMode >= 4) clipText = true;
             for (char16_t c : run.text) {
                 if (c == u'\n' || c == u'\r') continue;
-                if (isUndecodableChar(c)) undecodable++;
+                if (isHardUndecodableChar(c)) undecodable++;
                 else if (!isWhitespaceChar(c)) printable++;
             }
         }
-        int glyphChecked = 0, glyphMissing = 0;
-        for (const auto& run : p.runs) {
-            if (!run.originalFont) continue;
-            const float probeSize =
-                run.style.size > 0.5f ? run.style.size : 12.0f;
-            for (char16_t c : run.text) {
-                if (c == u'\n' || c == u'\r') continue;
-                if (isWhitespaceChar(c) || isUndecodableChar(c)) continue;
-                float gw = 0;
-                glyphChecked++;
-                if (!FPDFFont_GetGlyphWidth(run.originalFont,
-                                            static_cast<uint32_t>(c),
-                                            probeSize, &gw) ||
-                    !(gw > 0.0f))
-                    glyphMissing++;
-            }
-        }
-        const bool glyphsUntrusted =
-            glyphChecked >= 4 && glyphMissing * 2 >= glyphChecked;
-
-        p.editable = (undecodable == 0) && (printable > 0) && !clipText &&
-                     !glyphsUntrusted;
-        p.lockReason = p.editable ? 0
-                       : clipText ? 2
-                       : glyphsUntrusted ? 5
-                                         : 1;
+        p.editable = (undecodable == 0) && (printable > 0) && !clipText;
+        p.lockReason = p.editable ? 0 : clipText ? 2 : 1;
 
         if (p.editable) {
             std::map<FPDF_PAGEOBJECT, int> ourChildren;

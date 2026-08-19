@@ -156,6 +156,14 @@ inline bool isUndecodableChar(char16_t c) {
     return false;
 }
 
+inline bool isPrivateUseChar(char16_t c) {
+    return c >= 0xE000 && c <= 0xF8FF;
+}
+
+inline bool isHardUndecodableChar(char16_t c) {
+    return isUndecodableChar(c) && !isPrivateUseChar(c);
+}
+
 struct PageState {
     std::vector<Paragraph> paras;
 
