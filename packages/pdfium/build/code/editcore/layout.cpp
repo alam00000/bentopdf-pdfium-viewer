@@ -1915,6 +1915,18 @@ bool layoutParagraph(Session& s, FPDF_PAGE page, Paragraph& p, bool autoWiden,
         }
         return m > 0 ? m : emptyLineSize;
     };
+    auto lineTextExtent = [&](const WrappedLine& ln) {
+        float m = 0;
+        for (const Token* t : ln.tokens) {
+            if (t->kind != Token::Word) continue;
+            for (auto& [c, ri] : t->chars) {
+                const float sz = resolved[ri].run->style.size;
+                m = std::max(m, fontAscent(resolved[ri].font, sz) +
+                                    fontDescent(resolved[ri].font, sz));
+            }
+        }
+        return m;
+    };
     auto lineMaxAscent = [&](const WrappedLine& ln) {
         float m = 0;
         for (const Token* t : ln.tokens) {
@@ -2112,7 +2124,14 @@ bool layoutParagraph(Session& s, FPDF_PAGE page, Paragraph& p, bool autoWiden,
         const float maxSize = lineMaxSize(ln);
 
         if (li > 0) {
-            baseline -= p.fmt.line_spacing * maxSize;
+            const float prevExtent = lineTextExtent(wrapped[li - 1]);
+            const float prevSize = lineMaxSize(wrapped[li - 1]);
+            float pitch = prevSize;
+            if (prevExtent > 0.0f && prevSize > 0.0f) {
+                const float ratio = prevExtent / prevSize;
+                if (ratio > 0.8f && ratio < 1.4f) pitch = prevExtent;
+            }
+            baseline -= p.fmt.line_spacing * pitch;
             baseline -= wrapped[li - 1].extraAfter;
         }
 

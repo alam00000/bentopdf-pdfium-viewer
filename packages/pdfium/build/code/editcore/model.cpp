@@ -2484,8 +2484,31 @@ PageState buildPageModel(Session& s, FPDF_PAGE page) {
                 std::sort(sortedGaps.begin(), sortedGaps.end());
                 threshold = sortedGaps[sortedGaps.size() / 2] * 1.35f;
             }
+            const float prevSpan = std::max(1.0f, prev.maxY - prev.minY);
+            const float lineSpan = std::max(1.0f, line.maxY - line.minY);
+            const bool spanGapOk = gap <= 0.65f * (prevSpan + lineSpan);
+
+            bool overlapsSettled = false;
+            {
+                const float ux0 = std::min(acc.minX, line.minX);
+                const float ux1 = std::max(acc.maxX, line.maxX);
+                const float uy0 = std::min(acc.minY, line.minY);
+                const float uy1 = std::max(acc.maxY, line.maxY);
+                for (const ParaAccum& done : accums) {
+                    if (&done == &acc) continue;
+                    if (done.lines.empty()) continue;
+                    const float cx = 0.5f * (done.minX + done.maxX);
+                    const float cy = 0.5f * (done.minY + done.maxY);
+                    if (cx >= ux0 && cx <= ux1 && cy >= uy0 && cy <= uy1) {
+                        overlapsSettled = true;
+                        break;
+                    }
+                }
+            }
+
             if (std::abs(prev.rotation - line.rotation) <= 0.01f &&
-                gap > 0.3f * sizeRef && gap <= threshold && sizeCompatible &&
+                gap > 0.3f * sizeRef && gap <= threshold && spanGapOk &&
+                !overlapsSettled && sizeCompatible &&
                 alignCompatible && !endsAsTocRow(prev) &&
                 !(line.rotation == 0 && horizontalRulingBetween(prev, line)) &&
                 (narrower <= 0 || overlap >= 0.35f * narrower)) {
@@ -3493,8 +3516,32 @@ PageState buildPageModel(Session& s, FPDF_PAGE page) {
                 else if (!isWhitespaceChar(c)) printable++;
             }
         }
-        p.editable = (undecodable == 0) && (printable > 0) && !clipText;
-        p.lockReason = p.editable ? 0 : clipText ? 2 : 1;
+        int glyphChecked = 0, glyphMissing = 0;
+        for (const auto& run : p.runs) {
+            if (!run.originalFont) continue;
+            const float probeSize =
+                run.style.size > 0.5f ? run.style.size : 12.0f;
+            for (char16_t c : run.text) {
+                if (c == u'\n' || c == u'\r') continue;
+                if (isWhitespaceChar(c) || isUndecodableChar(c)) continue;
+                float gw = 0;
+                glyphChecked++;
+                if (!FPDFFont_GetGlyphWidth(run.originalFont,
+                                            static_cast<uint32_t>(c),
+                                            probeSize, &gw) ||
+                    !(gw > 0.0f))
+                    glyphMissing++;
+            }
+        }
+        const bool glyphsUntrusted =
+            glyphChecked >= 4 && glyphMissing * 2 >= glyphChecked;
+
+        p.editable = (undecodable == 0) && (printable > 0) && !clipText &&
+                     !glyphsUntrusted;
+        p.lockReason = p.editable ? 0
+                       : clipText ? 2
+                       : glyphsUntrusted ? 5
+                                         : 1;
 
         if (p.editable) {
             std::map<FPDF_PAGEOBJECT, int> ourChildren;
