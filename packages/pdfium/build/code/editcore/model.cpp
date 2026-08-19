@@ -735,7 +735,8 @@ PageState buildPageModel(Session& s, FPDF_PAGE page) {
             auto& st0 = fontJunkStat[f0];
             st0.second++;
             if (uc0 <= 0xFFFF &&
-                (isUndecodableChar(static_cast<char16_t>(uc0)) || uc0 == 0xFF))
+                (isHardUndecodableChar(static_cast<char16_t>(uc0)) ||
+                 uc0 == 0xFF))
                 st0.first++;
         }
     }
@@ -1257,14 +1258,21 @@ PageState buildPageModel(Session& s, FPDF_PAGE page) {
     };
 
     std::set<FPDF_FONT> lyingFonts;
-    for (int i = 0; i < charCount; i++) {
-        const unsigned int uc = FPDFText_GetUnicode(tp, i);
-        if (uc <= u' ') continue;
-        if (isUndecodableChar(static_cast<char16_t>(uc)) || uc == 0xFFFD) {
+    {
+        std::map<FPDF_FONT, std::pair<int, int>> lieStat;
+        for (int i = 0; i < charCount; i++) {
+            const unsigned int uc = FPDFText_GetUnicode(tp, i);
+            if (uc <= u' ') continue;
             FPDF_PAGEOBJECT o = FPDFText_GetTextObject(tp, i);
             FPDF_FONT f = o ? FPDFTextObj_GetFont(o) : nullptr;
-
-            if (f && fontIsSubset(f)) lyingFonts.insert(f);
+            if (!f || !fontIsSubset(f)) continue;
+            auto& st = lieStat[f];
+            st.second++;
+            if (isUndecodableChar(static_cast<char16_t>(uc)) || uc == 0xFFFD)
+                st.first++;
+        }
+        for (const auto& [f, st] : lieStat) {
+            if (st.first >= 4 && st.first * 2 >= st.second) lyingFonts.insert(f);
         }
     }
 
@@ -2920,10 +2928,15 @@ PageState buildPageModel(Session& s, FPDF_PAGE page) {
                 }
 
                 {
-                    int undec = 0;
-                    for (char16_t c : er.text)
+                    int undec = 0, visible = 0;
+                    for (char16_t c : er.text) {
+                        if (isWhitespaceChar(c) || c == u'\n') continue;
+                        visible++;
                         if (isHardUndecodableChar(c)) undec++;
-                    if ((undec > 0 || fontIsJunk(er.font)) && er.object &&
+                    }
+                    const bool undecDominates =
+                        undec > 0 && (undec * 2 >= visible || visible - undec < 2);
+                    if ((undecDominates || fontIsJunk(er.font)) && er.object &&
                         er.rotation == 0) {
                         ParaRun pr;
                         pr.text = u"\uFFFC";

@@ -14,6 +14,7 @@ import {
   markerColumnPdf,
   twoPagePdf,
   privateUseFontPdf,
+  oneUnmappedGlyphPdf,
   PARA_A,
   A_TEXT,
   B_TEXT,
@@ -206,6 +207,16 @@ describe('editability', () => {
       assert.equal(p.editable, true);
       assert.equal(p.lockReason, 0);
     }
+  });
+
+  test('keeps a run editable when a single glyph fails to decode', () => {
+    const model = build(oneUnmappedGlyphPdf());
+    assert.equal(model.length, 1);
+    const text = paragraphText(model[0]);
+    assert.ok(
+      text.includes('Happy') && text.includes('ng!'),
+      `expected readable text, got ${JSON.stringify(text)}`,
+    );
   });
 
   knownGap('exposes private-use characters instead of one atomic placeholder', () => {

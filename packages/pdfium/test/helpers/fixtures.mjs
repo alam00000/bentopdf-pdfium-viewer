@@ -139,6 +139,33 @@ export function twoPagePdf() {
   ]);
 }
 
+export function oneUnmappedGlyphPdf() {
+  const cmap =
+    '/CIDInit /ProcSet findresource begin 12 dict begin begincmap\n' +
+    '/CMapName /Custom def /CMapType 2 def\n' +
+    '1 begincodespacerange <00> <FF> endcodespacerange\n' +
+    '1 beginbfchar <74> <FFFD> endbfchar\n' +
+    'endcmap CMapName currentdict /CMap defineresource pop end end';
+  const cmapBytes = new TextEncoder().encode(cmap);
+  const content = new TextEncoder().encode(textLine('F1', 14, 72, 700, 'Happy writing!'));
+  return buildPdf([
+    { body: '<< /Type /Catalog /Pages 2 0 R >>' },
+    { body: '<< /Type /Pages /Kids [3 0 R] /Count 1 >>' },
+    {
+      body:
+        '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] ' +
+        '/Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>',
+    },
+    { body: `<< /Length ${content.length} >>`, stream: content },
+    {
+      body:
+        '<< /Type /Font /Subtype /TrueType /BaseFont /ABCDEF+Arial /FirstChar 32 ' +
+        '/LastChar 122 /Encoding /WinAnsiEncoding /ToUnicode 6 0 R >>',
+    },
+    { body: `<< /Length ${cmapBytes.length} >>`, stream: cmapBytes },
+  ]);
+}
+
 export function privateUseFontPdf() {
   const cmap =
     '/CIDInit /ProcSet findresource begin 12 dict begin begincmap\n' +
