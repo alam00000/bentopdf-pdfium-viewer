@@ -10,6 +10,7 @@ import {
   headingAndBodyPdf,
   centeredParagraphPdf,
   doubleSpacedPdf,
+  greetingAndParagraphPdf,
   twoPagePdf,
   privateUseFontPdf,
   PARA_A,
@@ -78,6 +79,13 @@ describe('paragraph grouping', () => {
     const model = build(doubleSpacedPdf(16));
     assert.equal(model.length, 1);
     assert.equal(paragraphText(model[0]), A_TEXT);
+  });
+
+  test('keeps a short standalone line above a paragraph separate', () => {
+    const model = build(greetingAndParagraphPdf());
+    assert.equal(model.length, 2);
+    assert.equal(paragraphText(model[0]), 'Hi, APA Styler!');
+    assert.ok(paragraphText(model[1]).startsWith('Thank you for using'));
   });
 
   test('groups a double-spaced paragraph into one box', () => {

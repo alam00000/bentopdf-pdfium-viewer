@@ -87,6 +87,23 @@ export function centeredParagraphPdf() {
   return buildTextPdf({ content });
 }
 
+export function greetingAndParagraphPdf() {
+  return buildTextPdf({
+    content:
+      textLine('F1', 12, 216, 614, 'Hi, APA Styler!') +
+      paragraphContent(
+        [
+          'Thank you for using the APA Style annotated sample',
+          'student paper for your assignment.',
+        ],
+        216,
+        590,
+        12,
+        16,
+      ),
+  });
+}
+
 export function doubleSpacedPdf(leading = 24) {
   return buildTextPdf({ content: paragraphContent(PARA_A, 72, 700, 12, leading) });
 }

@@ -2486,8 +2486,28 @@ PageState buildPageModel(Session& s, FPDF_PAGE page) {
             }
             const float prevSpan = std::max(1.0f, prev.maxY - prev.minY);
             const float lineSpan = std::max(1.0f, line.maxY - line.minY);
-            const bool spanGapOk =
-                !acc.gaps.empty() || gap <= 0.95f * (prevSpan + lineSpan);
+
+            bool spanGapOk = true;
+            if (acc.gaps.empty()) {
+                float nextGap = -1.0f;
+                const size_t lineIdx =
+                    static_cast<size_t>(&line - lines.data());
+                if (lineIdx + 1 < lines.size()) {
+                    const ExtractedLine& nxt = lines[lineIdx + 1];
+                    const float aheadGap = line.baseline - nxt.baseline;
+                    const float aheadOverlap = std::min(line.maxX, nxt.maxX) -
+                                               std::max(line.minX, nxt.minX);
+                    const float aheadNarrower =
+                        std::min(line.maxX - line.minX, nxt.maxX - nxt.minX);
+                    if (aheadGap > 0.3f * sizeRef &&
+                        (aheadNarrower <= 0 ||
+                         aheadOverlap >= 0.35f * aheadNarrower))
+                        nextGap = aheadGap;
+                }
+                spanGapOk = nextGap > 0.0f
+                                ? gap <= nextGap * 1.35f
+                                : gap <= 0.65f * (prevSpan + lineSpan);
+            }
 
             bool overlapsSettled = false;
             {
