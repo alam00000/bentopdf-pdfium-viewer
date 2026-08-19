@@ -67,4 +67,12 @@ link ./wasm/pdfium.cjs
 
 cp -f ./wasm/pdfium.wasm ./wasm/pdfium.js ./wasm/pdfium.cjs "$PDFIUM/src/vendor/"
 
-echo "Done. src/vendor updated — run: node --test test/*.test.mjs"
+cat <<MSG
+
+Done. Run the engine tests with:
+  node --test test/*.test.mjs
+
+src/vendor now holds a local build, not the release binary from CI.
+Restore it before committing:
+  git checkout -- src/vendor
+MSG
