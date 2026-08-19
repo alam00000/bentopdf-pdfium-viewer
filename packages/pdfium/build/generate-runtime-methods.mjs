@@ -37,6 +37,7 @@ const methods = [
   'stringToUTF8',
   'lengthBytesUTF8',
   'HEAPU8',
+  'HEAPU16',
   'HEAPU32',
   'HEAP32',
   'HEAPF32',
