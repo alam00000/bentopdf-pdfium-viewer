@@ -8,7 +8,7 @@ import {
   runsFrom,
   overlappingPairs,
 } from './helpers/engine.mjs';
-import { closeTo, knownGap } from './helpers/assert-extra.mjs';
+import { closeTo } from './helpers/assert-extra.mjs';
 import {
   twoParagraphPdf,
   stackedParagraphPdf,
@@ -102,7 +102,7 @@ describe('geometry stability', () => {
     closeTo(after.firstBaseline, origin.firstBaseline, 0.01);
   });
 
-  knownGap('keeps every line baseline fixed through a no-op commit', () => {
+  test('keeps every line baseline fixed through a no-op commit', () => {
     const before = build(twoParagraphPdf())[0];
     const baselines = before.lines.map((l) => l.y);
     engine.commitParagraph(before.id, runsFrom(before, paragraphText(before)), before.format);

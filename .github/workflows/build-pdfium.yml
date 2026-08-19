@@ -77,19 +77,24 @@ jobs:
 
       - name: Stage link inputs for local rebuilds
         if: always()
+        working-directory: packages/pdfium
         run: |
-          mkdir -p link-inputs/pdfium-src/out/wasm/obj link-inputs/build/wasm
-          cp packages/pdfium/pdfium-src/out/wasm/obj/libembedpdf.a link-inputs/pdfium-src/out/wasm/obj/
-          cp packages/pdfium/build/wasm/exported-functions.txt \
-             packages/pdfium/build/wasm/exported-runtime-methods.txt \
-             link-inputs/build/wasm/
+          set +e
+          mkdir -p ../../link-inputs/pdfium-src/out/wasm/obj ../../link-inputs/build/wasm
+          docker compose run --rm --entrypoint /bin/bash pdfium-build -c \
+            'cp /workspace/packages/pdfium/pdfium-src/out/wasm/obj/libembedpdf.a /workspace/link-inputs/pdfium-src/out/wasm/obj/' \
+            || echo "libembedpdf.a unavailable in the build volume"
+          cp build/wasm/exported-functions.txt build/wasm/exported-runtime-methods.txt \
+             ../../link-inputs/build/wasm/ \
+            || echo "export lists unavailable"
+          find ../../link-inputs -type f -exec ls -la {} +
 
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: pdfium-link-inputs
           path: link-inputs/
-          if-no-files-found: error
+          if-no-files-found: warn
           retention-days: 14
 
       - uses: actions/upload-artifact@v4

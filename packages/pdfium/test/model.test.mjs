@@ -80,8 +80,10 @@ describe('paragraph grouping', () => {
     assert.equal(paragraphText(model[0]), A_TEXT);
   });
 
-  knownGap('groups a double-spaced paragraph into one box', () => {
-    assert.equal(build(doubleSpacedPdf(24)).length, 1);
+  test('groups a double-spaced paragraph into one box', () => {
+    const model = build(doubleSpacedPdf(24));
+    assert.equal(model.length, 1);
+    assert.equal(paragraphText(model[0]), A_TEXT);
   });
 
   test('keeps a heading separate from the body text that follows it', () => {
