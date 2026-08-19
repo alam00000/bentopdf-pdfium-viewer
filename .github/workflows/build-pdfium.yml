@@ -7,6 +7,7 @@ on:
       - main
     paths:
       - 'packages/pdfium/build/**'
+      - 'packages/pdfium/test/**'
       - 'packages/pdfium/scripts/**'
       - 'packages/pdfium/Dockerfile'
       - 'packages/pdfium/docker-compose.yml'
@@ -65,6 +66,29 @@ jobs:
         run: |
           test -s packages/pdfium/src/vendor/pdfium.wasm
           grep -c ec_ packages/pdfium/src/vendor/functions.ts
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Run EditCore engine tests
+        working-directory: packages/pdfium
+        run: node --test test/*.test.mjs
+
+      - name: Stage link inputs for local rebuilds
+        run: |
+          mkdir -p link-inputs/pdfium-src/out/wasm/obj link-inputs/build/wasm
+          cp packages/pdfium/pdfium-src/out/wasm/obj/libembedpdf.a link-inputs/pdfium-src/out/wasm/obj/
+          cp packages/pdfium/build/wasm/exported-functions.txt \
+             packages/pdfium/build/wasm/exported-runtime-methods.txt \
+             link-inputs/build/wasm/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pdfium-link-inputs
+          path: link-inputs/
+          if-no-files-found: error
+          retention-days: 14
 
       - uses: actions/upload-artifact@v4
         with:
