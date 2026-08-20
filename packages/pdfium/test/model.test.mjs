@@ -10,6 +10,7 @@ import {
   headingAndBodyPdf,
   centeredParagraphPdf,
   doubleSpacedPdf,
+  strayMarkerPdf,
   greetingAndParagraphPdf,
   markerColumnPdf,
   twoPagePdf,
@@ -95,6 +96,12 @@ describe('paragraph grouping', () => {
     const markers = model.filter((p) => /^-+$/.test(paragraphText(p).trim()));
     assert.equal(markers.length, 1, 'the marker column should be one paragraph');
     assert.equal(markers[0].lines.length, 4);
+  });
+
+  test('ignores a stray whitespace object buried inside a line', () => {
+    const model = build(strayMarkerPdf());
+    assert.equal(model.length, 1);
+    assert.equal(paragraphText(model[0]), 'Happy writing!');
   });
 
   test('groups a double-spaced paragraph into one box', () => {

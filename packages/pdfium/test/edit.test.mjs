@@ -15,6 +15,7 @@ import {
   centeredParagraphPdf,
   headingAndBodyPdf,
   oneUnmappedGlyphPdf,
+  strayMarkerPdf,
   A_TEXT,
   B_TEXT,
   C_TEXT,
@@ -108,6 +109,16 @@ describe('undecodable glyphs', () => {
       `the undecodable glyph should survive, got ${JSON.stringify(text)}`,
     );
     assert.ok(text.includes('Happy'));
+  });
+});
+
+describe('stray page objects', () => {
+  test('does not gain a space from a stray object when text is edited', () => {
+    const before = build(strayMarkerPdf())[0];
+    const original = paragraphText(before);
+    engine.commitParagraph(before.id, runsFrom(before, original.replace('!', 'Z!')), before.format);
+    const after = paragraphText(engine.buildModel()[0]);
+    assert.equal(after, 'Happy writingZ!');
   });
 });
 

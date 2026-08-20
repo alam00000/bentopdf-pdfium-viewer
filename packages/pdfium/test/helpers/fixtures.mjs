@@ -113,6 +113,13 @@ export function markerColumnPdf() {
   return buildTextPdf({ content });
 }
 
+export function strayMarkerPdf() {
+  return buildTextPdf({
+    content:
+      'BT /F1 12 Tf 1 0 0 1 262 700 Tm () Tj ET\n' + textLine('F1', 12, 216, 700, 'Happy writing!'),
+  });
+}
+
 export function doubleSpacedPdf(leading = 24) {
   return buildTextPdf({ content: paragraphContent(PARA_A, 72, 700, 12, leading) });
 }

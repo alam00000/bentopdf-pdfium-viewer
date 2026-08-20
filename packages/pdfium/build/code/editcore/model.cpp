@@ -1623,7 +1623,20 @@ PageState buildPageModel(Session& s, FPDF_PAGE page) {
                             isCjkOrFullwidth(prev.text.back()))) {
 
                 } else {
-                    runs.back().trailingSeparator = pendingSep;
+                    float penEnd = prev.maxX;
+                    if (!prev.text.empty() && !prev.cx.empty() &&
+                        prev.cx.back() != kNoOx) {
+                        const float hs =
+                            prev.style.hScale > 0.01f ? prev.style.hScale : 1.0f;
+                        const float na = nominalAdvance(prev.font,
+                                                        prev.text.back(),
+                                                        prev.size);
+                        if (na > 0.0f)
+                            penEnd = std::max(penEnd, prev.cx.back() + na * hs);
+                    }
+                    if (!sameLine ||
+                        static_cast<float>(ox) >= penEnd - 0.05f)
+                        runs.back().trailingSeparator = pendingSep;
                 }
             }
             pendingSep.clear();
@@ -2936,6 +2949,25 @@ PageState buildPageModel(Session& s, FPDF_PAGE page) {
             for (size_t rk = 0; rk < ln.runs.size(); rk++) {
                 const size_t ri = walk[rk];
                 const ExtractedRun& er = ln.runs[ri];
+                {
+                    bool blank = !er.text.empty();
+                    for (char16_t c : er.text)
+                        if (c != u' ' && c != 0x00A0 && c != u'\t') blank = false;
+                    if (blank && er.hasBounds) {
+                        bool buried = false;
+                        for (size_t rj = 0; rj < ln.runs.size(); rj++) {
+                            if (rj == ri) continue;
+                            const ExtractedRun& other = ln.runs[rj];
+                            if (!other.hasBounds || other.text.empty()) continue;
+                            if (er.minX < other.maxX - 0.05f &&
+                                er.maxX > other.minX + 0.05f) {
+                                buried = true;
+                                break;
+                            }
+                        }
+                        if (buried) continue;
+                    }
+                }
                 if (rk == 0 && !ln.rtl) {
                     linePenX = er.startX;
                     linePenOk = true;
