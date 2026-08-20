@@ -434,6 +434,8 @@ FPDF_FONT resolveFont(Session& s, const RunStyle& style, FPDF_FONT preferred,
 
     bool nonLatin = false;
     for (uint32_t cp : codepoints) {
+        if (cp <= 0xFFFF && isUndecodableChar(static_cast<char16_t>(cp)))
+            continue;
         if (cp >= 0x0370 && !isWinAnsiHighPunct(cp)) { nonLatin = true; break; }
     }
     auto cached = s.fontCache.find(key);
@@ -1100,11 +1102,13 @@ bool layoutParagraph(Session& s, FPDF_PAGE page, Paragraph& p, bool autoWiden,
                     if (!isWordU(r.text[ci])) { ci++; continue; }
                     size_t en = ci;
                     bool bad = false;
+                    bool keepsOriginal = false;
                     while (en < r.text.size() && isWordU(r.text[en])) {
                         if (!cov[en]) bad = true;
+                        if (isUndecodableChar(r.text[en])) keepsOriginal = true;
                         en++;
                     }
-                    if (bad)
+                    if (bad && !keepsOriginal)
                         for (size_t w = ci; w < en; w++) cov[w] = 0;
                     ci = en;
                 }
