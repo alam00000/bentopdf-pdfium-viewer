@@ -219,6 +219,13 @@ describe('editability', () => {
     );
   });
 
+  test('reports a paragraph holding an undecodable glyph as editable', () => {
+    const model = build(oneUnmappedGlyphPdf());
+    assert.ok(paragraphText(model[0]).includes('\uFFFD'));
+    assert.equal(model[0].editable, true);
+    assert.equal(model[0].lockReason, 0);
+  });
+
   knownGap('exposes private-use characters instead of one atomic placeholder', () => {
     assert.notEqual(paragraphText(build(privateUseFontPdf())[0]), '￼');
   });

@@ -14,6 +14,7 @@ import {
   stackedParagraphPdf,
   centeredParagraphPdf,
   headingAndBodyPdf,
+  oneUnmappedGlyphPdf,
   A_TEXT,
   B_TEXT,
   C_TEXT,
@@ -84,6 +85,29 @@ describe('text changes', () => {
     const after = editText(stackedParagraphPdf(), 'The quick', (t) => `${t} ${A_TEXT}`);
     assert.ok(allText(after).includes(B_TEXT));
     assert.ok(allText(after).includes(C_TEXT));
+  });
+});
+
+describe('undecodable glyphs', () => {
+  test('preserves an undecodable glyph through an edit', () => {
+    const before = build(oneUnmappedGlyphPdf())[0];
+    const original = paragraphText(before);
+    assert.ok(original.includes('\uFFFD'));
+
+    const result = engine.commitParagraph(
+      before.id,
+      runsFrom(before, original + '!'),
+      before.format,
+    );
+    assert.ok(result, 'commit should be accepted');
+
+    const after = engine.buildModel();
+    const text = paragraphText(after[0]);
+    assert.ok(
+      text.includes('\uFFFD'),
+      `the undecodable glyph should survive, got ${JSON.stringify(text)}`,
+    );
+    assert.ok(text.includes('Happy'));
   });
 });
 

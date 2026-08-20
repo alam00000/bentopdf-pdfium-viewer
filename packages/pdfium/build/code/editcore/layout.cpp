@@ -1,3 +1,5 @@
+#include <deque>
+
 #include "ec_internal.h"
 #include "fpdf_structtree.h"
 #include "fpdf_transformpage.h"
@@ -1246,6 +1248,27 @@ bool layoutParagraph(Session& s, FPDF_PAGE page, Paragraph& p, bool autoWiden,
     const float wrapSlack = 1.6f;
 
     std::map<std::pair<FPDF_FONT, char16_t>, uint32_t> probeCache;
+
+    std::map<std::pair<FPDF_FONT, char16_t>, std::deque<uint32_t>> origCodePool;
+    {
+        for (const ParaRun& pr : p.runs) {
+            if (!pr.originalFont) continue;
+            if (pr.srcCodes.size() != pr.srcText.size()) continue;
+            for (size_t ci2 = 0; ci2 < pr.srcText.size(); ci2++) {
+                const uint32_t code = pr.srcCodes[ci2];
+                if (code == 0xFFFFFFFFu) continue;
+                origCodePool[{pr.originalFont, pr.srcText[ci2]}].push_back(code);
+            }
+        }
+    }
+    auto takeOrigCode = [&](FPDF_FONT font, char16_t ch) -> uint32_t {
+        if (!font) return 0xFFFFFFFFu;
+        auto it2 = origCodePool.find({font, ch});
+        if (it2 == origCodePool.end() || it2->second.empty()) return 0xFFFFFFFFu;
+        const uint32_t code = it2->second.front();
+        it2->second.pop_front();
+        return code;
+    };
     std::map<FPDF_FONT, bool> spaceOkCache;
     auto fontHasRealSpace = [&](FPDF_FONT f) {
         auto itc = spaceOkCache.find(f);
@@ -2521,6 +2544,13 @@ bool layoutParagraph(Session& s, FPDF_PAGE page, Paragraph& p, bool autoWiden,
                         if (ci != encIt->second.end()) {
                             codes.push_back(ci->second);
                             continue;
+                        }
+                        if (rr.run && rr.font == rr.run->originalFont) {
+                            const uint32_t orig = takeOrigCode(rr.font, ch);
+                            if (orig != 0xFFFFFFFFu) {
+                                codes.push_back(orig);
+                                continue;
+                            }
                         }
                         const auto pk = std::make_pair(rr.font, ch);
                         auto pit = probeCache.find(pk);

@@ -298,6 +298,8 @@ struct ExtractedRun {
 
     std::vector<float> cx;
 
+    std::vector<uint32_t> codes;
+
     int rtlAsc = 0;
 
     float prevOriginX = 0;
@@ -329,6 +331,7 @@ struct ExtractedRun {
 };
 
 constexpr float kNoOx = kNoOxShared;
+constexpr uint32_t kNoCode = 0xFFFFFFFFu;
 
 bool isWhitespaceChar(char16_t c);
 
@@ -1257,6 +1260,10 @@ PageState buildPageModel(Session& s, FPDF_PAGE page) {
         return &(composedBounds[o] = {l, b, r, t});
     };
 
+    std::map<FPDF_PAGEOBJECT, std::vector<uint32_t>> objCodeList;
+    std::map<FPDF_PAGEOBJECT, size_t> objCursor;
+    std::set<FPDF_PAGEOBJECT> objCodesBad;
+
     std::set<FPDF_FONT> lyingFonts;
     {
         std::map<FPDF_FONT, std::pair<int, int>> lieStat;
@@ -1700,6 +1707,7 @@ PageState buildPageModel(Session& s, FPDF_PAGE page) {
                         current.text.push_back(u'\t');
                         current.adv.resize(current.text.size(), -1.0f);
                         current.cx.resize(current.text.size(), kNoOx);
+                        current.codes.resize(current.text.size(), kNoCode);
                         current.adv.back() = excess;
                     }
                     current.lastRealValid = false;
@@ -1745,6 +1753,7 @@ PageState buildPageModel(Session& s, FPDF_PAGE page) {
                     }
                     current.adv.push_back(sAdv);
                     current.cx.push_back(kNoOx);
+                    current.codes.resize(current.text.size(), kNoCode);
                     current.lastRealValid = false;
                     healedSpace = true;
                 }
@@ -1825,6 +1834,21 @@ PageState buildPageModel(Session& s, FPDF_PAGE page) {
         }
         const size_t unitIdx = current.text.size();
         appendUnicode(current.text, uc);
+        {
+            uint32_t origCode = kNoCode;
+            if (obj) {
+                auto ci = objCodeList.find(obj);
+                if (ci == objCodeList.end())
+                    ci = objCodeList.emplace(obj, readOrigCharcodes(obj)).first;
+                size_t& cursor = objCursor[obj];
+                if (cursor < ci->second.size())
+                    origCode = ci->second[cursor++];
+                else
+                    objCodesBad.insert(obj);
+            }
+            current.codes.resize(current.text.size(), kNoCode);
+            if (unitIdx < current.codes.size()) current.codes[unitIdx] = origCode;
+        }
 
         if (current.font && !wasTab) {
             s.fontRenderedCps[current.font].insert(uc);
@@ -1854,6 +1878,7 @@ PageState buildPageModel(Session& s, FPDF_PAGE page) {
             current.adv.resize(current.text.size(), -1.0f);
             current.cx.resize(current.text.size(),
                               haveOrigin ? static_cast<float>(ox) : kNoOx);
+            current.codes.resize(current.text.size(), kNoCode);
             current.lastRealValid = false;
         }
         if (ucIsSpace) {
@@ -3238,12 +3263,21 @@ PageState buildPageModel(Session& s, FPDF_PAGE page) {
                         }
                     }
                 }
+                const bool codesUsable =
+                    er.codes.size() == er.text.size() &&
+                    !objCodesBad.count(er.object);
                 if (!p.runs.empty() && !p.runs.back().atomicObject &&
                     p.runs.back().style.samePaint(st) &&
                     p.runs.back().originalFont == er.font) {
                     p.runs.back().text += text;
                     p.runs.back().srcAdv.insert(p.runs.back().srcAdv.end(),
                                                 adv.begin(), adv.end());
+                    if (codesUsable) {
+                        p.runs.back().srcText += er.text;
+                        p.runs.back().srcCodes.insert(
+                            p.runs.back().srcCodes.end(), er.codes.begin(),
+                            er.codes.end());
+                    }
                 } else {
                     ParaRun pr;
                     pr.text = text;
@@ -3251,6 +3285,10 @@ PageState buildPageModel(Session& s, FPDF_PAGE page) {
                     pr.style = st;
                     pr.originalFont = er.font;
                     pr.textUnchanged = true;
+                    if (codesUsable) {
+                        pr.srcText = er.text;
+                        pr.srcCodes = er.codes;
+                    }
                     p.runs.push_back(pr);
                 }
                 p.objects.push_back({er.object, er.container});
@@ -3544,16 +3582,24 @@ PageState buildPageModel(Session& s, FPDF_PAGE page) {
 
         int printable = 0, undecodable = 0;
         bool clipText = false;
+        bool undecPreserved = true;
         for (const auto& run : p.runs) {
 
             if (run.style.renderMode >= 4) clipText = true;
+            const bool runKeepsCodes =
+                !run.srcCodes.empty() && run.srcCodes.size() == run.srcText.size();
             for (char16_t c : run.text) {
                 if (c == u'\n' || c == u'\r') continue;
-                if (isHardUndecodableChar(c)) undecodable++;
-                else if (!isWhitespaceChar(c)) printable++;
+                if (isHardUndecodableChar(c)) {
+                    undecodable++;
+                    if (!runKeepsCodes) undecPreserved = false;
+                } else if (!isWhitespaceChar(c)) {
+                    printable++;
+                }
             }
         }
-        p.editable = (undecodable == 0) && (printable > 0) && !clipText;
+        p.editable = (undecodable == 0 || undecPreserved) && (printable > 0) &&
+                     !clipText;
         p.lockReason = p.editable ? 0 : clipText ? 2 : 1;
 
         if (p.editable) {

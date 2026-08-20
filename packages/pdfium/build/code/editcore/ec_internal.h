@@ -66,6 +66,9 @@ struct ParaRun {
 
     std::vector<float> srcAdv;
 
+    std::u16string srcText;
+    std::vector<uint32_t> srcCodes;
+
     FPDF_FONT boundFont = nullptr;
     int layoutSrc = -1;
     FPDF_PAGEOBJECT atomicObject = nullptr;
