@@ -24,6 +24,7 @@ export interface PdfiumRuntimeMethods {
   stringToUTF8: typeof stringToUTF8;
   lengthBytesUTF8: typeof lengthBytesUTF8;
   HEAPU8: typeof HEAPU8;
+  HEAPU16: typeof HEAPU16;
   HEAPU32: typeof HEAPU32;
   HEAP32: typeof HEAP32;
   HEAPF32: typeof HEAPF32;
@@ -44,6 +45,7 @@ export const exportedRuntimeMethods = [
   "stringToUTF8",
   "lengthBytesUTF8",
   "HEAPU8",
+  "HEAPU16",
   "HEAPU32",
   "HEAP32",
   "HEAPF32",
