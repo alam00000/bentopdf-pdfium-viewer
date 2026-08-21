@@ -209,6 +209,16 @@ export class PdfEngine<T = Blob> implements IPdfEngine<T> {
     );
   }
 
+  getPageLabels(doc: PdfDocumentObject): PdfTask<string[]> {
+    return this.workerQueue.enqueue(
+      {
+        execute: () => this.executor.getPageLabels(doc),
+        meta: { docId: doc.id, operation: 'getPageLabels' },
+      },
+      { priority: Priority.MEDIUM },
+    );
+  }
+
   setMetadata(doc: PdfDocumentObject, metadata: Partial<PdfMetadataObject>): PdfTask<boolean> {
     return this.workerQueue.enqueue(
       {

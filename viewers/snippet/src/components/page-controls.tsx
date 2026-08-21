@@ -5,6 +5,7 @@ import { useViewportCapability } from '@embedpdf/plugin-viewport/preact';
 import { ChevronLeftIcon } from './icons/chevron-left';
 import { ChevronRightIcon } from './icons/chevron-right';
 import { CommandButton } from './command-button';
+import { usePageLabels } from '../hooks/use-page-labels';
 
 interface PageControlsProps {
   documentId: string;
@@ -19,12 +20,14 @@ export function PageControls({ documentId }: PageControlsProps) {
   const [isVisible, setIsVisible] = useState(false);
   const [isHovering, setIsHovering] = useState(false);
   const hideTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const { labels, labelFor } = usePageLabels(documentId);
   const [inputValue, setInputValue] = useState<string>(currentPage.toString());
   const inputRef = useRef<HTMLInputElement>(null);
+  const hasLabels = labels.some((l) => l && l.length > 0);
 
   useEffect(() => {
-    setInputValue(currentPage.toString());
-  }, [currentPage]);
+    setInputValue(labelFor(currentPage));
+  }, [currentPage, labels]);
 
   const startHideTimer = useCallback(() => {
     if (hideTimeoutRef.current) {
@@ -83,8 +86,8 @@ export function PageControls({ documentId }: PageControlsProps) {
   };
 
   const handleInputChange = (e: Event) => {
-    const value = (e.target as HTMLInputElement).value.replace(/[^0-9]/g, '');
-    setInputValue(value);
+    const raw = (e.target as HTMLInputElement).value;
+    setInputValue(hasLabels ? raw : raw.replace(/[^0-9]/g, ''));
   };
 
   const handleInputFocus = () => {
@@ -92,11 +95,19 @@ export function PageControls({ documentId }: PageControlsProps) {
   };
 
   const handleInputBlur = () => {
-    const page = parseInt(inputValue, 10);
+    const typed = inputValue.trim();
+    const byLabel = typed
+      ? labels.findIndex((l) => l && l.toLowerCase() === typed.toLowerCase())
+      : -1;
+    if (byLabel >= 0) {
+      scroll?.scrollToPage?.({ pageNumber: byLabel + 1 });
+      return;
+    }
+    const page = parseInt(typed, 10);
     if (!isNaN(page) && page >= 1 && page <= totalPages) {
       scroll?.scrollToPage?.({ pageNumber: page });
     } else {
-      setInputValue(currentPage.toString());
+      setInputValue(labelFor(currentPage));
     }
   };
 
@@ -104,7 +115,7 @@ export function PageControls({ documentId }: PageControlsProps) {
     if (e.key === 'Enter') {
       (e.target as HTMLInputElement).blur();
     } else if (e.key === 'Escape') {
-      setInputValue(currentPage.toString());
+      setInputValue(labelFor(currentPage));
       (e.target as HTMLInputElement).blur();
     }
   };
@@ -139,8 +150,7 @@ export function PageControls({ documentId }: PageControlsProps) {
           <input
             ref={inputRef}
             type="text"
-            inputMode="numeric"
-            pattern="[0-9]*"
+            inputMode={hasLabels ? 'text' : 'numeric'}
             value={inputValue}
             onChange={handleInputChange}
             onFocus={handleInputFocus}

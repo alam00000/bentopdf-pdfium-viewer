@@ -1,6 +1,7 @@
 import { h } from 'preact';
 import { ThumbnailsPane, ThumbImg } from '@embedpdf/plugin-thumbnail/preact';
 import { useScroll } from '@embedpdf/plugin-scroll/preact';
+import { usePageLabels } from '../hooks/use-page-labels';
 
 type ThumbnailsSidebarProps = {
   documentId: string;
@@ -9,6 +10,7 @@ type ThumbnailsSidebarProps = {
 
 export function ThumbnailsSidebar({ documentId, onClose }: ThumbnailsSidebarProps) {
   const { state, provides } = useScroll(documentId);
+  const { labelFor } = usePageLabels(documentId);
 
   return (
     <div className="flex h-full flex-1 flex-col">
@@ -65,7 +67,7 @@ export function ThumbnailsSidebar({ documentId, onClose }: ThumbnailsSidebarProp
                   marginTop: '4px',
                 }}
               >
-                <span className="text-fg-secondary text-xs">{m.pageIndex + 1}</span>
+                <span className="text-fg-secondary text-xs">{labelFor(m.pageIndex + 1)}</span>
               </div>
             </div>
           )}

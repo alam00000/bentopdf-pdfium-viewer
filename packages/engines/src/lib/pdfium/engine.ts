@@ -3339,6 +3339,39 @@ export class PdfiumNative implements IPdfiumExecutor {
    *
    * @private
    */
+  getPageLabels(doc: PdfDocumentObject): PdfTask<string[]> {
+    this.logger.debug(LOG_SOURCE, LOG_CATEGORY, 'getPageLabels', doc);
+
+    const ctx = this.cache.getContext(doc.id);
+    if (!ctx) {
+      return PdfTaskHelper.reject({
+        code: PdfErrorCode.DocNotOpen,
+        message: 'document does not open',
+      });
+    }
+
+    const labels: string[] = [];
+    for (let i = 0; i < doc.pageCount; i++) {
+      labels.push(this.readPageLabel(ctx.docPtr, i));
+    }
+
+    return PdfTaskHelper.resolve(labels);
+  }
+
+  private readPageLabel(docPtr: number, pageIndex: number): string {
+    const len = this.pdfiumModule.FPDF_GetPageLabel(docPtr, pageIndex, 0, 0);
+    if (len <= 2) return '';
+
+    const label = readString(
+      this.pdfiumModule.pdfium,
+      (buffer, bufferLength) =>
+        this.pdfiumModule.FPDF_GetPageLabel(docPtr, pageIndex, buffer, bufferLength),
+      this.pdfiumModule.pdfium.UTF16ToString,
+      len,
+    );
+    return label ?? '';
+  }
+
   private readMetaText(docPtr: number, key: string): string | null {
     const exists = !!this.pdfiumModule.EPDF_HasMetaText(docPtr, key);
     if (!exists) return null;

@@ -71,6 +71,7 @@ type MessageType =
   | 'destroy'
   | 'openDocumentBuffer'
   | 'getMetadata'
+  | 'getPageLabels'
   | 'setMetadata'
   | 'getDocPermissions'
   | 'getDocUserPermissions'
@@ -289,6 +290,10 @@ export class RemoteExecutor implements IPdfiumExecutor {
 
   getMetadata(doc: PdfDocumentObject): PdfTask<PdfMetadataObject> {
     return this.send<PdfMetadataObject>('getMetadata', [doc]);
+  }
+
+  getPageLabels(doc: PdfDocumentObject): PdfTask<string[]> {
+    return this.send<string[]>('getPageLabels', [doc]);
   }
 
   setMetadata(doc: PdfDocumentObject, metadata: Partial<PdfMetadataObject>): PdfTask<boolean> {

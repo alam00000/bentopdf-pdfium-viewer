@@ -3151,6 +3151,7 @@ export interface PdfEngine<T = Blob> {
    * @returns task that contains the metadata or error
    */
   getMetadata: (doc: PdfDocumentObject) => PdfTask<PdfMetadataObject>;
+  getPageLabels: (doc: PdfDocumentObject) => PdfTask<string[]>;
   /**
    * Set the metadata of the file
    * @param doc - pdf document
@@ -3643,6 +3644,7 @@ export interface IPdfiumExecutor {
     options?: PdfOpenDocumentBufferOptions,
   ): PdfTask<PdfDocumentObject>;
   getMetadata(doc: PdfDocumentObject): PdfTask<PdfMetadataObject>;
+  getPageLabels(doc: PdfDocumentObject): PdfTask<string[]>;
   setMetadata(doc: PdfDocumentObject, metadata: Partial<PdfMetadataObject>): PdfTask<boolean>;
   getDocPermissions(doc: PdfDocumentObject): PdfTask<number>;
   getDocUserPermissions(doc: PdfDocumentObject): PdfTask<number>;

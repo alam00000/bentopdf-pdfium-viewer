@@ -267,6 +267,9 @@ export class EngineRunner {
       case 'getMetadata':
         task = engine.getMetadata!(...args);
         break;
+      case 'getPageLabels':
+        task = engine.getPageLabels!(...args);
+        break;
       case 'setMetadata':
         task = engine.setMetadata!(...args);
         break;
