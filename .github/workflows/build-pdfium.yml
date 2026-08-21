@@ -99,10 +99,31 @@ jobs:
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add $FILES
-          git commit -m "chore: publish pdfium.wasm built from ${GITHUB_SHA:0:12}"
-          git pull --rebase origin "${GITHUB_REF_NAME}"
-          git push origin "HEAD:${GITHUB_REF_NAME}"
+          STAGE=$(mktemp -d)
+          for f in $FILES; do
+            mkdir -p "$STAGE/$(dirname "$f")"
+            cp "$f" "$STAGE/$f"
+          done
+          for attempt in 1 2 3; do
+            git fetch origin "${GITHUB_REF_NAME}"
+            git reset --hard "origin/${GITHUB_REF_NAME}"
+            for f in $FILES; do
+              cp "$STAGE/$f" "$f"
+            done
+            if git diff --quiet -- $FILES; then
+              echo "Engine already published; nothing to do."
+              exit 0
+            fi
+            git add $FILES
+            git commit -m "chore: publish pdfium.wasm built from ${GITHUB_SHA:0:12}"
+            if git push origin "HEAD:${GITHUB_REF_NAME}"; then
+              echo "Published on attempt $attempt."
+              exit 0
+            fi
+            echo "Push raced with another run; retrying."
+          done
+          echo "::error::could not publish the engine after 3 attempts"
+          exit 1
 
       - name: Stage link inputs for local rebuilds
         if: always()
