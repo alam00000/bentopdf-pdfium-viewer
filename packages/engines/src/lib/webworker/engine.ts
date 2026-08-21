@@ -277,7 +277,7 @@ export class WebWorkerEngine implements PdfEngine {
   getPageLabels(doc: PdfDocumentObject) {
     this.logger.debug(LOG_SOURCE, LOG_CATEGORY, 'getPageLabels', doc);
     const requestId = this.generateRequestId(doc.id);
-    const task = new WorkerTask<PdfMetadataObject>(this.worker, requestId);
+    const task = new WorkerTask<string[]>(this.worker, requestId);
 
     const request: ExecuteRequest = createRequest(requestId, 'getPageLabels', [doc]);
     this.proxy(task, request);
