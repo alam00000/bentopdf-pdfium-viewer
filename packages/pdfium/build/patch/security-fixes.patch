@@ -126,6 +126,34 @@ index 91f457536..20476d3d8 100644
    // Makes a point from {GetNumber(index + 1), GetNumber(index)}.
    CFX_PointF GetPoint(uint32_t index) const;
    // Makes a matrix from {GetNumber(5), ..., GetNumber(0)}.
+diff --git a/core/fpdftext/cpdf_textpage.cpp b/core/fpdftext/cpdf_textpage.cpp
+index 787889df4..2b201cbc0 100644
+--- a/core/fpdftext/cpdf_textpage.cpp
++++ b/core/fpdftext/cpdf_textpage.cpp
+@@ -1542,12 +1542,17 @@ void CPDF_TextPage::ProcessTextObjectItems(CPDF_TextObject* text_object,
+         kTextCharRatioGapDelta * text_object->GetFontSize());
+     for (int n = fxcrt::CollectionSize<int>(temp_char_list_);
+          n > fxcrt::CollectionSize<int>(temp_char_list_) - count; --n) {
+-      const CharInfo& charinfo1 = temp_char_list_[n - 1];
+-      CFX_PointF diff = charinfo1.origin() - charinfo.origin();
+-      if (charinfo1.char_code() == charinfo.char_code() &&
+-          charinfo1.text_object()->GetFont() ==
+-              charinfo.text_object()->GetFont() &&
+-          fabs(diff.x) < threshold && fabs(diff.y) < threshold) {
++      const CharInfo& candidate_charinfo = temp_char_list_[n - 1];
++      if (candidate_charinfo.char_code() != charinfo.char_code()) {
++        continue;
++      }
++      if (!candidate_charinfo.text_object() ||
++          candidate_charinfo.text_object()->GetFont() !=
++              charinfo.text_object()->GetFont()) {
++        continue;
++      }
++      CFX_PointF diff = candidate_charinfo.origin() - charinfo.origin();
++      if (fabs(diff.x) < threshold && fabs(diff.y) < threshold) {
+         add_unicode = false;
+         break;
+       }
 diff --git a/core/fxcrt/fx_memory_pa.cpp b/core/fxcrt/fx_memory_pa.cpp
 index 2326c0ff9..52dccbd23 100644
 --- a/core/fxcrt/fx_memory_pa.cpp
@@ -709,11 +737,45 @@ index 436b31d6b..000000000
 -           }
 -           opj_free(new_comps);
 -           new_comps = NULL;
+diff --git a/third_party/libopenjpeg/0050-opj_pi_initialise_encode_overflow.patch b/third_party/libopenjpeg/0050-opj_pi_initialise_encode_overflow.patch
+new file mode 100644
+index 000000000..1f44a5dfe
+--- /dev/null
++++ b/third_party/libopenjpeg/0050-opj_pi_initialise_encode_overflow.patch
+@@ -0,0 +1,28 @@
++commit 839936aa33eb8899bbbd80fda02796bb65068951
++Author: Even Rouault <even.rouault@spatialys.com>
++Date:   Sun Apr 5 13:25:27 2026 +0200
++
++    opj_pi_initialise_encode() (write code path): avoid potential integer overflow leading to insufficient memory allocation
++    
++    Fixes #1619
++
++diff --git a/src/lib/openjp2/pi.c b/src/lib/openjp2/pi.c
++index 15ac3314..4abb87af 100644
++--- a/src/lib/openjp2/pi.c
+++++ b/src/lib/openjp2/pi.c
++@@ -1694,9 +1694,12 @@ opj_pi_iterator_t *opj_pi_initialise_encode(const opj_image_t *p_image,
++     l_current_pi = l_pi;
++ 
++     /* memory allocation for include*/
++-    l_current_pi->include_size = l_tcp->numlayers * l_step_l;
++-    l_current_pi->include = (OPJ_INT16*) opj_calloc(l_current_pi->include_size,
++-                            sizeof(OPJ_INT16));
+++    l_current_pi->include = NULL;
+++    if (l_step_l <= UINT_MAX / l_tcp->numlayers) {
+++        l_current_pi->include_size = l_tcp->numlayers * l_step_l;
+++        l_current_pi->include = (OPJ_INT16*) opj_calloc(l_current_pi->include_size,
+++                                sizeof(OPJ_INT16));
+++    }
++     if (!l_current_pi->include) {
++         opj_free(l_tmp_data);
++         opj_free(l_tmp_ptr);
 diff --git a/third_party/libopenjpeg/README.pdfium b/third_party/libopenjpeg/README.pdfium
-index 905c64001..9ab4ee7d6 100644
+index 905c64001..5dac94264 100644
 --- a/third_party/libopenjpeg/README.pdfium
 +++ b/third_party/libopenjpeg/README.pdfium
-@@ -29,11 +29,10 @@ Local Modifications:
+@@ -29,11 +29,11 @@ Local Modifications:
  0023-opj_j2k_read_mct_records.patch: Fix opj_j2k_read to prevent heap-use-after-free.
  0025-opj_j2k_add_mct_null_data.patch: Check m_data != null before trying to read from it.
  0034-opj_malloc.patch: PDFium changes in opj_malloc.
@@ -723,9 +785,30 @@ index 905c64001..9ab4ee7d6 100644
  0046-func-ptr-mixup.patch: Prevent mixing up function pointer types.
 -0047-opj_j2k_read_sod.patch: Fix out of bounds read.
 +0047-opj_j2k_read_sod.patch: Cherry-pick https://github.com/uclouvain/openjpeg/pull/1621
++0050-opj_pi_initialise_encode_overflow.patch: Cherry-pick https://github.com/uclouvain/openjpeg/pull/1619
  
  Note:
  
+diff --git a/third_party/libopenjpeg/pi.c b/third_party/libopenjpeg/pi.c
+index ad96f47eb..b199a7b2a 100644
+--- a/third_party/libopenjpeg/pi.c
++++ b/third_party/libopenjpeg/pi.c
+@@ -1703,9 +1703,12 @@ opj_pi_iterator_t *opj_pi_initialise_encode(const opj_image_t *p_image,
+     l_current_pi = l_pi;
+ 
+     /* memory allocation for include*/
+-    l_current_pi->include_size = l_tcp->numlayers * l_step_l;
+-    l_current_pi->include = (OPJ_INT16*) opj_calloc(l_current_pi->include_size,
+-                            sizeof(OPJ_INT16));
++    l_current_pi->include = NULL;
++    if (l_step_l <= UINT_MAX / l_tcp->numlayers) {
++        l_current_pi->include_size = l_tcp->numlayers * l_step_l;
++        l_current_pi->include = (OPJ_INT16*) opj_calloc(l_current_pi->include_size,
++                                sizeof(OPJ_INT16));
++    }
+     if (!l_current_pi->include) {
+         opj_free(l_tmp_data);
+         opj_free(l_tmp_ptr);
 diff --git a/third_party/libtiff/0034-tiff-jpeg-overflow.patch b/third_party/libtiff/0034-tiff-jpeg-overflow.patch
 new file mode 100644
 index 000000000..f03fa9460
