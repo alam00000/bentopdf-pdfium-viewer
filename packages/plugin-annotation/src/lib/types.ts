@@ -302,6 +302,8 @@ export interface AnnotationScope {
 }
 
 export interface AnnotationCapability {
+  getAnnotationAuthor: () => string;
+  setAnnotationAuthor: (author: string) => void;
   // Active document operations
   getState: () => AnnotationDocumentState;
   getPageAnnotations: (

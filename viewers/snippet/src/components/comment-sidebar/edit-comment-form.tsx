@@ -4,7 +4,8 @@ import { useTranslations } from '@embedpdf/plugin-i18n/preact';
 
 interface EditCommentFormProps {
   initialText: string;
-  onSave: (newText: string) => void;
+  initialAuthor?: string;
+  onSave: (newText: string, newAuthor: string) => void;
   onCancel: () => void;
   autoFocus?: boolean;
   documentId: string;
@@ -12,12 +13,14 @@ interface EditCommentFormProps {
 
 export const EditCommentForm = ({
   initialText,
+  initialAuthor = '',
   onSave,
   onCancel,
   autoFocus = false,
   documentId,
 }: EditCommentFormProps) => {
   const [text, setText] = useState(initialText);
+  const [author, setAuthor] = useState(initialAuthor);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { translate } = useTranslations(documentId);
 
@@ -33,7 +36,7 @@ export const EditCommentForm = ({
 
   const handleSaveClick = (e: MouseEvent) => {
     e.stopPropagation();
-    onSave(text);
+    onSave(text, author.trim());
   };
 
   const handleCancelClick = (e: MouseEvent) => {
@@ -43,6 +46,14 @@ export const EditCommentForm = ({
 
   return (
     <div className="flex-1 space-y-2">
+      <input
+        type="text"
+        value={author}
+        onInput={(e) => setAuthor(e.currentTarget.value)}
+        placeholder={translate('comments.author')}
+        aria-label={translate('comments.author')}
+        className="border-border-default bg-bg-input text-fg-primary focus:border-accent focus:ring-accent w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-1"
+      />
       <textarea
         ref={textareaRef}
         value={text}

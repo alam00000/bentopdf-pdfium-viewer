@@ -1,5 +1,5 @@
 import { h } from 'preact';
-import { useRef, useEffect } from 'preact/hooks';
+import { useRef, useEffect, useState } from 'preact/hooks';
 import {
   getGroupLeaderId,
   getSelectedAnnotations,
@@ -14,6 +14,8 @@ import { TrackedAnnotation } from '@embedpdf/plugin-annotation';
 import { uuidV4, PdfAnnotationSubtype, PdfAnnotationIcon } from '@embedpdf/models';
 import { AnnotationCard } from './comment-sidebar/annotation-card';
 import { EmptyState } from './comment-sidebar/empty-state';
+import { usePageLabels } from '../hooks/use-page-labels';
+import { getStoredAuthorName, setStoredAuthorName } from '../lib/author-name';
 
 export interface CommentSidebarProps {
   documentId: string;
@@ -25,6 +27,38 @@ export const CommentSidebar = ({ documentId }: CommentSidebarProps) => {
   const { provides: scrollApi } = useScrollCapability();
   const { translate } = useTranslations(documentId);
   const { canModifyAnnotations } = useDocumentPermissions(documentId);
+  const { labelFor } = usePageLabels(documentId);
+  const [authorName, setAuthorName] = useState(
+    () => getStoredAuthorName() || annotationApi?.getAnnotationAuthor?.() || '',
+  );
+
+  useEffect(() => {
+    if (!annotationApi?.setAnnotationAuthor) return;
+    const stored = getStoredAuthorName();
+    if (stored) annotationApi.setAnnotationAuthor(stored);
+  }, [annotationApi]);
+
+  const handleAuthorNameChange = (next: string) => {
+    setAuthorName(next);
+    setStoredAuthorName(next.trim());
+    annotationApi?.setAnnotationAuthor?.(next.trim() || 'Guest');
+  };
+
+  const authorBar = (
+    <div className="border-border-subtle bg-bg-surface border-b px-3 py-2">
+      <label className="text-fg-secondary mb-1 block text-xs">
+        {translate('comments.commentingAs')}
+      </label>
+      <input
+        type="text"
+        value={authorName}
+        onInput={(e) => handleAuthorNameChange(e.currentTarget.value)}
+        placeholder={translate('comments.author')}
+        aria-label={translate('comments.commentingAs')}
+        className="border-border-default bg-bg-input text-fg-primary focus:border-accent focus:ring-accent w-full rounded-md border px-2 py-1 text-sm focus:outline-none focus:ring-1"
+      />
+    </div>
+  );
   const annotationRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -74,10 +108,15 @@ export const CommentSidebar = ({ documentId }: CommentSidebarProps) => {
     });
   };
 
-  const handleUpdate = (id: string, contents: string) => {
+  const handleUpdate = (id: string, contents: string, author?: string) => {
     const ann = findAnnotationById(id); // Helper function to find the annotation
     if (ann) {
-      annotationApi?.updateAnnotation(ann.object.pageIndex, id, { contents, modified: new Date() });
+      const patch: { contents: string; modified: Date; author?: string } = {
+        contents,
+        modified: new Date(),
+      };
+      if (author !== undefined) patch.author = author;
+      annotationApi?.updateAnnotation(ann.object.pageIndex, id, patch);
     }
   };
 
@@ -129,11 +168,19 @@ export const CommentSidebar = ({ documentId }: CommentSidebarProps) => {
   };
 
   if (sortedPages.length === 0) {
-    return <EmptyState documentId={documentId} />;
+    return (
+      <div className="flex h-full flex-col">
+        {authorBar}
+        <div className="flex-1 overflow-y-auto">
+          <EmptyState documentId={documentId} />
+        </div>
+      </div>
+    );
   }
 
   return (
     <div ref={scrollContainerRef} className="h-full overflow-y-auto">
+      {authorBar}
       <div className="space-y-6 p-3">
         {sortedPages.map((pageNumber) => (
           <div key={pageNumber} className="space-y-3">
@@ -141,7 +188,7 @@ export const CommentSidebar = ({ documentId }: CommentSidebarProps) => {
             <div className="bg-bg-surface sticky top-0 z-10 px-1">
               <div className="border-border-subtle border-b py-2">
                 <h3 className="text-md text-fg-primary font-semibold">
-                  {translate('comments.page', { params: { page: pageNumber + 1 } })}
+                  {translate('comments.page', { params: { page: labelFor(pageNumber + 1) } })}
                 </h3>
                 <p className="text-fg-muted text-sm">
                   {sidebarAnnotations[pageNumber].length === 1

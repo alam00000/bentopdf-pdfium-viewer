@@ -145,6 +145,7 @@ import { Capture } from '@/components/capture';
 import { ProtectModal } from './protect-modal';
 import { UnlockOwnerOverlay } from './unlock-owner-overlay';
 import { ViewPermissionsModal } from './view-permissions-modal';
+import { getStoredAuthorName } from '../lib/author-name';
 
 // ============================================================================
 // Main Configuration Interface - Uses actual plugin config types directly
@@ -582,6 +583,9 @@ export function PDFViewer({ config, onRegistryReady }: PDFViewerProps) {
           createPluginRegistration(AnnotationPluginPackage, {
             ...DEFAULTS.annotations,
             ...config.annotations,
+            ...(config.annotations?.annotationAuthor || !getStoredAuthorName()
+              ? {}
+              : { annotationAuthor: getStoredAuthorName() }),
           }),
           createPluginRegistration(SearchPluginPackage, { ...DEFAULTS.search, ...config.search }),
           createPluginRegistration(SelectionPluginPackage, {

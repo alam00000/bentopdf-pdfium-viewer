@@ -204,6 +204,8 @@ export const englishTranslations: Locale = {
       redo: 'Redo',
     },
     comments: {
+      commentingAs: 'Commenting as',
+      author: 'Author',
       page: 'Page {page}',
       commentCount: '{count} comment',
       commentCountPlural: '{count} comments',
@@ -553,6 +555,8 @@ export const germanTranslations: Locale = {
       redo: 'Wiederholen',
     },
     comments: {
+      commentingAs: 'Kommentieren als',
+      author: 'Autor',
       page: 'Seite {page}',
       commentCount: '{count} Kommentar',
       commentCountPlural: '{count} Kommentare',
@@ -904,6 +908,8 @@ export const dutchTranslations: Locale = {
       redo: 'Opnieuw doen',
     },
     comments: {
+      commentingAs: 'Reageren als',
+      author: 'Auteur',
       page: 'Pagina {page}',
       commentCount: '{count} opmerking',
       commentCountPlural: '{count} opmerkingen',
@@ -1253,6 +1259,8 @@ export const frenchTranslations: Locale = {
       redo: 'Refaire',
     },
     comments: {
+      commentingAs: 'Commenter en tant que',
+      author: 'Auteur',
       page: 'Page {page}',
       commentCount: '{count} commentaire',
       commentCountPlural: '{count} commentaires',
@@ -1604,6 +1612,8 @@ export const spanishTranslations: Locale = {
       redo: 'Rehacer',
     },
     comments: {
+      commentingAs: 'Comentando como',
+      author: 'Autor',
       page: 'Página {page}',
       commentCount: '{count} comentario',
       commentCountPlural: '{count} comentarios',
@@ -1953,6 +1963,8 @@ export const simplifiedChineseTranslations: Locale = {
       redo: '恢复',
     },
     comments: {
+      commentingAs: '评论身份',
+      author: '作者',
       page: '第{page}页',
       commentCount: '{count}条评论',
       commentCountPlural: '{count}条评论',
@@ -2294,6 +2306,8 @@ export const swedishTranslations: Locale = {
       redo: 'Gör om',
     },
     comments: {
+      commentingAs: 'Kommenterar som',
+      author: 'Författare',
       page: 'Sida {page}',
       commentCount: '{count} kommentar',
       commentCountPlural: '{count} kommentarer',
@@ -2639,6 +2653,8 @@ export const japaneseTranslations: Locale = {
       redo: 'やり直す',
     },
     comments: {
+      commentingAs: 'コメント者',
+      author: '作成者',
       page: '{page}ページ',
       commentCount: '{count}件のコメント',
       commentCountPlural: '{count}件のコメント',

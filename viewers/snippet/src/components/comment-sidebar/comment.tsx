@@ -9,7 +9,7 @@ import { formatDate } from '@/components/utils';
 
 interface CommentProps {
   annotation: PdfAnnotationObject;
-  onSave: (text: string) => void;
+  onSave: (text: string, author: string) => void;
   onDelete: () => void;
   isReply?: boolean;
   documentId: string;
@@ -28,8 +28,8 @@ export const Comment = ({
   const [isEditing, setEditing] = useState(false);
   const author = annotation.author || 'Guest';
 
-  const handleSave = (newText: string) => {
-    onSave(newText);
+  const handleSave = (newText: string, newAuthor: string) => {
+    onSave(newText, newAuthor);
     setEditing(false);
   };
 
@@ -43,6 +43,7 @@ export const Comment = ({
         {isReply && <UserAvatar name={author} className="h-8 w-8" />}
         <EditCommentForm
           initialText={annotation.contents || ''}
+          initialAuthor={annotation.author || ''}
           onSave={handleSave}
           onCancel={handleCancel}
           autoFocus

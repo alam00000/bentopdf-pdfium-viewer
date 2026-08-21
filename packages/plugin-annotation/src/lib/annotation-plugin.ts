@@ -393,6 +393,10 @@ export class AnnotationPlugin extends BasePlugin<
 
   protected buildCapability(): AnnotationCapability {
     return {
+      getAnnotationAuthor: () => this.config.annotationAuthor ?? 'Guest',
+      setAnnotationAuthor: (author: string) => {
+        this.config.annotationAuthor = author;
+      },
       // Active document operations
       getActiveTool: () => this.getActiveTool(),
       setActiveTool: (toolId) => this.setActiveTool(toolId),

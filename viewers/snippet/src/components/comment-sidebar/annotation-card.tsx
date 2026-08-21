@@ -15,7 +15,7 @@ interface AnnotationCardProps {
   entry: SidebarAnnotationEntry;
   isSelected: boolean;
   onSelect: () => void;
-  onUpdate: (id: string, contents: string) => void;
+  onUpdate: (id: string, contents: string, author?: string) => void;
   onDelete: (annotation: TrackedAnnotation) => void;
   onReply: (inReplyToId: string, contents: string) => void;
   documentId: string;
@@ -57,8 +57,8 @@ export const AnnotationCard = ({
 
   if (!config) return null;
 
-  const handleSaveEdit = (newText: string) => {
-    onUpdate(annotation.object.id, newText);
+  const handleSaveEdit = (newText: string, newAuthor: string) => {
+    onUpdate(annotation.object.id, newText, newAuthor);
     setEditing(false);
   };
 
@@ -127,6 +127,7 @@ export const AnnotationCard = ({
               <div className="mt-2">
                 <EditCommentForm
                   initialText={annotation.object.contents || ''}
+                  initialAuthor={annotation.object.author || ''}
                   onSave={handleSaveEdit}
                   onCancel={handleCancelEdit}
                   autoFocus
@@ -145,7 +146,7 @@ export const AnnotationCard = ({
               <Comment
                 key={reply.object.id}
                 annotation={reply.object}
-                onSave={(text) => onUpdate(reply.object.id, text)}
+                onSave={(text, author) => onUpdate(reply.object.id, text, author)}
                 onDelete={() => onDelete(reply)}
                 isReply
                 documentId={documentId}
