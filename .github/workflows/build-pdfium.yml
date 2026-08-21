@@ -14,6 +14,13 @@ on:
       - '.github/workflows/build-pdfium.yml'
       - '.gitmodules'
 
+permissions:
+  contents: write
+
+concurrency:
+  group: build-pdfium
+  cancel-in-progress: false
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -74,6 +81,26 @@ jobs:
       - name: Run EditCore engine tests
         working-directory: packages/pdfium
         run: node --test test/*.test.mjs
+
+      - name: Publish the built engine
+        run: |
+          set -euo pipefail
+          cd "$GITHUB_WORKSPACE"
+          FILES="packages/pdfium/src/vendor/pdfium.js \
+                 packages/pdfium/src/vendor/pdfium.wasm \
+                 packages/pdfium/src/vendor/pdfium.cjs \
+                 packages/pdfium/src/vendor/functions.ts \
+                 packages/pdfium/src/vendor/runtime-methods.ts"
+          if git diff --quiet -- $FILES; then
+            echo "Engine unchanged; nothing to publish."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add $FILES
+          git commit -m "chore: publish pdfium.wasm built from ${GITHUB_SHA:0:12}"
+          git pull --rebase origin "${GITHUB_REF_NAME}"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
 
       - name: Stage link inputs for local rebuilds
         if: always()
