@@ -32,12 +32,14 @@ jobs:
         run: |
           git submodule update --init --depth 1 packages/pdfium/pdfium-src || git submodule update --init packages/pdfium/pdfium-src
 
-      - name: Apply EditCore pdfium patch
+      - name: Apply pdfium patches
         working-directory: packages/pdfium
         run: |
-          if ! git -C pdfium-src apply --reverse --check "$PWD/build/patch/editcore-pdfium.patch" 2>/dev/null; then
-            git -C pdfium-src apply "$PWD/build/patch/editcore-pdfium.patch"
-          fi
+          for p in security-fixes editcore-pdfium; do
+            if ! git -C pdfium-src apply --reverse --check "$PWD/build/patch/$p.patch" 2>/dev/null; then
+              git -C pdfium-src apply "$PWD/build/patch/$p.patch"
+            fi
+          done
 
       - name: Free disk space
         run: |

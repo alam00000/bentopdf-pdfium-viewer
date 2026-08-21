@@ -1,0 +1,965 @@
+diff --git a/AUTHORS b/AUTHORS
+index 484ce472c..27b9fe007 100644
+--- a/AUTHORS
++++ b/AUTHORS
+@@ -36,6 +36,7 @@ Manuel Geißer <geisserml@gmail.com>
+ Matt Jolly <kangie@gentoo.org>
+ Michael Doppler <m.doppler@gmail.com>
+ Michael Reed <mike@reedtribe.org>
++Michał Bazyli <bazyli.michal@gmail.com>
+ Miklos Vajna <vmiklos@vmiklos.hu>
+ Minh Trần <myoki.crystal@gmail.com>
+ Mostafa Aboalkasim <mostafa.aboalkasim.offical@gmail.com>
+diff --git a/core/fpdfapi/page/cpdf_dib.cpp b/core/fpdfapi/page/cpdf_dib.cpp
+index 274808fb9..6ccda2c13 100644
+--- a/core/fpdfapi/page/cpdf_dib.cpp
++++ b/core/fpdfapi/page/cpdf_dib.cpp
+@@ -39,6 +39,7 @@
+ #include "core/fxcrt/check_op.h"
+ #include "core/fxcrt/compiler_specific.h"
+ #include "core/fxcrt/data_vector.h"
++#include "core/fxcrt/fx_2d_size.h"
+ #include "core/fxcrt/fx_safe_types.h"
+ #include "core/fxcrt/span_util.h"
+ #include "core/fxcrt/stl_util.h"
+@@ -682,7 +683,7 @@ RetainPtr<CFX_DIBitmap> CPDF_DIB::ConvertArgbJpxBitmapToRgb(
+     DCHECK(jpx_inline_data_.data.empty());
+     jpx_inline_data_.width = width;
+     jpx_inline_data_.height = height;
+-    jpx_inline_data_.data.reserve(width * height);
++    jpx_inline_data_.data.reserve(Fx2DSizeOrDie(width, height));
+     for (uint32_t row = 0; row < height; ++row) {
+       auto src =
+           argb_bitmap->GetScanlineAs<FX_BGRA_STRUCT<uint8_t>>(row).first(width);
+diff --git a/core/fpdfapi/page/cpdf_psengine.cpp b/core/fpdfapi/page/cpdf_psengine.cpp
+index 156451868..e006a85ff 100644
+--- a/core/fpdfapi/page/cpdf_psengine.cpp
++++ b/core/fpdfapi/page/cpdf_psengine.cpp
+@@ -18,6 +18,7 @@
+ #include "core/fxcrt/check_op.h"
+ #include "core/fxcrt/fx_safe_types.h"
+ #include "core/fxcrt/fx_string.h"
++#include "core/fxcrt/numerics/safe_conversions.h"
+ 
+ namespace {
+ 
+@@ -211,7 +212,7 @@ float CPDF_PSEngine::Pop() {
+ }
+ 
+ int CPDF_PSEngine::PopInt() {
+-  return static_cast<int>(Pop());
++  return pdfium::saturated_cast<int>(Pop());
+ }
+ 
+ bool CPDF_PSEngine::Parse(pdfium::span<const uint8_t> input) {
+diff --git a/core/fpdfapi/page/cpdf_streamcontentparser.cpp b/core/fpdfapi/page/cpdf_streamcontentparser.cpp
+index b22e4c8d7..a5c80afa8 100644
+--- a/core/fpdfapi/page/cpdf_streamcontentparser.cpp
++++ b/core/fpdfapi/page/cpdf_streamcontentparser.cpp
+@@ -44,6 +44,7 @@
+ #include "core/fxcrt/containers/contains.h"
+ #include "core/fxcrt/epdf_tls.h"
+ #include "core/fxcrt/fx_safe_types.h"
++#include "core/fxcrt/numerics/safe_conversions.h"
+ #include "core/fxcrt/scoped_set_insertion.h"
+ #include "core/fxcrt/span.h"
+ #include "core/fxcrt/stl_util.h"
+@@ -567,6 +568,14 @@ std::vector<float> CPDF_StreamContentParser::GetNumbers(size_t count) const {
+   return values;
+ }
+ 
++std::optional<int> CPDF_StreamContentParser::GetInteger(uint32_t index) const {
++  float num = GetNumber(index);
++  if (!pdfium::IsValueInRangeForNumericType<int>(num)) {
++    return std::nullopt;
++  }
++  return static_cast<int>(num);
++}
++
+ CFX_PointF CPDF_StreamContentParser::GetPoint(uint32_t index) const {
+   return CFX_PointF(GetNumber(index + 1), GetNumber(index));
+ }
+@@ -993,12 +1002,12 @@ void CPDF_StreamContentParser::Handle_BeginImageData() {}
+ 
+ void CPDF_StreamContentParser::Handle_SetLineJoin() {
+   cur_states_->mutable_graph_state().SetLineJoin(
+-      static_cast<CFX_GraphStateData::LineJoin>(GetInteger(0)));
++      static_cast<CFX_GraphStateData::LineJoin>(GetInteger(0).value_or(0)));
+ }
+ 
+ void CPDF_StreamContentParser::Handle_SetLineCap() {
+   cur_states_->mutable_graph_state().SetLineCap(
+-      static_cast<CFX_GraphStateData::LineCap>(GetInteger(0)));
++      static_cast<CFX_GraphStateData::LineCap>(GetInteger(0).value_or(0)));
+ }
+ 
+ void CPDF_StreamContentParser::Handle_SetCMYKColor_Fill() {
+@@ -1481,7 +1490,7 @@ void CPDF_StreamContentParser::OnChangeTextMatrix() {
+ 
+ void CPDF_StreamContentParser::Handle_SetTextRenderMode() {
+   TextRenderingMode mode;
+-  if (SetTextRenderingModeFromInt(GetInteger(0), &mode)) {
++  if (SetTextRenderingModeFromInt(GetInteger(0).value_or(0), &mode)) {
+     cur_states_->mutable_text_state().SetTextMode(mode);
+   }
+ }
+diff --git a/core/fpdfapi/page/cpdf_streamcontentparser.h b/core/fpdfapi/page/cpdf_streamcontentparser.h
+index 91f457536..20476d3d8 100644
+--- a/core/fpdfapi/page/cpdf_streamcontentparser.h
++++ b/core/fpdfapi/page/cpdf_streamcontentparser.h
+@@ -9,6 +9,7 @@
+ 
+ #include <array>
+ #include <memory>
++#include <optional>
+ #include <stack>
+ #include <variant>
+ #include <vector>
+@@ -89,9 +90,7 @@ class CPDF_StreamContentParser {
+   // Calls GetNumber() |count| times and returns the values in reverse order.
+   // e.g. for |count| = 3, returns [GetNumber(2), GetNumber(1), GetNumber(0)].
+   std::vector<float> GetNumbers(size_t count) const;
+-  int GetInteger(uint32_t index) const {
+-    return static_cast<int>(GetNumber(index));
+-  }
++  std::optional<int> GetInteger(uint32_t index) const;
+   // Makes a point from {GetNumber(index + 1), GetNumber(index)}.
+   CFX_PointF GetPoint(uint32_t index) const;
+   // Makes a matrix from {GetNumber(5), ..., GetNumber(0)}.
+diff --git a/core/fxcrt/fx_memory_pa.cpp b/core/fxcrt/fx_memory_pa.cpp
+index 2326c0ff9..52dccbd23 100644
+--- a/core/fxcrt/fx_memory_pa.cpp
++++ b/core/fxcrt/fx_memory_pa.cpp
+@@ -106,17 +106,7 @@ void* StringAlloc(size_t num_members, size_t member_size) {
+ }
+ 
+ void StringDealloc(void* ptr) {
+-  // TODO(palmer): Removing this check exposes crashes when PDFium callers
+-  // attempt to free |nullptr|. Although libc's |free| allows freeing |NULL|, no
+-  // other Partition Alloc callers need this tolerant behavior. Additionally,
+-  // checking for |nullptr| adds a branch to |PartitionFree|, and it's nice to
+-  // not have to have that.
+-  //
+-  // So this check is hiding (what I consider to be) bugs, and we should try to
+-  // fix them. https://bugs.chromium.org/p/pdfium/issues/detail?id=690
+-  if (ptr) {
+-    GetStringPartitionAllocator().root()->Free(ptr);
+-  }
++  GetStringPartitionAllocator().root()->Free(ptr);
+ }
+ 
+ }  // namespace pdfium::internal
+diff --git a/fpdfsdk/formfiller/cffl_checkbox.cpp b/fpdfsdk/formfiller/cffl_checkbox.cpp
+index 03453a33e..0fd3857ad 100644
+--- a/fpdfsdk/formfiller/cffl_checkbox.cpp
++++ b/fpdfsdk/formfiller/cffl_checkbox.cpp
+@@ -51,15 +51,10 @@ bool CFFL_CheckBox::OnChar(CPDFSDK_Widget* pWidget,
+       CPDFSDK_PageView* pPageView = pWidget->GetPageView();
+       DCHECK(pPageView);
+ 
+-      ObservedPtr<CPDFSDK_Widget> pObserved(widget_);
+-      if (form_filler_->OnButtonUp(pObserved, pPageView, nFlags)) {
+-        if (!pObserved) {
+-          widget_ = nullptr;
+-        }
+-        return true;
+-      }
+-      if (!pObserved) {
+-        widget_ = nullptr;
++      // If OnButtonUp() destroys `observed` (the owning CPDFSDK_Widget), its
++      // destructor has already destroyed `this`.
++      ObservedPtr<CPDFSDK_Widget> observed(widget_);
++      if (form_filler_->OnButtonUp(observed, pPageView, nFlags) || !observed) {
+         return true;
+       }
+ 
+diff --git a/fxjs/xfa/cfxjse_formcalc_context.cpp b/fxjs/xfa/cfxjse_formcalc_context.cpp
+index cb7a6dc2c..b96b8bce3 100644
+--- a/fxjs/xfa/cfxjse_formcalc_context.cpp
++++ b/fxjs/xfa/cfxjse_formcalc_context.cpp
+@@ -5286,7 +5286,7 @@ bool CFXJSE_FormCalcContext::IsIsoDateFormat(ByteStringView bsData,
+ 
+   int32_t iStyle = pData[4] == '-' ? 1 : 0;
+   size_t iPosOff = iStyle == 0 ? 4 : 5;
+-  if (!FXSYS_IsDecimalDigit(pData[iPosOff]) ||
++  if (iPosOff + 1 >= pData.size() || !FXSYS_IsDecimalDigit(pData[iPosOff]) ||
+       !FXSYS_IsDecimalDigit(pData[iPosOff + 1])) {
+     return false;
+   }
+@@ -5310,7 +5310,7 @@ bool CFXJSE_FormCalcContext::IsIsoDateFormat(ByteStringView bsData,
+       return true;
+     }
+   }
+-  if (!FXSYS_IsDecimalDigit(pData[iPosOff]) ||
++  if (iPosOff + 1 >= pData.size() || !FXSYS_IsDecimalDigit(pData[iPosOff]) ||
+       !FXSYS_IsDecimalDigit(pData[iPosOff + 1])) {
+     return false;
+   }
+diff --git a/fxjs/xfa/cfxjse_formcalc_context_unittest.cpp b/fxjs/xfa/cfxjse_formcalc_context_unittest.cpp
+index 3efeb20c1..95ab4b5cb 100644
+--- a/fxjs/xfa/cfxjse_formcalc_context_unittest.cpp
++++ b/fxjs/xfa/cfxjse_formcalc_context_unittest.cpp
+@@ -85,6 +85,31 @@ TEST(FormCalcContextTest, IsIsoDateFormat) {
+   EXPECT_EQ(2023, year);
+   EXPECT_EQ(6, month);
+   EXPECT_EQ(24, day);
++
++  EXPECT_TRUE(
++      CFXJSE_FormCalcContext::IsIsoDateFormat("2020", &year, &month, &day));
++  EXPECT_EQ(2020, year);
++  EXPECT_EQ(1, month);
++  EXPECT_EQ(1, day);
++
++  EXPECT_TRUE(
++      CFXJSE_FormCalcContext::IsIsoDateFormat("202006", &year, &month, &day));
++  EXPECT_EQ(6, month);
++
++  EXPECT_TRUE(
++      CFXJSE_FormCalcContext::IsIsoDateFormat("20200615", &year, &month, &day));
++  EXPECT_EQ(15, day);
++
++  // Malformed short inputs must be rejected gracefully, without indexing past
++  // the input span (crbug.com/539204640).
++  EXPECT_FALSE(
++      CFXJSE_FormCalcContext::IsIsoDateFormat("20205", &year, &month, &day));
++  EXPECT_FALSE(
++      CFXJSE_FormCalcContext::IsIsoDateFormat("2020-", &year, &month, &day));
++  EXPECT_FALSE(
++      CFXJSE_FormCalcContext::IsIsoDateFormat("2020061", &year, &month, &day));
++  EXPECT_FALSE(
++      CFXJSE_FormCalcContext::IsIsoDateFormat("2020-06-", &year, &month, &day));
+ }
+ 
+ TEST(FormCalcContextTest, IsIsoTimeFormat) {
+diff --git a/third_party/lcms/0036-cubesize-overflow.patch b/third_party/lcms/0036-cubesize-overflow.patch
+new file mode 100644
+index 000000000..354033027
+--- /dev/null
++++ b/third_party/lcms/0036-cubesize-overflow.patch
+@@ -0,0 +1,28 @@
++commit e0641b1828d0a1af5ecb1b11fe22f24fceefd4bc
++Author: Marti Maria <marti.maria@littlecms.com>
++Date:   Thu Mar 12 22:57:35 2026 +0100
++
++    check for overflow
++    
++    Thanks to Guanni Qu for detecting & reporting the issue
++
++diff --git a/src/cmslut.c b/src/cmslut.c
++index a60baf9..65c935f 100644
++--- a/src/cmslut.c
+++++ b/src/cmslut.c
++@@ -468,12 +468,12 @@ cmsUInt32Number CubeSize(const cmsUInt32Number Dims[], cmsUInt32Number b)
++     for (rv = 1; b > 0; b--) {
++ 
++         dim = Dims[b-1];
++-        if (dim <= 1) return 0;  // Error
++-
++-        rv *= dim;
+++        if (dim <= 1) return 0;  
++ 
++         // Check for overflow
++         if (rv > UINT_MAX / dim) return 0;
+++
+++        rv *= dim;
++     }
++ 
++     // Again, prevent overflow
+diff --git a/third_party/lcms/0037-theoretical-overflow.patch b/third_party/lcms/0037-theoretical-overflow.patch
+new file mode 100644
+index 000000000..9c19906b2
+--- /dev/null
++++ b/third_party/lcms/0037-theoretical-overflow.patch
+@@ -0,0 +1,190 @@
++diff --git a/third_party/lcms/src/cmscgats.c b/third_party/lcms/src/cmscgats.c
++index 71692641a..0fe896122 100644
++--- a/third_party/lcms/src/cmscgats.c
+++++ b/third_party/lcms/src/cmscgats.c
++@@ -2456,6 +2456,9 @@ cmsHANDLE  CMSEXPORT cmsIT8LoadFromMem(cmsContext ContextID, const void *Ptr, cm
++     _cmsAssert(Ptr != NULL);
++     _cmsAssert(len != 0);
++ 
+++    // Check for later overflow
+++    if (len + 1 == 0) return NULL;
+++
++     type = IsMyBlock((const cmsUInt8Number*)Ptr, len);
++     if (type == 0) return NULL;
++ 
++@@ -2463,6 +2466,7 @@ cmsHANDLE  CMSEXPORT cmsIT8LoadFromMem(cmsContext ContextID, const void *Ptr, cm
++     if (!hIT8) return NULL;
++ 
++     it8 = (cmsIT8*) hIT8;
+++
++     it8 ->MemoryBlock = (char*) _cmsMalloc(ContextID, len + 1);
++     if (it8->MemoryBlock == NULL)
++     {
++diff --git a/third_party/lcms/src/cmslut.c b/third_party/lcms/src/cmslut.c
++index 11361de45..03bb01cb9 100644
++--- a/third_party/lcms/src/cmslut.c
+++++ b/third_party/lcms/src/cmslut.c
++@@ -547,7 +547,7 @@ cmsStage* CMSEXPORT cmsStageAllocCLut16bitGranular(cmsContext ContextID,
++                                          cmsUInt32Number outputChan,
++                                          const cmsUInt16Number* Table)
++ {
++-    cmsUInt32Number i, n;
+++    cmsUInt32Number i, n, cs;
++     _cmsStageCLutData* NewElem;
++     cmsStage* NewMPE;
++ 
++@@ -571,14 +571,17 @@ cmsStage* CMSEXPORT cmsStageAllocCLut16bitGranular(cmsContext ContextID,
++ 
++     NewMPE ->Data  = (void*) NewElem;
++ 
++-    NewElem -> nEntries = n = outputChan * CubeSize(clutPoints, inputChan);
++-    NewElem -> HasFloatValues = FALSE;
+++    cs = CubeSize(clutPoints, inputChan);
+++    n = outputChan * cs;
++ 
++-    if (n == 0) {
+++    if (n == 0 || n / outputChan != cs)  // Check for overflow.
+++    {
++         cmsStageFree(NewMPE);
++         return NULL;
++     }
++ 
+++    NewElem -> nEntries = n;
+++    NewElem -> HasFloatValues = FALSE;
++ 
++     NewElem ->Tab.T  = (cmsUInt16Number*) _cmsCalloc(ContextID, n, sizeof(cmsUInt16Number));
++     if (NewElem ->Tab.T == NULL) {
++@@ -638,7 +641,7 @@ cmsStage* CMSEXPORT cmsStageAllocCLutFloat(cmsContext ContextID,
++ 
++ cmsStage* CMSEXPORT cmsStageAllocCLutFloatGranular(cmsContext ContextID, const cmsUInt32Number clutPoints[], cmsUInt32Number inputChan, cmsUInt32Number outputChan, const cmsFloat32Number* Table)
++ {
++-    cmsUInt32Number i, n;
+++    cmsUInt32Number i, n, cs;
++     _cmsStageCLutData* NewElem;
++     cmsStage* NewMPE;
++ 
++@@ -662,15 +665,18 @@ cmsStage* CMSEXPORT cmsStageAllocCLutFloatGranular(cmsContext ContextID, const c
++ 
++     NewMPE ->Data  = (void*) NewElem;
++ 
++-    // There is a potential integer overflow on conputing n and nEntries.
++-    NewElem -> nEntries = n = outputChan * CubeSize(clutPoints, inputChan);
++-    NewElem -> HasFloatValues = TRUE;
+++    cs = CubeSize(clutPoints, inputChan);
+++    n = outputChan * cs;
++ 
++-    if (n == 0) {
+++    if (n == 0 || n / outputChan != cs)  // Check for overflow.
+++    {
++         cmsStageFree(NewMPE);
++         return NULL;
++     }
++ 
+++    NewElem -> nEntries = n;
+++    NewElem -> HasFloatValues = TRUE;
+++
++     NewElem ->Tab.TFloat  = (cmsFloat32Number*) _cmsCalloc(ContextID, n, sizeof(cmsFloat32Number));
++     if (NewElem ->Tab.TFloat == NULL) {
++         cmsStageFree(NewMPE);
++diff --git a/third_party/lcms/src/cmsnamed.c b/third_party/lcms/src/cmsnamed.c
++index 54d1abf91..50cc6b349 100644
++--- a/third_party/lcms/src/cmsnamed.c
+++++ b/third_party/lcms/src/cmsnamed.c
++@@ -92,7 +92,7 @@ cmsBool GrowMLUpool(cmsMLU* mlu)
++ static
++ cmsBool GrowMLUtable(cmsMLU* mlu)
++ {
++-    cmsUInt32Number AllocatedEntries;
+++    cmsUInt32Number AllocatedEntries, AllocatedBytes;
++     _cmsMLUentry *NewPtr;
++ 
++     // Sanity check
++@@ -103,8 +103,13 @@ cmsBool GrowMLUtable(cmsMLU* mlu)
++     // Check for overflow
++     if (AllocatedEntries / 2 != mlu ->AllocatedEntries) return FALSE;
++ 
+++    AllocatedBytes = AllocatedEntries * sizeof(_cmsMLUentry);
+++
+++    // Check for overflow
+++    if (AllocatedBytes / sizeof(_cmsMLUentry) != AllocatedEntries) return FALSE;
+++
++     // Reallocate the memory
++-    NewPtr = (_cmsMLUentry*)_cmsRealloc(mlu ->ContextID, mlu ->Entries, AllocatedEntries*sizeof(_cmsMLUentry));
+++    NewPtr = (_cmsMLUentry*)_cmsRealloc(mlu ->ContextID, mlu ->Entries, AllocatedBytes);
++     if (NewPtr == NULL) return FALSE;
++ 
++     mlu ->Entries          = NewPtr;
++diff --git a/third_party/lcms/src/cmstypes.c b/third_party/lcms/src/cmstypes.c
++index ec1909f8d..074511296 100644
++--- a/third_party/lcms/src/cmstypes.c
+++++ b/third_party/lcms/src/cmstypes.c
++@@ -1488,10 +1488,10 @@ void *Type_MLU_Read(struct _cms_typehandler_struct* self, cmsIOHANDLER* io, cmsU
++     cmsMLU* mlu;
++     cmsUInt32Number Count, RecLen, NumOfWchar;
++     cmsUInt32Number SizeOfHeader;
++-    cmsUInt32Number  Len, Offset;
+++    cmsUInt32Number  Len, Offset, WideLen, WideSizeOfTag;
++     cmsUInt32Number  i;
++     wchar_t*         Block;
++-    cmsUInt32Number  BeginOfThisString, EndOfThisString, LargestPosition;
+++    cmsUInt32Number  BeginOfThisString, EndOfThisString, LargestPosition, WideBeginOfThisString;
++ 
++     *nItems = 0;
++     if (!_cmsReadUInt32Number(io, &Count)) return NULL;
++@@ -1533,9 +1533,16 @@ void *Type_MLU_Read(struct _cms_typehandler_struct* self, cmsIOHANDLER* io, cmsU
++         // True begin of the string
++         BeginOfThisString = Offset - SizeOfHeader - 8;
++ 
++-        // Adjust to wchar_t elements
++-        mlu ->Entries[i].Len = (Len * sizeof(wchar_t)) / sizeof(cmsUInt16Number);
++-        mlu ->Entries[i].StrW = (BeginOfThisString * sizeof(wchar_t)) / sizeof(cmsUInt16Number);
+++        // Adjust to wchar_t elements and check for overflow
+++        WideBeginOfThisString = BeginOfThisString * sizeof(wchar_t);
+++        if (WideBeginOfThisString /  sizeof(wchar_t) != BeginOfThisString) goto Error;
+++
+++        // Adjust to wchar_t elements and check for overflow
+++        WideLen = Len * sizeof(wchar_t);
+++        if (WideLen / sizeof(wchar_t) != Len) goto Error;
+++
+++        mlu ->Entries[i].Len = WideLen / sizeof(cmsUInt16Number);
+++        mlu ->Entries[i].StrW = WideBeginOfThisString / sizeof(cmsUInt16Number);
++ 
++         // To guess maximum size, add offset + len
++         EndOfThisString = BeginOfThisString + Len;
++@@ -1544,7 +1551,12 @@ void *Type_MLU_Read(struct _cms_typehandler_struct* self, cmsIOHANDLER* io, cmsU
++     }
++ 
++     // Now read the remaining of tag and fill all strings. Subtract the directory
++-    SizeOfTag   = (LargestPosition * sizeof(wchar_t)) / sizeof(cmsUInt16Number);
+++    WideSizeOfTag = LargestPosition * sizeof(wchar_t);
+++
+++    // Check for overflow
+++    if (WideSizeOfTag / sizeof(wchar_t) != LargestPosition) goto Error;
+++
+++    SizeOfTag = WideSizeOfTag / sizeof(cmsUInt16Number);
++     if (SizeOfTag == 0)
++     {
++         Block = NULL;
++@@ -5128,7 +5140,7 @@ static
++ cmsBool ReadOneWChar(cmsIOHANDLER* io,  _cmsDICelem* e, cmsUInt32Number i, wchar_t ** wcstr)
++ {
++ 
++-    cmsUInt32Number nChars;
+++    cmsUInt32Number nChars, nBytes;
++ 
++       // Special case for undefined strings (see ICC Votable
++       // Proposal Submission, Dictionary Type and Metadata TAG Definition)
++@@ -5141,9 +5153,12 @@ cmsBool ReadOneWChar(cmsIOHANDLER* io,  _cmsDICelem* e, cmsUInt32Number i, wchar
++       if (!io -> Seek(io, e -> Offsets[i])) return FALSE;
++ 
++       nChars = e ->Sizes[i] / sizeof(cmsUInt16Number);
+++      nBytes = (nChars + 1) * sizeof(wchar_t);
++ 
+++      // Check for overflow
+++      if (nBytes / sizeof(wchar_t) != nChars + 1) return FALSE;
++ 
++-      *wcstr = (wchar_t*) _cmsMallocZero(e ->ContextID, (nChars + 1) * sizeof(wchar_t));
+++      *wcstr = (wchar_t*) _cmsMallocZero(e ->ContextID, nBytes);
++       if (*wcstr == NULL) return FALSE;
++ 
++       if (!_cmsReadWCharArray(io, nChars, *wcstr)) {
+diff --git a/third_party/lcms/README.pdfium b/third_party/lcms/README.pdfium
+index 2a279325d..695aecdea 100644
+--- a/third_party/lcms/README.pdfium
++++ b/third_party/lcms/README.pdfium
+@@ -25,3 +25,5 @@ Local Modifications:
+ 0033-opt-integer-overflow.patch: Protect against integer overflow.
+ 0034-dead-code.patch: Remove dead code.
+ 0035-func-ptr-mixup.patch: Prevent mixing up function pointer types.
++0036-cubesize-overflow.patch: Check for overflow in CubeSize().
++0037-theoretical-overflow.patch: Fix additional size overflows.
+diff --git a/third_party/lcms/src/cmscgats.c b/third_party/lcms/src/cmscgats.c
+index 71692641a..0fe896122 100644
+--- a/third_party/lcms/src/cmscgats.c
++++ b/third_party/lcms/src/cmscgats.c
+@@ -2456,6 +2456,9 @@ cmsHANDLE  CMSEXPORT cmsIT8LoadFromMem(cmsContext ContextID, const void *Ptr, cm
+     _cmsAssert(Ptr != NULL);
+     _cmsAssert(len != 0);
+ 
++    // Check for later overflow
++    if (len + 1 == 0) return NULL;
++
+     type = IsMyBlock((const cmsUInt8Number*)Ptr, len);
+     if (type == 0) return NULL;
+ 
+@@ -2463,6 +2466,7 @@ cmsHANDLE  CMSEXPORT cmsIT8LoadFromMem(cmsContext ContextID, const void *Ptr, cm
+     if (!hIT8) return NULL;
+ 
+     it8 = (cmsIT8*) hIT8;
++
+     it8 ->MemoryBlock = (char*) _cmsMalloc(ContextID, len + 1);
+     if (it8->MemoryBlock == NULL)
+     {
+diff --git a/third_party/lcms/src/cmslut.c b/third_party/lcms/src/cmslut.c
+index 22a16b327..03bb01cb9 100644
+--- a/third_party/lcms/src/cmslut.c
++++ b/third_party/lcms/src/cmslut.c
+@@ -467,12 +467,12 @@ cmsUInt32Number CubeSize(const cmsUInt32Number Dims[], cmsUInt32Number b)
+     for (rv = 1; b > 0; b--) {
+ 
+         dim = Dims[b-1];
+-        if (dim <= 1) return 0;  // Error
+-
+-        rv *= dim;
++        if (dim <= 1) return 0;  
+ 
+         // Check for overflow
+         if (rv > UINT_MAX / dim) return 0;
++
++        rv *= dim;
+     }
+ 
+     return rv;
+@@ -547,7 +547,7 @@ cmsStage* CMSEXPORT cmsStageAllocCLut16bitGranular(cmsContext ContextID,
+                                          cmsUInt32Number outputChan,
+                                          const cmsUInt16Number* Table)
+ {
+-    cmsUInt32Number i, n;
++    cmsUInt32Number i, n, cs;
+     _cmsStageCLutData* NewElem;
+     cmsStage* NewMPE;
+ 
+@@ -571,14 +571,17 @@ cmsStage* CMSEXPORT cmsStageAllocCLut16bitGranular(cmsContext ContextID,
+ 
+     NewMPE ->Data  = (void*) NewElem;
+ 
+-    NewElem -> nEntries = n = outputChan * CubeSize(clutPoints, inputChan);
+-    NewElem -> HasFloatValues = FALSE;
++    cs = CubeSize(clutPoints, inputChan);
++    n = outputChan * cs;
+ 
+-    if (n == 0) {
++    if (n == 0 || n / outputChan != cs)  // Check for overflow.
++    {
+         cmsStageFree(NewMPE);
+         return NULL;
+     }
+ 
++    NewElem -> nEntries = n;
++    NewElem -> HasFloatValues = FALSE;
+ 
+     NewElem ->Tab.T  = (cmsUInt16Number*) _cmsCalloc(ContextID, n, sizeof(cmsUInt16Number));
+     if (NewElem ->Tab.T == NULL) {
+@@ -638,7 +641,7 @@ cmsStage* CMSEXPORT cmsStageAllocCLutFloat(cmsContext ContextID,
+ 
+ cmsStage* CMSEXPORT cmsStageAllocCLutFloatGranular(cmsContext ContextID, const cmsUInt32Number clutPoints[], cmsUInt32Number inputChan, cmsUInt32Number outputChan, const cmsFloat32Number* Table)
+ {
+-    cmsUInt32Number i, n;
++    cmsUInt32Number i, n, cs;
+     _cmsStageCLutData* NewElem;
+     cmsStage* NewMPE;
+ 
+@@ -662,15 +665,18 @@ cmsStage* CMSEXPORT cmsStageAllocCLutFloatGranular(cmsContext ContextID, const c
+ 
+     NewMPE ->Data  = (void*) NewElem;
+ 
+-    // There is a potential integer overflow on conputing n and nEntries.
+-    NewElem -> nEntries = n = outputChan * CubeSize(clutPoints, inputChan);
+-    NewElem -> HasFloatValues = TRUE;
++    cs = CubeSize(clutPoints, inputChan);
++    n = outputChan * cs;
+ 
+-    if (n == 0) {
++    if (n == 0 || n / outputChan != cs)  // Check for overflow.
++    {
+         cmsStageFree(NewMPE);
+         return NULL;
+     }
+ 
++    NewElem -> nEntries = n;
++    NewElem -> HasFloatValues = TRUE;
++
+     NewElem ->Tab.TFloat  = (cmsFloat32Number*) _cmsCalloc(ContextID, n, sizeof(cmsFloat32Number));
+     if (NewElem ->Tab.TFloat == NULL) {
+         cmsStageFree(NewMPE);
+diff --git a/third_party/lcms/src/cmsnamed.c b/third_party/lcms/src/cmsnamed.c
+index 54d1abf91..50cc6b349 100644
+--- a/third_party/lcms/src/cmsnamed.c
++++ b/third_party/lcms/src/cmsnamed.c
+@@ -92,7 +92,7 @@ cmsBool GrowMLUpool(cmsMLU* mlu)
+ static
+ cmsBool GrowMLUtable(cmsMLU* mlu)
+ {
+-    cmsUInt32Number AllocatedEntries;
++    cmsUInt32Number AllocatedEntries, AllocatedBytes;
+     _cmsMLUentry *NewPtr;
+ 
+     // Sanity check
+@@ -103,8 +103,13 @@ cmsBool GrowMLUtable(cmsMLU* mlu)
+     // Check for overflow
+     if (AllocatedEntries / 2 != mlu ->AllocatedEntries) return FALSE;
+ 
++    AllocatedBytes = AllocatedEntries * sizeof(_cmsMLUentry);
++
++    // Check for overflow
++    if (AllocatedBytes / sizeof(_cmsMLUentry) != AllocatedEntries) return FALSE;
++
+     // Reallocate the memory
+-    NewPtr = (_cmsMLUentry*)_cmsRealloc(mlu ->ContextID, mlu ->Entries, AllocatedEntries*sizeof(_cmsMLUentry));
++    NewPtr = (_cmsMLUentry*)_cmsRealloc(mlu ->ContextID, mlu ->Entries, AllocatedBytes);
+     if (NewPtr == NULL) return FALSE;
+ 
+     mlu ->Entries          = NewPtr;
+diff --git a/third_party/lcms/src/cmstypes.c b/third_party/lcms/src/cmstypes.c
+index ec1909f8d..074511296 100644
+--- a/third_party/lcms/src/cmstypes.c
++++ b/third_party/lcms/src/cmstypes.c
+@@ -1488,10 +1488,10 @@ void *Type_MLU_Read(struct _cms_typehandler_struct* self, cmsIOHANDLER* io, cmsU
+     cmsMLU* mlu;
+     cmsUInt32Number Count, RecLen, NumOfWchar;
+     cmsUInt32Number SizeOfHeader;
+-    cmsUInt32Number  Len, Offset;
++    cmsUInt32Number  Len, Offset, WideLen, WideSizeOfTag;
+     cmsUInt32Number  i;
+     wchar_t*         Block;
+-    cmsUInt32Number  BeginOfThisString, EndOfThisString, LargestPosition;
++    cmsUInt32Number  BeginOfThisString, EndOfThisString, LargestPosition, WideBeginOfThisString;
+ 
+     *nItems = 0;
+     if (!_cmsReadUInt32Number(io, &Count)) return NULL;
+@@ -1533,9 +1533,16 @@ void *Type_MLU_Read(struct _cms_typehandler_struct* self, cmsIOHANDLER* io, cmsU
+         // True begin of the string
+         BeginOfThisString = Offset - SizeOfHeader - 8;
+ 
+-        // Adjust to wchar_t elements
+-        mlu ->Entries[i].Len = (Len * sizeof(wchar_t)) / sizeof(cmsUInt16Number);
+-        mlu ->Entries[i].StrW = (BeginOfThisString * sizeof(wchar_t)) / sizeof(cmsUInt16Number);
++        // Adjust to wchar_t elements and check for overflow
++        WideBeginOfThisString = BeginOfThisString * sizeof(wchar_t);
++        if (WideBeginOfThisString /  sizeof(wchar_t) != BeginOfThisString) goto Error;
++
++        // Adjust to wchar_t elements and check for overflow
++        WideLen = Len * sizeof(wchar_t);
++        if (WideLen / sizeof(wchar_t) != Len) goto Error;
++
++        mlu ->Entries[i].Len = WideLen / sizeof(cmsUInt16Number);
++        mlu ->Entries[i].StrW = WideBeginOfThisString / sizeof(cmsUInt16Number);
+ 
+         // To guess maximum size, add offset + len
+         EndOfThisString = BeginOfThisString + Len;
+@@ -1544,7 +1551,12 @@ void *Type_MLU_Read(struct _cms_typehandler_struct* self, cmsIOHANDLER* io, cmsU
+     }
+ 
+     // Now read the remaining of tag and fill all strings. Subtract the directory
+-    SizeOfTag   = (LargestPosition * sizeof(wchar_t)) / sizeof(cmsUInt16Number);
++    WideSizeOfTag = LargestPosition * sizeof(wchar_t);
++
++    // Check for overflow
++    if (WideSizeOfTag / sizeof(wchar_t) != LargestPosition) goto Error;
++
++    SizeOfTag = WideSizeOfTag / sizeof(cmsUInt16Number);
+     if (SizeOfTag == 0)
+     {
+         Block = NULL;
+@@ -5128,7 +5140,7 @@ static
+ cmsBool ReadOneWChar(cmsIOHANDLER* io,  _cmsDICelem* e, cmsUInt32Number i, wchar_t ** wcstr)
+ {
+ 
+-    cmsUInt32Number nChars;
++    cmsUInt32Number nChars, nBytes;
+ 
+       // Special case for undefined strings (see ICC Votable
+       // Proposal Submission, Dictionary Type and Metadata TAG Definition)
+@@ -5141,9 +5153,12 @@ cmsBool ReadOneWChar(cmsIOHANDLER* io,  _cmsDICelem* e, cmsUInt32Number i, wchar
+       if (!io -> Seek(io, e -> Offsets[i])) return FALSE;
+ 
+       nChars = e ->Sizes[i] / sizeof(cmsUInt16Number);
++      nBytes = (nChars + 1) * sizeof(wchar_t);
+ 
++      // Check for overflow
++      if (nBytes / sizeof(wchar_t) != nChars + 1) return FALSE;
+ 
+-      *wcstr = (wchar_t*) _cmsMallocZero(e ->ContextID, (nChars + 1) * sizeof(wchar_t));
++      *wcstr = (wchar_t*) _cmsMallocZero(e ->ContextID, nBytes);
+       if (*wcstr == NULL) return FALSE;
+ 
+       if (!_cmsReadWCharArray(io, nChars, *wcstr)) {
+diff --git a/third_party/libopenjpeg/0022-jp2_apply_pclr_overflow.patch b/third_party/libopenjpeg/0022-jp2_apply_pclr_overflow.patch
+index d978f0612..7b529a954 100644
+--- a/third_party/libopenjpeg/0022-jp2_apply_pclr_overflow.patch
++++ b/third_party/libopenjpeg/0022-jp2_apply_pclr_overflow.patch
+@@ -28,7 +28,7 @@ index 38715b80f..dcaf3872c 100644
+ +        /* Prevent null pointer access */
+ +        if (!src || !dst) {
+ +          for (j = 0; j < nr_channels; ++j) {
+-+            opj_free(new_comps[j].data);
+++            opj_image_data_free(new_comps[j].data);
+ +          }
+ +          opj_free(new_comps);
+ +          new_comps = NULL;
+diff --git a/third_party/libopenjpeg/0035-opj_image_data_free.patch b/third_party/libopenjpeg/0035-opj_image_data_free.patch
+deleted file mode 100644
+index 436b31d6b..000000000
+--- a/third_party/libopenjpeg/0035-opj_image_data_free.patch
++++ /dev/null
+@@ -1,13 +0,0 @@
+-diff --git a/third_party/libopenjpeg/jp2.c b/third_party/libopenjpeg/jp2.c
+-index dcaf3872c..02f3d04c7 100644
+---- a/third_party/libopenjpeg/jp2.c
+-+++ b/third_party/libopenjpeg/jp2.c
+-@@ -1122,7 +1122,7 @@ static OPJ_BOOL opj_jp2_apply_pclr(opj_image_t *image,
+-         /* Prevent null pointer access */
+-         if (!src || !dst) {
+-           for (j = 0; j < nr_channels; ++j) {
+--            opj_free(new_comps[j].data);
+-+            opj_image_data_free(new_comps[j].data);
+-           }
+-           opj_free(new_comps);
+-           new_comps = NULL;
+diff --git a/third_party/libopenjpeg/README.pdfium b/third_party/libopenjpeg/README.pdfium
+index 905c64001..9ab4ee7d6 100644
+--- a/third_party/libopenjpeg/README.pdfium
++++ b/third_party/libopenjpeg/README.pdfium
+@@ -29,11 +29,10 @@ Local Modifications:
+ 0023-opj_j2k_read_mct_records.patch: Fix opj_j2k_read to prevent heap-use-after-free.
+ 0025-opj_j2k_add_mct_null_data.patch: Check m_data != null before trying to read from it.
+ 0034-opj_malloc.patch: PDFium changes in opj_malloc.
+-0035-opj_image_data_free.patch: Use the right free function in opj_jp2_apply_pclr.
+ 0039-opj_mqc_renorme.patch: Remove unused opj_mqc_renorme().
+ 0041-remove_opj_clock.patch: Remove unused opj_clock.h include.
+ 0046-func-ptr-mixup.patch: Prevent mixing up function pointer types.
+-0047-opj_j2k_read_sod.patch: Fix out of bounds read.
++0047-opj_j2k_read_sod.patch: Cherry-pick https://github.com/uclouvain/openjpeg/pull/1621
+ 
+ Note:
+ 
+diff --git a/third_party/libtiff/0034-tiff-jpeg-overflow.patch b/third_party/libtiff/0034-tiff-jpeg-overflow.patch
+new file mode 100644
+index 000000000..f03fa9460
+--- /dev/null
++++ b/third_party/libtiff/0034-tiff-jpeg-overflow.patch
+@@ -0,0 +1,25 @@
++commit 0f726d9477a11e15eb67ca349c03907f6cfb82a9
++Author: Mikhail Khachaiants <mkhachaiants@gmail.com>
++Date:   Mon Dec 1 22:26:34 2025 +0200
++
++    tif_jpeg: reject mismatched JPEG data precision to avoid write overflow
++    
++    Ensure TIFF BitsPerSample matches both BITS_IN_JSAMPLE and the JPEG
++    header data_precision for JPEG-compressed images. This prevents
++    under-sized scanline buffers that can lead to write buffer overflows
++    in jdcolor.c/null_convert when decoding malformed inputs.
++
++diff --git a/libtiff/tif_jpeg.c b/libtiff/tif_jpeg.c
++index aba5f99b..4d6370b5 100644
++--- a/libtiff/tif_jpeg.c
+++++ b/libtiff/tif_jpeg.c
++@@ -1282,7 +1282,8 @@ int TIFFJPEGIsFullStripRequired(TIFF *tif)
++     sp->cinfo.d.data_precision = td->td_bitspersample;
++     sp->cinfo.d.bits_in_jsample = td->td_bitspersample;
++ #else
++-    if (sp->cinfo.d.data_precision != td->td_bitspersample)
+++    if (td->td_bitspersample != BITS_IN_JSAMPLE ||
+++        sp->cinfo.d.data_precision != td->td_bitspersample)
++     {
++         TIFFErrorExtR(tif, module, "Improper JPEG data precision");
++         return (0);
+diff --git a/third_party/libtiff/0035-ycbcr-tile-overflow.patch b/third_party/libtiff/0035-ycbcr-tile-overflow.patch
+new file mode 100644
+index 000000000..7f43f9a28
+--- /dev/null
++++ b/third_party/libtiff/0035-ycbcr-tile-overflow.patch
+@@ -0,0 +1,48 @@
++commit 782a11d6b5b61c6dc21e714950a4af5bf89f023c
++Author: Even Rouault <even.rouault@spatialys.com>
++Date:   Sun Feb 22 23:32:47 2026 +0100
++
++    TIFFReadRGBAImage(): prevent integer overflow and later heap overflow on images with huge width in YCbCr tile decoding functions
++    
++    Fixes https://gitlab.com/libtiff/libtiff/-/issues/787
++
++diff --git a/libtiff/tif_getimage.c b/libtiff/tif_getimage.c
++index 4543ddda..fa82d091 100644
++--- a/libtiff/tif_getimage.c
+++++ b/libtiff/tif_getimage.c
++@@ -2224,7 +2224,7 @@ DECLAREContigPutFunc(putcontig8bitYCbCr44tile)
++     uint32_t *cp1 = cp + w + toskew;
++     uint32_t *cp2 = cp1 + w + toskew;
++     uint32_t *cp3 = cp2 + w + toskew;
++-    int32_t incr = 3 * w + 4 * toskew;
+++    const tmsize_t incr = 3 * (tmsize_t)w + 4 * (tmsize_t)toskew;
++ 
++     (void)y;
++     /* adjust fromskew */
++@@ -2364,7 +2364,7 @@ DECLAREContigPutFunc(putcontig8bitYCbCr44tile)
++ DECLAREContigPutFunc(putcontig8bitYCbCr42tile)
++ {
++     uint32_t *cp1 = cp + w + toskew;
++-    int32_t incr = 2 * toskew + w;
+++    const tmsize_t incr = 2 * (tmsize_t)toskew + w;
++ 
++     (void)y;
++     fromskew = (fromskew / 4) * (4 * 2 + 2);
++@@ -2522,7 +2522,7 @@ DECLAREContigPutFunc(putcontig8bitYCbCr41tile)
++ DECLAREContigPutFunc(putcontig8bitYCbCr22tile)
++ {
++     uint32_t *cp2;
++-    int32_t incr = 2 * toskew + w;
+++    const tmsize_t incr = 2 * (tmsize_t)toskew + w;
++     (void)y;
++     fromskew = (fromskew / 2) * (2 * 2 + 2);
++     cp2 = cp + w + toskew;
++@@ -2625,7 +2625,7 @@ DECLAREContigPutFunc(putcontig8bitYCbCr21tile)
++ DECLAREContigPutFunc(putcontig8bitYCbCr12tile)
++ {
++     uint32_t *cp2;
++-    int32_t incr = 2 * toskew + w;
+++    const tmsize_t incr = 2 * (tmsize_t)toskew + w;
++     (void)y;
++     fromskew = (fromskew / 1) * (1 * 2 + 2);
++     cp2 = cp + w + toskew;
+diff --git a/third_party/libtiff/README.pdfium b/third_party/libtiff/README.pdfium
+index 9953e7678..b2756490f 100644
+--- a/third_party/libtiff/README.pdfium
++++ b/third_party/libtiff/README.pdfium
+@@ -19,3 +19,5 @@ Local Modifications:
+ 0028-nstrips-OOM.patch: return error for excess number of tiles/strips.
+ 0031-safe_size_ingtStripContig.patch: return error if the size to read overflow from int32.
+ 0033-avail-out-overflow.patch: signed comparison in PixarLogDecode().
++0034-tiff-jpeg-overflow.patch: reject mismatched JPEG data precision.
++0035-ycbcr-tile-overflow.patch: prevent integer overflows in YCbCr tile decoding functions
+diff --git a/third_party/libtiff/tif_getimage.c b/third_party/libtiff/tif_getimage.c
+index 3cc7ee171..ee128c091 100644
+--- a/third_party/libtiff/tif_getimage.c
++++ b/third_party/libtiff/tif_getimage.c
+@@ -2222,7 +2222,7 @@ DECLAREContigPutFunc(putcontig8bitYCbCr44tile)
+     uint32_t *cp1 = cp + w + toskew;
+     uint32_t *cp2 = cp1 + w + toskew;
+     uint32_t *cp3 = cp2 + w + toskew;
+-    int32_t incr = 3 * w + 4 * toskew;
++    const tmsize_t incr = 3 * (tmsize_t)w + 4 * (tmsize_t)toskew;
+ 
+     (void)y;
+     /* adjust fromskew */
+@@ -2362,7 +2362,7 @@ DECLAREContigPutFunc(putcontig8bitYCbCr44tile)
+ DECLAREContigPutFunc(putcontig8bitYCbCr42tile)
+ {
+     uint32_t *cp1 = cp + w + toskew;
+-    int32_t incr = 2 * toskew + w;
++    const tmsize_t incr = 2 * (tmsize_t)toskew + w;
+ 
+     (void)y;
+     fromskew = (fromskew / 4) * (4 * 2 + 2);
+@@ -2518,7 +2518,7 @@ DECLAREContigPutFunc(putcontig8bitYCbCr41tile)
+ DECLAREContigPutFunc(putcontig8bitYCbCr22tile)
+ {
+     uint32_t *cp2;
+-    int32_t incr = 2 * toskew + w;
++    const tmsize_t incr = 2 * (tmsize_t)toskew + w;
+     (void)y;
+     fromskew = (fromskew / 2) * (2 * 2 + 2);
+     cp2 = cp + w + toskew;
+@@ -2621,7 +2621,7 @@ DECLAREContigPutFunc(putcontig8bitYCbCr21tile)
+ DECLAREContigPutFunc(putcontig8bitYCbCr12tile)
+ {
+     uint32_t *cp2;
+-    int32_t incr = 2 * toskew + w;
++    const tmsize_t incr = 2 * (tmsize_t)toskew + w;
+     (void)y;
+     fromskew = (fromskew / 1) * (1 * 2 + 2);
+     cp2 = cp + w + toskew;
+diff --git a/third_party/libtiff/tif_jpeg.c b/third_party/libtiff/tif_jpeg.c
+index 5281457d9..a9764f073 100644
+--- a/third_party/libtiff/tif_jpeg.c
++++ b/third_party/libtiff/tif_jpeg.c
+@@ -1287,7 +1287,8 @@ int TIFFJPEGIsFullStripRequired(TIFF *tif)
+     sp->cinfo.d.data_precision = td->td_bitspersample;
+     sp->cinfo.d.bits_in_jsample = td->td_bitspersample;
+ #else
+-    if (sp->cinfo.d.data_precision != td->td_bitspersample)
++    if (td->td_bitspersample != BITS_IN_JSAMPLE ||
++        sp->cinfo.d.data_precision != td->td_bitspersample)
+     {
+         TIFFErrorExtR(tif, module, "Improper JPEG data precision");
+         return (0);
+diff --git a/xfa/fxfa/layout/cxfa_viewlayoutprocessor.cpp b/xfa/fxfa/layout/cxfa_viewlayoutprocessor.cpp
+index a5dbbdd75..5fbd62a4f 100644
+--- a/xfa/fxfa/layout/cxfa_viewlayoutprocessor.cpp
++++ b/xfa/fxfa/layout/cxfa_viewlayoutprocessor.cpp
+@@ -995,8 +995,9 @@ bool CXFA_ViewLayoutProcessor::BreakOverflow(const CXFA_Node* pOverflowNode,
+                                              bool bCreatePage,
+                                              CXFA_Node** pLeaderTemplate,
+                                              CXFA_Node** pTrailerTemplate) {
+-  CXFA_Node* pContainer =
+-      pOverflowNode->GetContainerParent()->GetTemplateNodeIfExists();
++  CXFA_Node* parent = pOverflowNode->GetContainerParent();
++  CXFA_Node* container = parent ? parent->GetTemplateNodeIfExists() : nullptr;
++
+   if (pOverflowNode->GetElementType() == XFA_Element::Break) {
+     WideString wsOverflowLeader =
+         pOverflowNode->JSObject()->GetCData(XFA_Attribute::OverflowLeader);
+@@ -1010,18 +1011,18 @@ bool CXFA_ViewLayoutProcessor::BreakOverflow(const CXFA_Node* pOverflowNode,
+     }
+ 
+     if (!wsOverflowTarget.IsEmpty() && bCreatePage && !create_over_flow_page_) {
+-      CXFA_Node* pTarget =
++      CXFA_Node* target =
+           ResolveBreakTarget(page_set_node_, true, &wsOverflowTarget);
+-      if (pTarget) {
++      if (target) {
+         create_over_flow_page_ = true;
+-        switch (pTarget->GetElementType()) {
++        switch (target->GetElementType()) {
+           case XFA_Element::PageArea:
+             RunBreak(XFA_Element::Overflow, XFA_AttributeValue::PageArea,
+-                     pTarget, true);
++                     target, true);
+             break;
+           case XFA_Element::ContentArea:
+             RunBreak(XFA_Element::Overflow, XFA_AttributeValue::ContentArea,
+-                     pTarget, true);
++                     target, true);
+             break;
+           default:
+             break;
+@@ -1029,10 +1030,9 @@ bool CXFA_ViewLayoutProcessor::BreakOverflow(const CXFA_Node* pOverflowNode,
+       }
+     }
+     if (!bCreatePage) {
+-      *pLeaderTemplate =
+-          ResolveBreakTarget(pContainer, true, &wsOverflowLeader);
++      *pLeaderTemplate = ResolveBreakTarget(container, true, &wsOverflowLeader);
+       *pTrailerTemplate =
+-          ResolveBreakTarget(pContainer, true, &wsOverflowTrailer);
++          ResolveBreakTarget(container, true, &wsOverflowTrailer);
+     }
+     return true;
+   }
+@@ -1044,18 +1044,18 @@ bool CXFA_ViewLayoutProcessor::BreakOverflow(const CXFA_Node* pOverflowNode,
+   WideString wsOverflowTarget =
+       pOverflowNode->JSObject()->GetCData(XFA_Attribute::Target);
+   if (!wsOverflowTarget.IsEmpty() && bCreatePage && !create_over_flow_page_) {
+-    CXFA_Node* pTarget =
++    CXFA_Node* target =
+         ResolveBreakTarget(page_set_node_, true, &wsOverflowTarget);
+-    if (pTarget) {
++    if (target) {
+       create_over_flow_page_ = true;
+-      switch (pTarget->GetElementType()) {
++      switch (target->GetElementType()) {
+         case XFA_Element::PageArea:
+-          RunBreak(XFA_Element::Overflow, XFA_AttributeValue::PageArea, pTarget,
++          RunBreak(XFA_Element::Overflow, XFA_AttributeValue::PageArea, target,
+                    true);
+           break;
+         case XFA_Element::ContentArea:
+           RunBreak(XFA_Element::Overflow, XFA_AttributeValue::ContentArea,
+-                   pTarget, true);
++                   target, true);
+           break;
+         default:
+           break;
+@@ -1067,8 +1067,8 @@ bool CXFA_ViewLayoutProcessor::BreakOverflow(const CXFA_Node* pOverflowNode,
+         pOverflowNode->JSObject()->GetCData(XFA_Attribute::Leader);
+     WideString wsTrailer =
+         pOverflowNode->JSObject()->GetCData(XFA_Attribute::Trailer);
+-    *pLeaderTemplate = ResolveBreakTarget(pContainer, true, &wsLeader);
+-    *pTrailerTemplate = ResolveBreakTarget(pContainer, true, &wsTrailer);
++    *pLeaderTemplate = ResolveBreakTarget(container, true, &wsLeader);
++    *pTrailerTemplate = ResolveBreakTarget(container, true, &wsTrailer);
+   }
+   return true;
+ }
