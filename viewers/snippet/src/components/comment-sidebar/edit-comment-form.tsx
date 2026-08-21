@@ -23,11 +23,13 @@ export const EditCommentForm = ({
 
   // Focus the textarea and move the cursor to the end when the component mounts
   useEffect(() => {
-    if (autoFocus && textareaRef.current) {
-      textareaRef.current.focus();
-      textareaRef.current.setSelectionRange(text.length, text.length);
-    }
-  }, [autoFocus, text.length]);
+    if (!autoFocus) return;
+    const el = textareaRef.current;
+    if (!el) return;
+    el.focus();
+    const end = el.value.length;
+    el.setSelectionRange(end, end);
+  }, [autoFocus]);
 
   const handleSaveClick = (e: MouseEvent) => {
     e.stopPropagation();
