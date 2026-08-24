@@ -9,11 +9,18 @@ namespace ec {
 
 namespace {
 
-uint32_t probeCharcode(FPDF_DOCUMENT doc, FPDF_FONT font, char16_t ch) {
+uint32_t probeCharcode(FPDF_DOCUMENT doc, FPDF_FONT font, uint32_t cp) {
     if (!doc || !font) return 0;
     FPDF_PAGEOBJECT probe = FPDFPageObj_CreateTextObj(doc, font, 12.0f);
     if (!probe) return 0;
-    unsigned short one[2] = {static_cast<unsigned short>(ch), 0};
+    unsigned short one[3] = {0, 0, 0};
+    if (cp > 0xFFFF) {
+        const uint32_t v = cp - 0x10000;
+        one[0] = static_cast<unsigned short>(0xD800 + (v >> 10));
+        one[1] = static_cast<unsigned short>(0xDC00 + (v & 0x3FF));
+    } else {
+        one[0] = static_cast<unsigned short>(cp);
+    }
     uint32_t code = 0;
     if (FPDFText_SetText(probe, one)) {
         const std::vector<uint32_t> got = readOrigCharcodes(probe);
@@ -324,7 +331,7 @@ bool isWinAnsiHighPunct(uint32_t cp) {
 FPDF_FONT resolveFont(Session& s, const RunStyle& style, FPDF_FONT preferred,
                       const std::vector<uint32_t>& codepoints,
                       bool allowSubsetReuse, FPDF_FONT scriptFallback,
-                      FPDF_FONT avoid) {
+                      FPDF_FONT avoid, bool faceChanged) {
 
     if (preferred && allowSubsetReuse) return preferred;
     if (preferred && !fontIsSubset(preferred) &&
@@ -348,7 +355,12 @@ FPDF_FONT resolveFont(Session& s, const RunStyle& style, FPDF_FONT preferred,
         }
     }
 
-    if (avoid && fontCovers(s, avoid, codepoints)) {
+    FPDF_FONT donor = nullptr;
+    if (avoid && fontCovers(s, avoid, codepoints)) donor = avoid;
+    else if (!faceChanged && scriptFallback &&
+             fontCovers(scriptFallback, codepoints))
+        donor = scriptFallback;
+    if (donor) {
         uint32_t cph = 2166136261u;
         for (uint32_t cp : codepoints) {
             cph ^= cp;
@@ -356,7 +368,7 @@ FPDF_FONT resolveFont(Session& s, const RunStyle& style, FPDF_FONT preferred,
         }
         char okey[48];
         snprintf(okey, sizeof(okey), "orig:%p:%08x",
-                 static_cast<void*>(avoid), cph);
+                 static_cast<void*>(donor), cph);
         auto oit = s.fontCache.find(okey);
         if (oit != s.fontCache.end() &&
             fontCovers(s, oit->second, codepoints))
@@ -365,7 +377,7 @@ FPDF_FONT resolveFont(Session& s, const RunStyle& style, FPDF_FONT preferred,
         want.insert(u' ');
         bool dis = false;
         std::vector<uint8_t> bytes =
-            synthesizeSfnt(avoid, want, nullptr, &dis, false,
+            synthesizeSfnt(donor, want, nullptr, &dis, false,
                            "ECO" + style.family);
         if (!dis && !bytes.empty() &&
             fontAllowsEditableEmbed(bytes.data(), bytes.size())) {
@@ -756,7 +768,8 @@ bool layoutParagraph(Session& s, FPDF_PAGE page, Paragraph& p, bool autoWiden,
                                       fragilePage ? nullptr : r.originalFont,
                                       cps, !fragilePage && r.textUnchanged,
                                       r.scriptFallbackFont,
-                                      fragilePage ? r.originalFont : nullptr);
+                                      fragilePage ? r.originalFont : nullptr,
+                                      r.faceChanged);
             if (!f) return false;
             vruns.push_back({&r, f});
         }
@@ -1206,7 +1219,8 @@ bool layoutParagraph(Session& s, FPDF_PAGE page, Paragraph& p, bool autoWiden,
                                         (r.textUnchanged || subsetProven) &&
                                         !rtlForceSub[rix],
                                     r.scriptFallbackFont,
-                                    fragilePage ? r.originalFont : nullptr);
+                                    fragilePage ? r.originalFont : nullptr,
+                                    r.faceChanged);
         rr.emitSize = r.style.script != 0 ? r.style.size * kSuperScale : r.style.size;
         rr.baseShift = (r.style.script > 0   ? r.style.size * kSuperShift
                         : r.style.script < 0 ? r.style.size * kSubShift
@@ -1251,27 +1265,41 @@ bool layoutParagraph(Session& s, FPDF_PAGE page, Paragraph& p, bool autoWiden,
     const float charSpacing = p.fmt.char_spacing;
     const float wrapSlack = 1.6f;
 
-    std::map<std::pair<FPDF_FONT, char16_t>, uint32_t> probeCache;
+    std::map<std::pair<FPDF_FONT, uint32_t>, uint32_t> probeCache;
 
-    std::map<std::pair<FPDF_FONT, char16_t>, std::deque<uint32_t>> origCodePool;
+    std::map<std::pair<FPDF_FONT, std::u16string>, uint32_t> origCodeMap;
+    size_t maxClusterLen = 1;
     {
         for (const ParaRun& pr : p.runs) {
             if (!pr.originalFont) continue;
             if (pr.srcCodes.size() != pr.srcText.size()) continue;
-            for (size_t ci2 = 0; ci2 < pr.srcText.size(); ci2++) {
+            for (size_t ci2 = 0; ci2 < pr.srcText.size();) {
                 const uint32_t code = pr.srcCodes[ci2];
-                if (code == 0xFFFFFFFFu) continue;
-                origCodePool[{pr.originalFont, pr.srcText[ci2]}].push_back(code);
+                if (code == 0xFFFFFFFFu || code == kEcContCode) {
+                    ci2++;
+                    continue;
+                }
+                size_t end = ci2 + 1;
+                while (end < pr.srcText.size() &&
+                       pr.srcCodes[end] == kEcContCode)
+                    end++;
+                const size_t len = end - ci2;
+                if (len > maxClusterLen) maxClusterLen = len;
+                const auto key =
+                    std::make_pair(pr.originalFont, pr.srcText.substr(ci2, len));
+                auto ins = origCodeMap.emplace(key, code);
+                if (!ins.second && ins.first->second != code)
+                    ins.first->second = 0xFFFFFFFFu;
+                ci2 = end;
             }
         }
     }
-    auto takeOrigCode = [&](FPDF_FONT font, char16_t ch) -> uint32_t {
-        if (!font) return 0xFFFFFFFFu;
-        auto it2 = origCodePool.find({font, ch});
-        if (it2 == origCodePool.end() || it2->second.empty()) return 0xFFFFFFFFu;
-        const uint32_t code = it2->second.front();
-        it2->second.pop_front();
-        return code;
+    auto lookupOrigCluster = [&](FPDF_FONT font,
+                                 const std::u16string& key) -> uint32_t {
+        if (!font || key.empty()) return 0xFFFFFFFFu;
+        auto it2 = origCodeMap.find({font, key});
+        if (it2 == origCodeMap.end()) return 0xFFFFFFFFu;
+        return it2->second;
     };
     std::map<FPDF_FONT, bool> spaceOkCache;
     auto fontHasRealSpace = [&](FPDF_FONT f) {
@@ -2530,6 +2558,9 @@ bool layoutParagraph(Session& s, FPDF_PAGE page, Paragraph& p, bool autoWiden,
                 s.doc, sg.complex ? rr.cidFont : rr.font, rr.emitSize);
             if (!obj) continue;
 
+            std::vector<uint32_t> codes;
+            std::vector<float> clusterPos;
+            bool viaCodes = false;
             if (sg.complex) {
                 if (!FPDFText_SetCharcodes(obj, sg.cids.data(), sg.cids.size())) {
                     FPDFPageObj_Destroy(obj);
@@ -2537,32 +2568,69 @@ bool layoutParagraph(Session& s, FPDF_PAGE page, Paragraph& p, bool autoWiden,
                 }
             } else {
 
-                std::vector<uint32_t> codes;
-                bool viaCodes = false;
                 auto encIt = s.fontUniToCode.find(rr.font);
-                if (encIt != s.fontUniToCode.end() && !sg.text.empty()) {
+                const bool hasEnc = encIt != s.fontUniToCode.end();
+                const bool havePos =
+                    !sg.positions.empty() &&
+                    sg.positions.size() + 1 == sg.text.size();
+                const bool canTakeOrig =
+                    rr.run && rr.font == rr.run->originalFont &&
+                    (havePos || sg.positions.empty());
+                if ((hasEnc || canTakeOrig) && !sg.text.empty()) {
                     viaCodes = true;
                     codes.reserve(sg.text.size());
-                    for (char16_t ch : sg.text) {
-                        auto ci = encIt->second.find(ch);
-                        if (ci != encIt->second.end()) {
-                            codes.push_back(ci->second);
+                    for (size_t ti = 0; ti < sg.text.size();) {
+                        size_t took = 0;
+                        if (canTakeOrig) {
+                            const size_t room = sg.text.size() - ti;
+                            const size_t maxLen = std::min(maxClusterLen, room);
+                            for (size_t len = 1; len <= maxLen; len++) {
+                                const uint32_t orig = lookupOrigCluster(
+                                    rr.font, sg.text.substr(ti, len));
+                                if (orig != 0xFFFFFFFFu) {
+                                    codes.push_back(orig);
+                                    if (havePos && ti > 0)
+                                        clusterPos.push_back(
+                                            sg.positions[ti - 1]);
+                                    took = len;
+                                    break;
+                                }
+                            }
+                        }
+                        if (took) {
+                            ti += took;
                             continue;
                         }
-                        if (rr.run && rr.font == rr.run->originalFont) {
-                            const uint32_t orig = takeOrigCode(rr.font, ch);
-                            if (orig != 0xFFFFFFFFu) {
-                                codes.push_back(orig);
+                        uint32_t cp = sg.text[ti];
+                        size_t cpLen = 1;
+                        if (cp >= 0xD800 && cp <= 0xDBFF &&
+                            ti + 1 < sg.text.size() &&
+                            sg.text[ti + 1] >= 0xDC00 &&
+                            sg.text[ti + 1] <= 0xDFFF) {
+                            cp = 0x10000 + ((cp - 0xD800) << 10) +
+                                 (sg.text[ti + 1] - 0xDC00);
+                            cpLen = 2;
+                        }
+                        if (hasEnc) {
+                            auto ci = encIt->second.find(cp);
+                            if (ci != encIt->second.end()) {
+                                codes.push_back(ci->second);
+                                if (havePos && ti > 0)
+                                    clusterPos.push_back(sg.positions[ti - 1]);
+                                ti += cpLen;
                                 continue;
                             }
                         }
-                        const auto pk = std::make_pair(rr.font, ch);
+                        const auto pk = std::make_pair(rr.font, cp);
                         auto pit = probeCache.find(pk);
                         if (pit == probeCache.end())
                             pit = probeCache.emplace(
-                                pk, probeCharcode(s.doc, rr.font, ch)).first;
+                                pk, probeCharcode(s.doc, rr.font, cp)).first;
 
                         codes.push_back(pit->second);
+                        if (havePos && ti > 0)
+                            clusterPos.push_back(sg.positions[ti - 1]);
+                        ti += cpLen;
                     }
                 }
 
@@ -2577,13 +2645,19 @@ bool layoutParagraph(Session& s, FPDF_PAGE page, Paragraph& p, bool autoWiden,
                     }
                 }
             }
-            if (!sg.positions.empty()) {
-
-                std::vector<float> pos = sg.positions;
-                if (rr.hScale != 1.0f) {
-                    for (float& v : pos) v /= rr.hScale;
+            {
+                const std::vector<float>& srcPos =
+                    (!sg.complex && viaCodes && !codes.empty() &&
+                     clusterPos.size() + 1 == codes.size())
+                        ? clusterPos
+                        : sg.positions;
+                if (!srcPos.empty()) {
+                    std::vector<float> pos = srcPos;
+                    if (rr.hScale != 1.0f) {
+                        for (float& v : pos) v /= rr.hScale;
+                    }
+                    FPDFText_SetPositions(obj, pos.data(), pos.size());
                 }
-                FPDFText_SetPositions(obj, pos.data(), pos.size());
             }
 
             FS_MATRIX m{rr.hScale, 0,

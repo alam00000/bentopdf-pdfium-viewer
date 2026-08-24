@@ -309,6 +309,9 @@ struct ExtractedRun {
     size_t lastRealUnit = 0;
     float lastRealOx = 0;
 
+    float lastCodeOx = 0;
+    bool lastCodeValid = false;
+
     std::vector<float> wordStartOx;
     bool wordOpen = false;
     bool lastRealValid = false;
@@ -1263,6 +1266,40 @@ PageState buildPageModel(Session& s, FPDF_PAGE page) {
     std::map<FPDF_PAGEOBJECT, std::vector<uint32_t>> objCodeList;
     std::map<FPDF_PAGEOBJECT, size_t> objCursor;
     std::set<FPDF_PAGEOBJECT> objCodesBad;
+    std::map<FPDF_PAGEOBJECT, std::vector<uint32_t>> objUnitCode;
+    auto unitCodesFor =
+        [&](FPDF_PAGEOBJECT o) -> const std::vector<uint32_t>& {
+        auto it = objUnitCode.find(o);
+        if (it != objUnitCode.end()) return it->second;
+        std::vector<uint32_t> out;
+        auto ci = objCodeList.find(o);
+        if (ci == objCodeList.end())
+            ci = objCodeList.emplace(o, readOrigCharcodes(o)).first;
+        const std::vector<uint32_t>& codes = ci->second;
+        if (!codes.empty() && codes.size() <= 100000) {
+            std::vector<unsigned short> wbuf(codes.size() * 4 + 16);
+            const unsigned long cap =
+                static_cast<unsigned long>(wbuf.size() * 2);
+            const unsigned long got =
+                FPDFTextObj_GetText(o, tp, wbuf.data(), cap);
+            if (got >= 2 && got <= cap) {
+                const size_t units = got / 2 - 1;
+                if (units == codes.size()) {
+                    out.assign(codes.begin(), codes.end());
+                } else if (units) {
+                    std::vector<size_t> at;
+                    at.reserve(codes.size());
+                    for (size_t k = 0; k < units; k++)
+                        if (wbuf[k] != u' ') at.push_back(k);
+                    out.assign(units, kNoCode);
+                    if (at.size() == codes.size())
+                        for (size_t k = 0; k < codes.size(); k++)
+                            out[at[k]] = codes[k];
+                }
+            }
+        }
+        return objUnitCode.emplace(o, std::move(out)).first->second;
+    };
 
     std::set<FPDF_FONT> lyingFonts;
     {
@@ -1850,14 +1887,48 @@ PageState buildPageModel(Session& s, FPDF_PAGE page) {
         {
             uint32_t origCode = kNoCode;
             if (obj) {
-                auto ci = objCodeList.find(obj);
-                if (ci == objCodeList.end())
-                    ci = objCodeList.emplace(obj, readOrigCharcodes(obj)).first;
-                size_t& cursor = objCursor[obj];
-                if (cursor < ci->second.size())
-                    origCode = ci->second[cursor++];
-                else
-                    objCodesBad.insert(obj);
+                const std::vector<uint32_t>& unitCodes = unitCodesFor(obj);
+                const bool sameGlyph =
+                    unitCodes.empty() && haveOrigin && current.lastCodeValid &&
+                    std::abs(static_cast<float>(ox) - current.lastCodeOx) <
+                        0.01f;
+                if (sameGlyph) {
+                    origCode = kEcContCode;
+                } else {
+                    auto ci = objCodeList.find(obj);
+                    if (ci == objCodeList.end())
+                        ci = objCodeList
+                                 .emplace(obj, readOrigCharcodes(obj))
+                                 .first;
+                    size_t& cursor = objCursor[obj];
+                    if (!unitCodes.empty()) {
+                        const size_t added = current.text.size() - unitIdx;
+                        uint32_t got = kNoCode;
+                        for (size_t k = 0; k < added; k++) {
+                            if (cursor >= unitCodes.size()) {
+                                got = kNoCode;
+                                objCodesBad.insert(obj);
+                                break;
+                            }
+                            const uint32_t c = unitCodes[cursor++];
+                            if (got == kNoCode) got = c;
+                        }
+                        origCode = got;
+                        if (got != kNoCode) {
+                            current.lastCodeValid = haveOrigin;
+                            current.lastCodeOx = static_cast<float>(ox);
+                        } else {
+                            current.lastCodeValid = false;
+                        }
+                    } else if (cursor < ci->second.size()) {
+                        origCode = ci->second[cursor++];
+                        current.lastCodeValid = haveOrigin;
+                        current.lastCodeOx = static_cast<float>(ox);
+                    } else {
+                        objCodesBad.insert(obj);
+                        current.lastCodeValid = false;
+                    }
+                }
             }
             current.codes.resize(current.text.size(), kNoCode);
             if (unitIdx < current.codes.size()) current.codes[unitIdx] = origCode;

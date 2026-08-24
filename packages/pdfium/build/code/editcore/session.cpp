@@ -7,6 +7,7 @@
 #include "pdfium_internal.h"
 #include "fpdf_signature.h"
 #include "fpdf_structtree.h"
+#include "fpdf_ppo.h"
 #include "fpdf_transformpage.h"
 
 using namespace ec;
@@ -166,6 +167,26 @@ std::vector<ParaRun> runsFromInput(const ec_run_in* runs, int count,
         r.style.hScale =
             (in.h_scale > 0.01f && in.h_scale < 100.0f) ? in.h_scale : 1.0f;
         r.style.rise = (in.rise > -300.0f && in.rise < 300.0f) ? in.rise : 0.0f;
+
+        if (source) {
+            const int sh = in.source_run_index;
+            if (sh >= 0 && sh < static_cast<int>(source->size())) {
+                const ParaRun& sr = (*source)[sh];
+                const bool sameWeightSlant =
+                    sr.style.bold == r.style.bold &&
+                    sr.style.italic == r.style.italic &&
+                    sr.style.fauxBold == r.style.fauxBold &&
+                    sr.style.fauxItalic == r.style.fauxItalic;
+                const bool sameFace =
+                    sameWeightSlant && sr.style.family == r.style.family;
+                r.faceChanged = !sameWeightSlant;
+                if (!sr.atomicObject && sameFace) {
+                    r.originalFont = sr.originalFont;
+                    r.srcText = sr.srcText;
+                    r.srcCodes = sr.srcCodes;
+                }
+            }
+        }
 
         if (r.text.find(u'\uFFFC') != std::u16string::npos) {
             auto consume = [&]() -> const ParaRun* {
@@ -775,6 +796,7 @@ double rasterDelta(const std::vector<uint8_t>& a, const std::vector<uint8_t>& b)
 
 bool flattenOneForm(Session& s, FPDF_PAGE page, FPDF_PAGEOBJECT form,
                     const std::vector<uint8_t>& before, int rw, int rh) {
+    if (FPDFPageObj_HasTransparency(form)) return false;
     int index = -1;
     const int total = FPDFPage_CountObjects(page);
     for (int i = 0; i < total; i++) {
@@ -2118,13 +2140,11 @@ int ec_normalize_page_paint(FPDF_PAGE page) {
     return fixed;
 }
 
-int ec_page_regen_is_lossy(EC_SESSION session, FPDF_PAGE page, int pageIndex) {
-    Session* s = asSession(session);
-    if (!s || !page || pageIndex < 0) return 0;
-    liveEndIfOpen(*s);
+static int ec_regen_lossy_probe(Session* s, FPDF_PAGE page,
+                                FPDF_DOCUMENT probeDoc, int probeIndex) {
 
     unsigned long n0 = 0;
-    unsigned char* buf0 = ec_save_document(s->doc, 1, &n0);
+    unsigned char* buf0 = ec_save_document(probeDoc, 1, &n0);
     if (!buf0 || !n0) { if (buf0) ec_string_free(reinterpret_cast<char*>(buf0)); return 0; }
 
     auto printableCount = [](FPDF_PAGE p) {
@@ -2168,7 +2188,7 @@ int ec_page_regen_is_lossy(EC_SESSION session, FPDF_PAGE page, int pageIndex) {
     int lossy = 0;
     FPDF_DOCUMENT d1 = FPDF_LoadMemDocument64(buf0, n0, nullptr);
     if (d1) {
-        FPDF_PAGE p1 = FPDF_LoadPage(d1, pageIndex);
+        FPDF_PAGE p1 = FPDF_LoadPage(d1, probeIndex);
         if (p1) {
             const int before = printableCount(p1);
             const std::map<unsigned int, int> bagBefore = charBag(p1);
@@ -2233,7 +2253,7 @@ int ec_page_regen_is_lossy(EC_SESSION session, FPDF_PAGE page, int pageIndex) {
                 if (buf1 && n1 && expected > 0) {
                     FPDF_DOCUMENT d2 = FPDF_LoadMemDocument64(buf1, n1, nullptr);
                     if (d2) {
-                        if (FPDF_PAGE p2 = FPDF_LoadPage(d2, pageIndex)) {
+                        if (FPDF_PAGE p2 = FPDF_LoadPage(d2, probeIndex)) {
                             const int after = printableCount(p2);
                             lossy = (after * 10 < expected * 9) ? 1 : 0;
 
@@ -2258,7 +2278,7 @@ int ec_page_regen_is_lossy(EC_SESSION session, FPDF_PAGE page, int pageIndex) {
         int existingSafe = 0;
         FPDF_DOCUMENT d3 = FPDF_LoadMemDocument64(buf0, n0, nullptr);
         if (d3) {
-            if (FPDF_PAGE p3 = FPDF_LoadPage(d3, pageIndex)) {
+            if (FPDF_PAGE p3 = FPDF_LoadPage(d3, probeIndex)) {
                 const int before3 = printableCount(p3);
                 std::map<unsigned int, int> bag3 = charBag(p3);
                 FPDF_PAGEOBJECT victim = nullptr;
@@ -2296,7 +2316,7 @@ int ec_page_regen_is_lossy(EC_SESSION session, FPDF_PAGE page, int pageIndex) {
                 unsigned char* buf4 = ec_save_document(d3, 1, &n4);
                 if (buf4 && n4 && expected3 > 0) {
                     if (FPDF_DOCUMENT d4 = FPDF_LoadMemDocument64(buf4, n4, nullptr)) {
-                        if (FPDF_PAGE p4 = FPDF_LoadPage(d4, pageIndex)) {
+                        if (FPDF_PAGE p4 = FPDF_LoadPage(d4, probeIndex)) {
                             if (printableCount(p4) * 10 >= expected3 * 9 &&
                                 bagDistance(bag3, charBag(p4)) <=
                                     std::max(6, expected3 / 12))
@@ -2319,12 +2339,12 @@ int ec_page_regen_is_lossy(EC_SESSION session, FPDF_PAGE page, int pageIndex) {
     ec_string_free(reinterpret_cast<char*>(buf0));
 
     unsigned long nA = 0;
-    unsigned char* bufA = ec_save_document(s->doc, 1, &nA);
+    unsigned char* bufA = ec_save_document(probeDoc, 1, &nA);
     if (!bufA || !nA) { if (bufA) ec_string_free(reinterpret_cast<char*>(bufA)); return 0; }
     int renderLossy = 0;
     FPDF_DOCUMENT dA = FPDF_LoadMemDocument64(bufA, nA, nullptr);
     if (dA) {
-        if (FPDF_PAGE pA = FPDF_LoadPage(dA, pageIndex)) {
+        if (FPDF_PAGE pA = FPDF_LoadPage(dA, probeIndex)) {
             const int w = std::max(1, static_cast<int>(FPDF_GetPageWidthF(pA)));
             const int h = std::max(1, static_cast<int>(FPDF_GetPageHeightF(pA)));
             auto renderInk = [&](FPDF_PAGE pg, std::vector<uint8_t>& px) {
@@ -2352,7 +2372,7 @@ int ec_page_regen_is_lossy(EC_SESSION session, FPDF_PAGE page, int pageIndex) {
                 unsigned char* bufB = ec_save_document(dA, 1, &nB);
                 if (bufB && nB) {
                     if (FPDF_DOCUMENT dB = FPDF_LoadMemDocument64(bufB, nB, nullptr)) {
-                        if (FPDF_PAGE pB = FPDF_LoadPage(dB, pageIndex)) {
+                        if (FPDF_PAGE pB = FPDF_LoadPage(dB, probeIndex)) {
                             if (renderInk(pB, after) &&
                                 after.size() == before.size()) {
                                 size_t diff = 0;
@@ -2376,6 +2396,29 @@ int ec_page_regen_is_lossy(EC_SESSION session, FPDF_PAGE page, int pageIndex) {
     }
     ec_string_free(reinterpret_cast<char*>(bufA));
     return renderLossy;
+}
+
+static FPDF_DOCUMENT ec_make_probe_doc(FPDF_DOCUMENT doc, int pageIndex) {
+    FPDF_DOCUMENT probe = FPDF_CreateNewDocument();
+    if (!probe) return nullptr;
+    const int one = pageIndex;
+    if (!FPDF_ImportPagesByIndex(probe, doc, &one, 1, 0) ||
+        FPDF_GetPageCount(probe) != 1) {
+        FPDF_CloseDocument(probe);
+        return nullptr;
+    }
+    return probe;
+}
+
+int ec_page_regen_is_lossy(EC_SESSION session, FPDF_PAGE page, int pageIndex) {
+    Session* s = asSession(session);
+    if (!s || !page || pageIndex < 0) return 0;
+    liveEndIfOpen(*s);
+    FPDF_DOCUMENT probe = ec_make_probe_doc(s->doc, pageIndex);
+    const int result = probe ? ec_regen_lossy_probe(s, page, probe, 0)
+                             : ec_regen_lossy_probe(s, page, s->doc, pageIndex);
+    if (probe) FPDF_CloseDocument(probe);
+    return result;
 }
 
 namespace {

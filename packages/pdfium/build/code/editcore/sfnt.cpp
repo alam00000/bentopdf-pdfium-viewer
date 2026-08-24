@@ -67,7 +67,7 @@ float probeOutlineScale(FPDF_FONT font, const std::set<uint32_t>& want) {
     int probed = 0;
     float rawMax = 0;
     for (uint32_t cp : want) {
-        if (cp <= 0x20 || cp > 0xFFFE) continue;
+        if (cp <= 0x20 || cp == 0xFFFE || cp > 0x10FFFF) continue;
         FPDF_GLYPHPATH gp = FPDFFont_GetGlyphPath(font, cp, kUpm);
         if (!gp) continue;
         const int n = FPDFGlyphPath_CountGlyphSegments(gp);
@@ -179,7 +179,7 @@ std::vector<uint8_t> synthesizeSfnt(FPDF_FONT font, const std::set<uint32_t>& wa
     int validated = 0, mismatched = 0;
     const float scl = probeOutlineScale(font, want);
     for (uint32_t cp : want) {
-        if (cp > 0xFFFE) continue;
+        if (cp == 0xFFFE || cp > 0x10FFFF) continue;
         Glyph g;
         if (!extractGlyph(font, cp, g, scl)) continue;
 
@@ -333,8 +333,17 @@ std::vector<uint8_t> synthesizeSfnt(FPDF_FONT font, const std::set<uint32_t>& wa
         if (!segs.empty() && cps[i] == segs.back().end + 1) segs.back().end = cps[i];
         else segs.push_back({cps[i], cps[i], static_cast<uint16_t>(i + 1)});
     }
+    std::vector<Seg> bmpSegs;
+    bool needsFmt12 = false;
+    for (const Seg& sg2 : segs) {
+        if (sg2.end > 0xFFFF) needsFmt12 = true;
+        if (sg2.start <= 0xFFFF)
+            bmpSegs.push_back({sg2.start, std::min<uint32_t>(sg2.end, 0xFFFF),
+                               sg2.gidStart});
+    }
+
     Buf sub;
-    const uint16_t segCount = static_cast<uint16_t>(segs.size() + 1);
+    const uint16_t segCount = static_cast<uint16_t>(bmpSegs.size() + 1);
     uint16_t pow2 = 1, entSel = 0;
     while (pow2 * 2 <= segCount) { pow2 *= 2; entSel++; }
     const uint16_t sr = pow2 * 2;
@@ -345,19 +354,44 @@ std::vector<uint8_t> synthesizeSfnt(FPDF_FONT font, const std::set<uint32_t>& wa
     sub.u16(sr);
     sub.u16(entSel);
     sub.u16(segCount * 2 - sr);
-    for (const Seg& s : segs) sub.u16(static_cast<uint16_t>(s.end));
+    for (const Seg& s2 : bmpSegs) sub.u16(static_cast<uint16_t>(s2.end));
     sub.u16(0xFFFF);
     sub.u16(0);
-    for (const Seg& s : segs) sub.u16(static_cast<uint16_t>(s.start));
+    for (const Seg& s2 : bmpSegs) sub.u16(static_cast<uint16_t>(s2.start));
     sub.u16(0xFFFF);
-    for (const Seg& s : segs)
-        sub.u16(static_cast<uint16_t>((s.gidStart - s.start) & 0xFFFF));
+    for (const Seg& s2 : bmpSegs)
+        sub.u16(static_cast<uint16_t>((s2.gidStart - s2.start) & 0xFFFF));
     sub.u16(1);
-    for (size_t i = 0; i < segs.size() + 1; i++) sub.u16(0);
+    for (size_t i = 0; i < bmpSegs.size() + 1; i++) sub.u16(0);
+
+    Buf sub12;
+    if (needsFmt12) {
+        sub12.u16(12);
+        sub12.u16(0);
+        sub12.u32(static_cast<uint32_t>(16 + segs.size() * 12));
+        sub12.u32(0);
+        sub12.u32(static_cast<uint32_t>(segs.size()));
+        for (const Seg& s2 : segs) {
+            sub12.u32(s2.start);
+            sub12.u32(s2.end);
+            sub12.u32(s2.gidStart);
+        }
+    }
+
     Buf cmap;
-    cmap.u16(0); cmap.u16(1);
-    cmap.u16(3); cmap.u16(1); cmap.u32(12);
-    cmap.raw(sub.b.data(), sub.b.size());
+    if (needsFmt12) {
+        const uint32_t base = 4 + 2 * 8;
+        cmap.u16(0); cmap.u16(2);
+        cmap.u16(3); cmap.u16(1); cmap.u32(base);
+        cmap.u16(3); cmap.u16(10);
+        cmap.u32(base + static_cast<uint32_t>(sub.size()));
+        cmap.raw(sub.b.data(), sub.b.size());
+        cmap.raw(sub12.b.data(), sub12.b.size());
+    } else {
+        cmap.u16(0); cmap.u16(1);
+        cmap.u16(3); cmap.u16(1); cmap.u32(12);
+        cmap.raw(sub.b.data(), sub.b.size());
+    }
 
     Buf hmtx;
     uint16_t advMax = 0;

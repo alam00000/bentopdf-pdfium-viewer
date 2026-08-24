@@ -54,6 +54,8 @@ struct RunStyle {
     }
 };
 
+constexpr uint32_t kEcContCode = 0xFFFFFFFEu;
+
 struct ParaRun {
     std::u16string text;
     RunStyle style;
@@ -68,6 +70,7 @@ struct ParaRun {
 
     std::u16string srcText;
     std::vector<uint32_t> srcCodes;
+    bool faceChanged = false;
 
     FPDF_FONT boundFont = nullptr;
     int layoutSrc = -1;
@@ -470,7 +473,7 @@ FPDF_FONT resolveFont(Session& s, const RunStyle& style, FPDF_FONT preferred,
                       const std::vector<uint32_t>& codepoints,
                       bool allowSubsetReuse = false,
                       FPDF_FONT scriptFallback = nullptr,
-                      FPDF_FONT avoid = nullptr);
+                      FPDF_FONT avoid = nullptr, bool faceChanged = false);
 
 bool objectStillOnPage(FPDF_PAGE page, FPDF_PAGEOBJECT obj);
 
