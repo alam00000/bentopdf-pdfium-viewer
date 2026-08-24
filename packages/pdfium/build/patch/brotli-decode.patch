@@ -1,0 +1,242 @@
+diff --git a/core/fpdfapi/page/cpdf_streamparser.cpp b/core/fpdfapi/page/cpdf_streamparser.cpp
+index 1441831b7..ff3803e11 100644
+--- a/core/fpdfapi/page/cpdf_streamparser.cpp
++++ b/core/fpdfapi/page/cpdf_streamparser.cpp
+@@ -25,6 +25,8 @@
+ #include "core/fxcodec/data_and_bytes_consumed.h"
+ #include "core/fxcodec/jpeg/jpegmodule.h"
+ #include "core/fxcodec/scanlinedecoder.h"
++// BentoPDF viewer: PDF 2.0 /BrotliDecode (EXTN-BROTLI-1) back-port.
++#include "core/fxcodec/brotli/brotli_decoder.h"
+ #include "core/fxcrt/autorestorer.h"
+ #include "core/fxcrt/check.h"
+ #include "core/fxcrt/data_vector.h"
+@@ -122,6 +124,12 @@ uint32_t DecodeInlineStream(pdfium::span<const uint8_t> src_span,
+   if (decoder == "RunLengthDecode") {
+     return RunLengthDecode(src_span).bytes_consumed;
+   }
++  // BentoPDF viewer: PDF 2.0 /BrotliDecode (mirrors upstream pdfium).  The
++  // spec forbids Brotli on inline images, but a robust parser still has to
++  // skip such a stream correctly if a producer emits one.
++  if (decoder == "BrotliDecode" && BrotliDecoder::GetBrotliEnabled()) {
++    return BrotliDecoder::Decode(src_span, orig_size).bytes_consumed;
++  }
+ 
+   return FX_INVALID_OFFSET;
+ }
+diff --git a/core/fpdfapi/parser/fpdf_parser_decode.cpp b/core/fpdfapi/parser/fpdf_parser_decode.cpp
+index 62305fd3c..11151c09b 100644
+--- a/core/fpdfapi/parser/fpdf_parser_decode.cpp
++++ b/core/fpdfapi/parser/fpdf_parser_decode.cpp
+@@ -21,6 +21,8 @@
+ #include "core/fxcodec/data_and_bytes_consumed.h"
+ #include "core/fxcodec/fax/faxmodule.h"
+ #include "core/fxcodec/flate/flatemodule.h"
++// BentoPDF viewer: PDF 2.0 /BrotliDecode (EXTN-BROTLI-1) back-port.
++#include "core/fxcodec/brotli/brotli_decoder.h"
+ #include "core/fxcodec/scanlinedecoder.h"
+ #include "core/fxcrt/check.h"
+ #include "core/fxcrt/compiler_specific.h"
+@@ -474,6 +476,22 @@ std::optional<PDFDataDecodeResult> PDF_DataDecode(
+           FlateOrLZWDecode(/*use_lzw=*/true, last_span, pParam, estimated_size);
+       new_buf = std::move(decode_result.data);
+       bytes_consumed = decode_result.bytes_consumed;
++    } else if (decoder == "BrotliDecode" &&
++               BrotliDecoder::GetBrotliEnabled()) {
++      // BentoPDF viewer: PDF 2.0 /BrotliDecode (mirrors upstream pdfium).  As
++      // the LAST filter of an image stream the data is handed onward like any
++      // image encoding; the image decode path does not understand it (matching
++      // upstream/Chrome), so Brotli-compressed IMAGE data stays undrawn while
++      // page content, fonts and the rest decode normally.
++      if (bImageAcc && i == nSize - 1) {
++        result.image_encoding = "BrotliDecode";
++        result.image_params = std::move(pParam);
++        return result;
++      }
++      DataAndBytesConsumed decode_result =
++          BrotliDecoder::Decode(last_span, estimated_size);
++      new_buf = std::move(decode_result.data);
++      bytes_consumed = decode_result.bytes_consumed;
+     } else if (decoder == "ASCII85Decode" || decoder == "A85") {
+       DataAndBytesConsumed decode_result = A85Decode(last_span);
+       new_buf = std::move(decode_result.data);
+diff --git a/core/fxcodec/BUILD.gn b/core/fxcodec/BUILD.gn
+index 1ef5d06aa..f0c4c2be7 100644
+--- a/core/fxcodec/BUILD.gn
++++ b/core/fxcodec/BUILD.gn
+@@ -13,6 +13,10 @@ source_set("fxcodec") {
+     "data_and_bytes_consumed.h",
+     "fax/faxmodule.cpp",
+     "fax/faxmodule.h",
++    # BentoPDF viewer: PDF 2.0 /BrotliDecode back-port (unconditional — the
++    # viewer always ships the decoder; upstream gates it on pdf_enable_brotli).
++    "brotli/brotli_decoder.cpp",
++    "brotli/brotli_decoder.h",
+     "flate/flatemodule.cpp",
+     "flate/flatemodule.h",
+     "fx_codec.cpp",
+@@ -77,6 +81,7 @@ source_set("fxcodec") {
+   ]
+   public_deps = [ "../fxcrt" ]
+   deps = [
++    "//third_party/brotli:dec",
+     "../../third_party:lcms2",
+     "../../third_party:libopenjpeg2",
+     "../../third_party:png",
+diff --git a/core/fxcodec/brotli/brotli_decoder.cpp b/core/fxcodec/brotli/brotli_decoder.cpp
+new file mode 100644
+index 000000000..bbc4db8f0
+--- /dev/null
++++ b/core/fxcodec/brotli/brotli_decoder.cpp
+@@ -0,0 +1,87 @@
++// Copyright 2026 The PDFium Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++// BentoPDF viewer: back-port of upstream pdfium's BrotliDecode support (PDF
++// Association EXTN-BROTLI-1 / PDF 2.0) onto the embedpdf pin, which predates
++// it, so the viewer can open Brotli-compressed PDFs.  One deliberate
++// divergence from upstream: the decoder defaults to ENABLED (upstream gates
++// it behind FPDF_LIBRARY_CONFIG v6 while the spec is in flight).
++
++#include "core/fxcodec/brotli/brotli_decoder.h"
++
++#include <memory>
++#include <utility>
++
++#include "core/fxcrt/check.h"
++#include "core/fxcrt/data_vector.h"
++#include "core/fxcrt/numerics/safe_conversions.h"
++#include "third_party/brotli/include/brotli/decode.h"
++
++namespace {
++
++constexpr size_t kMaxDecodeBytes = 1024 * 1024 * 1024;
++bool g_brotli_enabled = true;  // BentoPDF: on by default (see header comment).
++
++struct BrotliDecoderStateDeleter {
++  void operator()(struct BrotliDecoderStateStruct* ptr) const {
++    BrotliDecoderDestroyInstance(ptr);
++  }
++};
++
++}  // namespace
++
++DataAndBytesConsumed BrotliDecoder::Decode(pdfium::span<const uint8_t> src_span,
++                                           uint32_t estimated_decode_size) {
++  CHECK(g_brotli_enabled);
++  if (src_span.empty()) {
++    return {DataVector<uint8_t>(), 0u};
++  }
++  if (estimated_decode_size == 0) {
++    estimated_decode_size = pdfium::checked_cast<uint32_t>(src_span.size());
++  }
++  if (estimated_decode_size > kMaxDecodeBytes) {
++    return {DataVector<uint8_t>(), 0u};
++  }
++  std::unique_ptr<BrotliDecoderState, BrotliDecoderStateDeleter> state(
++      BrotliDecoderCreateInstance(nullptr, nullptr, nullptr));
++  if (!state) {
++    return {DataVector<uint8_t>(), 0u};
++  }
++  // Spec (EXTN-BROTLI-1 §5.2): decoders SHALL accept large-window Brotli
++  // (IETF RFC 9841).
++  BrotliDecoderSetParameter(state.get(), BROTLI_DECODER_PARAM_LARGE_WINDOW, 1u);
++
++  DataVector<uint8_t> decoded_buffer(estimated_decode_size);
++  size_t available_in = src_span.size();
++  const uint8_t* next_in = src_span.data();
++  size_t total_out = 0;
++
++  while (true) {
++    auto output_span = pdfium::span(decoded_buffer).subspan(total_out);
++    size_t available_out = output_span.size();
++    uint8_t* next_out = output_span.data();
++    BrotliDecoderResult result =
++        BrotliDecoderDecompressStream(state.get(), &available_in, &next_in,
++                                      &available_out, &next_out, &total_out);
++    if (result == BROTLI_DECODER_RESULT_NEEDS_MORE_OUTPUT &&
++        decoded_buffer.size() <= kMaxDecodeBytes / 2) {
++      decoded_buffer.resize(decoded_buffer.size() * 2);
++      continue;
++    }
++    if (result == BROTLI_DECODER_RESULT_SUCCESS) {
++      decoded_buffer.resize(total_out);
++      return {std::move(decoded_buffer),
++              static_cast<uint32_t>(src_span.subspan(available_in).size())};
++    }
++    return {DataVector<uint8_t>(), 0u};
++  }
++}
++
++void BrotliDecoder::SetBrotliEnabled(bool enabled) {
++  g_brotli_enabled = enabled;
++}
++
++bool BrotliDecoder::GetBrotliEnabled() {
++  return g_brotli_enabled;
++}
+diff --git a/core/fxcodec/brotli/brotli_decoder.h b/core/fxcodec/brotli/brotli_decoder.h
+new file mode 100644
+index 000000000..d9c6095da
+--- /dev/null
++++ b/core/fxcodec/brotli/brotli_decoder.h
+@@ -0,0 +1,21 @@
++// Copyright 2026 The PDFium Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#ifndef CORE_FXCODEC_BROTLI_BROTLI_DECODER_H_
++#define CORE_FXCODEC_BROTLI_BROTLI_DECODER_H_
++
++#include <stdint.h>
++
++#include "core/fxcodec/data_and_bytes_consumed.h"
++#include "core/fxcrt/span.h"
++
++class BrotliDecoder {
++ public:
++  static DataAndBytesConsumed Decode(pdfium::span<const uint8_t> src_span,
++                                     uint32_t estimated_decode_size);
++  static void SetBrotliEnabled(bool enabled);
++  static bool GetBrotliEnabled();
++};
++
++#endif  // CORE_FXCODEC_BROTLI_BROTLI_DECODER_H_
+diff --git a/third_party/brotli/BUILD.gn b/third_party/brotli/BUILD.gn
+index 1ba9afb..ae28282 100644
+--- a/third_party/brotli/BUILD.gn
++++ b/third_party/brotli/BUILD.gn
+@@ -2,18 +2,17 @@
+ # Use of this source code is governed by a BSD-style license that can be
+ # found in the LICENSE file.
+ 
+-import("//testing/libfuzzer/fuzzer_test.gni")
++# BentoPDF viewer: //testing/libfuzzer is chromium-only and absent from the
++# standalone pdfium checkout; the fuzzer targets below are removed with it.
+ 
+ if (is_win) {
+   import("//build/config/win/visual_studio_version.gni")
+ }
+ 
+ config("brotli_defines") {
+-  # By default, brotli depends on undefined behavior, but setting
+-  # BROTLI_BUILD_PORTABLE should result in a build which does not.
+-  if (is_ubsan) {
+-    defines = [ "BROTLI_BUILD_PORTABLE" ]
+-  }
++  # BentoPDF viewer: `is_ubsan` is a chromium-side variable absent from the
++  # standalone pdfium gn context; this build never uses ubsan.
++  defines = []
+ }
+ 
+ config("includes") {
+@@ -211,8 +210,3 @@ if (current_toolchain == host_toolchain) {
+   }
+ }
+ 
+-fuzzer_test("brotli_fuzzer") {
+-  sources = [ "fuzz/decode_fuzzer.c" ]
+-  deps = [ ":dec" ]
+-  libfuzzer_options = [ "max_len=1280" ]
+-}

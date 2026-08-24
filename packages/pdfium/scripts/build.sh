@@ -44,7 +44,7 @@ mkdir -p "$SRC/build/toolchain/wasm"
 cp -f "$PDFIUM/build/patch/build/toolchain/wasm/BUILD.gn" \
       "$SRC/build/toolchain/wasm/BUILD.gn"
 
-for patch in security-fixes editcore-pdfium; do
+for patch in security-fixes editcore-pdfium brotli-decode; do
   if ! git -C "$SRC" apply --reverse --check "$PDFIUM/build/patch/$patch.patch" >/dev/null 2>&1; then
     git -C "$SRC" apply "$PDFIUM/build/patch/$patch.patch"
   fi
