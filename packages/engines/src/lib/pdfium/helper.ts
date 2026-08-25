@@ -17,15 +17,15 @@ export function readString(
   parseChars: (buffer: number) => string,
   defaultLength: number = 100,
 ): string {
-  let buffer = wasmModule.wasmExports.malloc(defaultLength);
+  let buffer = wasmModule._malloc(defaultLength);
   for (let i = 0; i < defaultLength; i++) {
     wasmModule.HEAP8[buffer + i] = 0;
   }
   const actualLength = readChars(buffer, defaultLength);
   let str: string;
   if (actualLength > defaultLength) {
-    wasmModule.wasmExports.free(buffer);
-    buffer = wasmModule.wasmExports.malloc(actualLength);
+    wasmModule._free(buffer);
+    buffer = wasmModule._malloc(actualLength);
     for (let i = 0; i < actualLength; i++) {
       wasmModule.HEAP8[buffer + i] = 0;
     }
@@ -34,7 +34,7 @@ export function readString(
   } else {
     str = parseChars(buffer);
   }
-  wasmModule.wasmExports.free(buffer);
+  wasmModule._free(buffer);
 
   return str;
 }
@@ -52,7 +52,7 @@ export function readArrayBuffer(
 ): ArrayBuffer {
   const bufferSize = readChars(0, 0);
 
-  const bufferPtr = wasmModule.wasmExports.malloc(bufferSize);
+  const bufferPtr = wasmModule._malloc(bufferSize);
 
   readChars(bufferPtr, bufferSize);
 
@@ -63,7 +63,7 @@ export function readArrayBuffer(
     view.setInt8(i, wasmModule.getValue(bufferPtr + i, 'i8'));
   }
 
-  wasmModule.wasmExports.free(bufferPtr);
+  wasmModule._free(bufferPtr);
 
   return arrayBuffer;
 }

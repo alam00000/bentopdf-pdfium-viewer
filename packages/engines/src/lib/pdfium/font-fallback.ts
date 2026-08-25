@@ -177,7 +177,7 @@ export class FontFallbackManager {
 
     try {
       // Allocate the FPDF_SYSFONTINFO struct
-      this.structPtr = pdfium.wasmExports.malloc(SYSFONTINFO_SIZE);
+      this.structPtr = pdfium._malloc(SYSFONTINFO_SIZE);
       if (!this.structPtr) {
         throw new Error('Failed to allocate FPDF_SYSFONTINFO struct');
       }
@@ -317,7 +317,7 @@ export class FontFallbackManager {
 
     // Free the struct
     if (this.structPtr) {
-      pdfium.wasmExports.free(this.structPtr);
+      pdfium._free(this.structPtr);
       this.structPtr = 0;
     }
 

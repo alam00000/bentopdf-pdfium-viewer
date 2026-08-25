@@ -34,7 +34,7 @@ export class MemoryManager {
       );
     }
 
-    const ptr = this.pdfiumModule.pdfium.wasmExports.malloc(size);
+    const ptr = this.pdfiumModule.pdfium._malloc(size);
 
     if (!ptr) {
       throw new Error(`Failed to allocate ${size} bytes`);
@@ -66,7 +66,7 @@ export class MemoryManager {
       this.allocations.delete(ptr);
     }
 
-    this.pdfiumModule.pdfium.wasmExports.free(ptr);
+    this.pdfiumModule.pdfium._free(ptr);
   }
 
   /**
