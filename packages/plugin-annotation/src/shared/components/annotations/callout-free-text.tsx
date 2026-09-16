@@ -14,6 +14,8 @@ import {
 import { useAnnotationCapability, useIOSZoomPrevention } from '../..';
 import { TrackedAnnotation } from '@embedpdf/plugin-annotation';
 import { patching } from '@embedpdf/plugin-annotation';
+import { pastePlainText } from './paste-plain-text';
+import { readEditorText } from './read-editor-text';
 
 const MIN_HIT_AREA_SCREEN_PX = 20;
 
@@ -68,20 +70,7 @@ export function CalloutFreeText({
   };
   const extractContent = (): string => {
     const editor = editorRef.current;
-    if (!editor) return '';
-    editor.normalize();
-    const buffer: string[] = [];
-    let prevChild: Node | null = null;
-    for (const child of Array.from(editor.childNodes)) {
-      if (prevChild?.nodeType === Node.TEXT_NODE && child.nodeName === 'BR') continue;
-      const text =
-        child.nodeType === Node.TEXT_NODE
-          ? ((child as Text).nodeValue ?? '')
-          : ((child as HTMLElement).innerText ?? '');
-      buffer.push(text.replace(/\r\n?|\n/g, ''));
-      prevChild = child;
-    }
-    return buffer.join('\n');
+    return editor ? readEditorText(editor) : '';
   };
   const rect = obj.rect;
   const rd = obj.rectangleDifferences;
@@ -390,6 +379,7 @@ export function CalloutFreeText({
         ref={editorRef}
         onBlur={handleBlur}
         onInput={handleInput}
+        onPaste={pastePlainText}
         onCompositionStart={handleCompositionStart}
         onCompositionEnd={handleCompositionEnd}
         tabIndex={0}

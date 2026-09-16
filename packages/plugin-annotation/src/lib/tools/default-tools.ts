@@ -428,7 +428,7 @@ export const defaultTools = [
       type: PdfAnnotationSubtype.FREETEXT,
       contents: 'Insert text',
       fontSize: 14,
-      fontColor: '#E44234',
+      fontColor: '#000000',
       fontFamily: PdfStandardFont.Helvetica,
       textAlign: PdfTextAlignment.Left,
       verticalAlign: PdfVerticalAlignment.Top,
