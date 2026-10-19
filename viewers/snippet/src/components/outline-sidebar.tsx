@@ -15,6 +15,7 @@ import { useDocumentState } from '@embedpdf/core/preact';
 import { Icon } from './ui/icon';
 import { ChevronDownIcon } from './icons/chevron-down';
 import { ChevronRightIcon } from './icons/chevron-right';
+import { openExternalUri } from '../lib/open-external-uri';
 
 type OutlineSidebarProps = {
   documentId: string;
@@ -67,7 +68,7 @@ export function OutlineSidebar({ documentId }: OutlineSidebarProps) {
         destination = action.destination;
       } else if (action.type === PdfActionType.URI) {
         // Open URI in new tab
-        window.open(action.uri, '_blank');
+        openExternalUri(action.uri);
         return;
       }
       // Other action types (Unsupported, LaunchAppOrOpenFile) are not handled

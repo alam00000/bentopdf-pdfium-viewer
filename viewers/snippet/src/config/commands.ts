@@ -23,6 +23,7 @@ import { ExportPlugin } from '@embedpdf/plugin-export/preact';
 import { DocumentManagerPlugin } from '@embedpdf/plugin-document-manager/preact';
 import { HISTORY_PLUGIN_ID, HistoryPlugin } from '@embedpdf/plugin-history/preact';
 import { State } from './types';
+import { openExternalUri } from '../lib/open-external-uri';
 import { isSidebarOpen, isToolbarOpen, UI_PLUGIN_ID, UIPlugin } from '@embedpdf/plugin-ui';
 import { ScrollPlugin, ScrollStrategy } from '@embedpdf/plugin-scroll/preact';
 import { InteractionManagerPlugin } from '@embedpdf/plugin-interaction-manager/preact';
@@ -1899,7 +1900,7 @@ export const commands: Record<string, Command<State>> = {
         const action = target.action;
         if (action.type === PdfActionType.URI) {
           // Open external URL in new tab
-          window.open(action.uri, '_blank', 'noopener,noreferrer');
+          openExternalUri(action.uri);
         } else if (action.type === PdfActionType.Goto && scroll) {
           // Navigate to page destination
           const destination = action.destination;
