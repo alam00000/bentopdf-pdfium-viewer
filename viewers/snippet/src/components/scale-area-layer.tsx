@@ -172,10 +172,10 @@ export function ScaleAreaLayer({ documentId, pageIndex }: Props) {
   const quarter = pageQuarterTurns((page?.rotation ?? 0) + (docState?.rotation ?? 0));
 
   const tool = useScaleAreaTool(documentId);
-  const { measuring, calibrating } = useMeasuring(documentId);
+  const { calibrating } = useMeasuring(documentId);
   const areas = useScaleAreas(documentId, pageIndex);
   const pointer = useMeasurePointer();
-  const visible = tool.armed || measuring;
+  const visible = tool.armed;
   const interactive = tool.armed && !calibrating;
 
   const rootRef = useRef<HTMLDivElement | null>(null);

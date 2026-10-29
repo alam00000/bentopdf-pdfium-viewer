@@ -554,7 +554,7 @@ export function DropOverlay({ hint }: { hint?: string }) {
 const IS_MAC = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.userAgent);
 
 const NAMED_KEYS: Record<string, [string, string]> = {
-  escape: ['⎋', 'Esc'],
+  escape: ['Esc', 'Esc'],
   backspace: ['⌫', 'Backspace'],
   mod: ['⌘', 'Ctrl'],
   shift: ['⇧', 'Shift'],
