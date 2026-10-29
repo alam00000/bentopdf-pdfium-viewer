@@ -36,7 +36,7 @@
     "@embedpdf/plugin-capture": "workspace:*",
     "@embedpdf/plugin-history": "workspace:*",
     "@embedpdf/utils": "workspace:*",
-    "@fontsource/roboto": "5.2.6",
+    "@fontsource/roboto": "5.3.0",
     "@mdi/font": "7.4.47",
     "vue": "^3.5.26",
     "vuetify": "^3.11.4"
