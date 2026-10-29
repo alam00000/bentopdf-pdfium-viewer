@@ -3,7 +3,6 @@ import { IconProps } from './types';
 
 export const BoldIcon = ({
   size = 24,
-  strokeWidth = 2,
   primaryColor = 'currentColor',
   className,
   title,
@@ -11,18 +10,12 @@ export const BoldIcon = ({
   <svg
     width={size}
     height={size}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke={primaryColor}
-    stroke-width={strokeWidth}
-    stroke-linecap="round"
-    stroke-linejoin="round"
+    viewBox="0 0 256 256"
+    fill={primaryColor}
     class={className}
     role="img"
     aria-label={title}
   >
-    <path stroke="none" d="M0 0h24v24H0z" fill="none" />
-    <path d="M7 5h6a3.5 3.5 0 0 1 0 7h-6z" />
-    <path d="M13 12h1a3.5 3.5 0 0 1 0 7h-7v-7" />
+    <path d="M178.48,115.7A44,44,0,0,0,148,40H80a8,8,0,0,0-8,8V200a8,8,0,0,0,8,8h80a48,48,0,0,0,18.48-92.3ZM88,56h60a28,28,0,0,1,0,56H88Zm72,136H88V128h72a32,32,0,0,1,0,64Z" />
   </svg>
 );

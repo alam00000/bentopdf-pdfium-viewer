@@ -3,7 +3,6 @@ import { IconProps } from './types';
 
 export const ZoomInIcon = ({
   size = 24,
-  strokeWidth = 2,
   primaryColor = 'currentColor',
   className,
   title,
@@ -11,19 +10,12 @@ export const ZoomInIcon = ({
   <svg
     width={size}
     height={size}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke={primaryColor}
-    stroke-width={strokeWidth}
-    stroke-linecap="round"
-    stroke-linejoin="round"
+    viewBox="0 0 256 256"
+    fill={primaryColor}
     class={className}
     role="img"
     aria-label={title}
   >
-    <path stroke="none" d="M0 0h24v24H0z" fill="none" />
-    <path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0" />
-    <path d="M9 12h6" />
-    <path d="M12 9v6" />
+    <path d="M152,112a8,8,0,0,1-8,8H120v24a8,8,0,0,1-16,0V120H80a8,8,0,0,1,0-16h24V80a8,8,0,0,1,16,0v24h24A8,8,0,0,1,152,112Zm77.66,117.66a8,8,0,0,1-11.32,0l-50.06-50.07a88.11,88.11,0,1,1,11.31-11.31l50.07,50.06A8,8,0,0,1,229.66,229.66ZM112,184a72,72,0,1,0-72-72A72.08,72.08,0,0,0,112,184Z" />
   </svg>
 );

@@ -3,7 +3,6 @@ import { IconProps } from './types';
 
 export const FullscreenIcon = ({
   size = 24,
-  strokeWidth = 2,
   primaryColor = 'currentColor',
   className,
   title,
@@ -11,20 +10,12 @@ export const FullscreenIcon = ({
   <svg
     width={size}
     height={size}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke={primaryColor}
-    stroke-width={strokeWidth}
-    stroke-linecap="round"
-    stroke-linejoin="round"
+    viewBox="0 0 256 256"
+    fill={primaryColor}
     class={className}
     role="img"
     aria-label={title}
   >
-    <path stroke="none" d="M0 0h24v24H0z" fill="none" />
-    <path d="M4 8v-2a2 2 0 0 1 2 -2h2" />
-    <path d="M4 16v2a2 2 0 0 0 2 2h2" />
-    <path d="M16 4h2a2 2 0 0 1 2 2v2" />
-    <path d="M16 20h2a2 2 0 0 0 2 -2v-2" />
+    <path d="M216,48V88a8,8,0,0,1-16,0V56H168a8,8,0,0,1,0-16h40A8,8,0,0,1,216,48ZM88,200H56V168a8,8,0,0,0-16,0v40a8,8,0,0,0,8,8H88a8,8,0,0,0,0-16Zm120-40a8,8,0,0,0-8,8v32H168a8,8,0,0,0,0,16h40a8,8,0,0,0,8-8V168A8,8,0,0,0,208,160ZM88,40H48a8,8,0,0,0-8,8V88a8,8,0,0,0,16,0V56H88a8,8,0,0,0,0-16Z" />
   </svg>
 );

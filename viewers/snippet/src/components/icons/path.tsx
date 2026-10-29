@@ -3,7 +3,6 @@ import { IconProps } from './types';
 
 export const PathIcon = ({
   size = 24,
-  strokeWidth = 2,
   primaryColor = 'currentColor',
   className,
   title,
@@ -11,19 +10,12 @@ export const PathIcon = ({
   <svg
     width={size}
     height={size}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke={primaryColor}
-    stroke-width={strokeWidth}
-    stroke-linecap="round"
-    stroke-linejoin="round"
+    viewBox="0 0 256 256"
+    fill={primaryColor}
     class={className}
     role="img"
     aria-label={title}
   >
-    <path stroke="none" d="M0 0h24v24H0z" fill="none" />
-    <path d="M5 18m-2 0a2 2 0 1 0 4 0a2 2 0 1 0 -4 0" />
-    <path d="M19 6m-2 0a2 2 0 1 0 4 0a2 2 0 1 0 -4 0" />
-    <path d="M6.5 16.5l4 -5.5l3.5 3l3.5 -6.5" />
+    <path d="M200,168a32.06,32.06,0,0,0-31,24H72a32,32,0,0,1,0-64h96a40,40,0,0,0,0-80H72a8,8,0,0,0,0,16h96a24,24,0,0,1,0,48H72a48,48,0,0,0,0,96h97a32,32,0,1,0,31-40Zm0,48a16,16,0,1,1,16-16A16,16,0,0,1,200,216Z" />
   </svg>
 );

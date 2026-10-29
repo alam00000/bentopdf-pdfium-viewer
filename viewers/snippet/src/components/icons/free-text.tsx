@@ -3,7 +3,6 @@ import { IconProps } from './types';
 
 export const FreeTextIcon = ({
   size = 24,
-  strokeWidth = 2,
   primaryColor = 'currentColor',
   className,
   title,
@@ -11,22 +10,12 @@ export const FreeTextIcon = ({
   <svg
     width={size}
     height={size}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke={primaryColor}
-    stroke-width={strokeWidth}
-    stroke-linecap="round"
-    stroke-linejoin="round"
+    viewBox="0 0 256 256"
+    fill={primaryColor}
     class={className}
     role="img"
     aria-label={title}
   >
-    <path stroke="none" d="M0 0h24v24H0z" fill="none" />
-    <path d="M4 7v-2h12v2" />
-    <path d="M10 5v14" />
-    <path d="M12 19h-4" />
-    <path d="M15 13v-1h6v1" />
-    <path d="M18 12v7" />
-    <path d="M17 19h2" />
+    <path d="M208,56V88a8,8,0,0,1-16,0V64H136V192h24a8,8,0,0,1,0,16H96a8,8,0,0,1,0-16h24V64H64V88a8,8,0,0,1-16,0V56a8,8,0,0,1,8-8H200A8,8,0,0,1,208,56Z" />
   </svg>
 );

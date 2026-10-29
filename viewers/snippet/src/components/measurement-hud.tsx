@@ -20,7 +20,7 @@ import {
 } from '../measurement/scale-store';
 import { subscribeSelected, getSelected } from '../measurement/selection-bus';
 import type { PreviewSnapshot } from '../measurement/types';
-import { FloatingMenu } from '../measurement/ui/floating';
+import { FloatingMenu } from './ds/floating';
 
 const MODE_LABEL: Record<PreviewSnapshot['toolId'], string> = {
   distance: 'Distance',

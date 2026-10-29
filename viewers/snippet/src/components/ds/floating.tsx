@@ -13,18 +13,35 @@ import { createPortal } from 'preact/compat';
 import { useContext, useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 
 import { Button, IconButton, formatShortcut } from './controls';
-import { CheckIcon, XIcon } from './icons';
+import { CaretRightIcon, CheckIcon, XIcon } from './icons';
 
 function Portal({ children }: { children: ComponentChildren }) {
-  const [root, setRoot] = useState<ShadowRoot | HTMLElement | null>(null);
-  if (root) return createPortal(children, root);
+  const [scope, setScope] = useState<ShadowRoot | Document | null>(null);
+  const [, setFullscreenTick] = useState(0);
+  useEffect(() => {
+    if (!scope) return;
+    const doc = scope instanceof ShadowRoot ? scope.ownerDocument : scope;
+    const onChange = () => setFullscreenTick((t) => t + 1);
+    doc.addEventListener('fullscreenchange', onChange);
+    return () => doc.removeEventListener('fullscreenchange', onChange);
+  }, [scope]);
+  if (scope) {
+    const fullscreen = scope.fullscreenElement;
+    const target =
+      fullscreen instanceof HTMLElement
+        ? fullscreen
+        : scope instanceof ShadowRoot
+          ? scope
+          : scope.body;
+    return createPortal(children, target);
+  }
   return (
     <span
       hidden
       ref={(el) => {
         if (!el) return;
         const node = el.getRootNode();
-        setRoot(node instanceof ShadowRoot ? node : el.ownerDocument.body);
+        setScope(node instanceof ShadowRoot ? node : el.ownerDocument);
       }}
     />
   );
@@ -61,7 +78,10 @@ interface ModalProps {
   open: boolean;
   onClose: () => void;
   ariaLabel?: string;
-  width: 'sm' | 'md';
+  width: 'sm' | 'md' | number;
+  role?: 'dialog' | 'alertdialog';
+  dismissOnBackdrop?: boolean;
+  dismissOnEscape?: boolean;
   children: ComponentChildren;
 }
 
@@ -74,7 +94,17 @@ export function Modal(props: ModalProps) {
   );
 }
 
-function ModalSurface({ onClose, ariaLabel, width, children }: ModalProps) {
+const MODAL_WIDTH = { sm: 380, md: 520 };
+
+function ModalSurface({
+  onClose,
+  ariaLabel,
+  width,
+  role = 'dialog',
+  dismissOnBackdrop = true,
+  dismissOnEscape = true,
+  children,
+}: ModalProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   const pressInside = useRef(false);
 
@@ -85,7 +115,11 @@ function ModalSurface({ onClose, ariaLabel, width, children }: ModalProps) {
     const previous =
       root instanceof ShadowRoot || root instanceof Document ? root.activeElement : null;
     (
-      panel.querySelector<HTMLElement>('input:not([type="checkbox"]):not(:disabled)') ?? panel
+      panel.querySelector<HTMLElement>('[data-autofocus]:not(:disabled)') ??
+      panel.querySelector<HTMLElement>(
+        'input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not(:disabled)',
+      ) ??
+      panel
     ).focus();
     return () => {
       if (previous instanceof HTMLElement && previous.isConnected) previous.focus();
@@ -104,23 +138,23 @@ function ModalSurface({ onClose, ariaLabel, width, children }: ModalProps) {
       onClick={(e) => {
         const onScrim = e.target === e.currentTarget && !pressInside.current;
         pressInside.current = false;
-        if (onScrim) onClose();
+        if (onScrim && dismissOnBackdrop) onClose();
       }}
       onKeyDown={(e) => {
         if (e.key !== 'Escape' || e.defaultPrevented) return;
         e.preventDefault();
         e.stopPropagation();
-        onClose();
+        if (dismissOnEscape) onClose();
       }}
     >
       <div
         ref={panelRef}
-        role="dialog"
+        role={role}
         aria-modal="true"
         aria-label={ariaLabel}
         tabIndex={-1}
         class="bg-bg-surface border-border-subtle flex max-h-full max-w-full flex-col rounded-lg border shadow-lg focus:outline-none"
-        style={{ width: width === 'sm' ? 380 : 520 }}
+        style={{ width: typeof width === 'number' ? width : MODAL_WIDTH[width] }}
       >
         {children}
       </div>
@@ -153,36 +187,47 @@ export function ModalBody({ children }: { children: ComponentChildren }) {
   return <div class="min-h-0 flex-1 overflow-y-auto px-6 py-4">{children}</div>;
 }
 
+export function ModalText({ children }: { children: ComponentChildren }) {
+  return <p class="text-fg-secondary text-sm">{children}</p>;
+}
+
 export function ModalActions({
   leading,
   cancelLabel,
   onCancel,
+  cancelDisabled,
   confirmLabel,
   onConfirm,
+  confirmVariant = 'brand',
   confirmDisabled,
   confirmLoading,
+  confirmAutoFocus,
 }: {
   leading?: ComponentChildren;
   cancelLabel?: ComponentChildren;
   onCancel?: () => void;
+  cancelDisabled?: boolean;
   confirmLabel: ComponentChildren;
   onConfirm?: () => void;
+  confirmVariant?: 'brand' | 'destructive';
   confirmDisabled?: boolean;
   confirmLoading?: boolean;
+  confirmAutoFocus?: boolean;
 }) {
   return (
     <div class="border-border-subtle flex shrink-0 items-center justify-end gap-3 border-t px-6 py-4">
       {leading ? <div class="mr-auto">{leading}</div> : null}
       {cancelLabel !== undefined ? (
-        <Button variant="secondary" onClick={onCancel}>
+        <Button variant="secondary" onClick={onCancel} disabled={cancelDisabled}>
           {cancelLabel}
         </Button>
       ) : null}
       <Button
-        variant="brand"
+        variant={confirmVariant}
         onClick={onConfirm}
         disabled={confirmDisabled}
         isLoading={confirmLoading}
+        data-autofocus={confirmAutoFocus ? '' : undefined}
       >
         {confirmLabel}
       </Button>
@@ -273,13 +318,24 @@ const MenuClose = createContext<() => void>(() => undefined);
 
 const MENU_ITEMS = '[role="menuitem"], [role="menuitemcheckbox"], [role="menuitemradio"]';
 
+function ownItems(panel: HTMLElement | null): HTMLButtonElement[] {
+  if (!panel) return [];
+  return Array.from(panel.querySelectorAll<HTMLButtonElement>(MENU_ITEMS)).filter(
+    (b) => !b.disabled && b.parentElement?.closest('[role="menu"]') === panel,
+  );
+}
+
 function MenuPanel({
   reference,
   referenceKey,
   placement,
   gap,
   onClose,
+  closeItems,
   dismissOutside,
+  initialFocus = 'panel',
+  back = false,
+  panelClass,
   ariaLabel,
   children,
 }: {
@@ -288,7 +344,11 @@ function MenuPanel({
   placement: Placement;
   gap: number;
   onClose: () => void;
+  closeItems?: () => void;
   dismissOutside?: RefObject<HTMLElement | null>;
+  initialFocus?: 'panel' | 'first' | 'none';
+  back?: boolean;
+  panelClass?: string;
   ariaLabel?: string;
   children: ComponentChildren;
 }) {
@@ -299,7 +359,8 @@ function MenuPanel({
 
   useEffect(() => {
     const panel = panelRef.current;
-    panel?.focus({ preventScroll: true });
+    if (initialFocus === 'panel') panel?.focus({ preventScroll: true });
+    if (initialFocus === 'first') ownItems(panel)[0]?.focus({ preventScroll: true });
     if (!panel || !dismissOutside) return;
     const onDown = (e: PointerEvent) => {
       const path = e.composedPath();
@@ -312,18 +373,23 @@ function MenuPanel({
   }, [dismissOutside]);
 
   const onKeyDown = (e: JSX.TargetedKeyboardEvent<HTMLDivElement>) => {
-    if (e.key === 'Escape' || e.key === 'Tab') {
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      e.stopPropagation();
+      (closeItems ?? onClose)();
+      return;
+    }
+    if (e.key === 'Escape' || (back && e.key === 'ArrowLeft')) {
       e.preventDefault();
       e.stopPropagation();
       onClose();
-      if (e.key === 'Escape') dismissOutside?.current?.focus();
+      dismissOutside?.current?.focus();
       return;
     }
     if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
     e.preventDefault();
-    const items = Array.from(
-      e.currentTarget.querySelectorAll<HTMLButtonElement>(MENU_ITEMS),
-    ).filter((b) => !b.disabled);
+    e.stopPropagation();
+    const items = ownItems(e.currentTarget);
     const n = items.length;
     if (!n) return;
     const down = e.key === 'ArrowDown';
@@ -332,14 +398,14 @@ function MenuPanel({
   };
 
   return (
-    <MenuClose.Provider value={onClose}>
+    <MenuClose.Provider value={closeItems ?? onClose}>
       <div
         ref={panelRef}
         role="menu"
         aria-label={ariaLabel}
         tabIndex={-1}
         data-floating=""
-        class="border-border-default bg-bg-elevated z-[600] min-w-[180px] rounded-lg border py-1 shadow-lg select-none focus:outline-none"
+        class={`border-border-default bg-bg-elevated z-[600] min-w-[180px] rounded-lg border py-1 shadow-lg select-none focus:outline-none ${panelClass ?? ''}`}
         style={UNPLACED}
         onKeyDown={onKeyDown}
         onMouseDown={(e) => e.stopPropagation()}
@@ -356,6 +422,8 @@ export function Menu({
   triggerRef,
   align = 'end',
   side = 'bottom',
+  class: cls,
+  'aria-label': ariaLabel,
   children,
 }: {
   open: boolean;
@@ -363,6 +431,8 @@ export function Menu({
   triggerRef: RefObject<HTMLElement | null>;
   align?: 'start' | 'end';
   side?: 'top' | 'bottom';
+  class?: string;
+  'aria-label'?: string;
   children: ComponentChildren;
 }) {
   if (!open) return null;
@@ -375,6 +445,8 @@ export function Menu({
         gap={4}
         onClose={onClose}
         dismissOutside={triggerRef}
+        panelClass={cls}
+        ariaLabel={ariaLabel}
       >
         {children}
       </MenuPanel>
@@ -426,6 +498,9 @@ export function PopupMenu({
   );
 }
 
+const MENU_ITEM =
+  'hover:bg-interactive-hover focus:bg-interactive-hover flex w-full cursor-pointer items-center gap-2 px-3 py-1.5 text-left text-sm focus:outline-none disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent';
+
 export function PopupMenuItem({
   icon,
   label,
@@ -453,9 +528,7 @@ export function PopupMenuItem({
       role={selected === undefined ? 'menuitem' : keepOpen ? 'menuitemcheckbox' : 'menuitemradio'}
       aria-checked={selected}
       disabled={disabled}
-      class={`hover:bg-interactive-hover focus:bg-interactive-hover flex w-full cursor-pointer items-center gap-2 px-3 py-1.5 text-left text-sm focus:outline-none disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent ${
-        destructive ? 'text-state-error' : 'text-fg-primary'
-      }`}
+      class={`${MENU_ITEM} ${destructive ? 'text-state-error' : 'text-fg-primary'}`}
       onClick={() => {
         if (disabled) return;
         try {
@@ -470,6 +543,75 @@ export function PopupMenuItem({
       {shortcut ? <span class="text-fg-muted text-xs">{formatShortcut(shortcut)}</span> : null}
       {selected ? <CheckIcon size={12} weight="bold" class="text-accent shrink-0" /> : null}
     </button>
+  );
+}
+
+export function PopupMenuSubmenu({
+  icon,
+  label,
+  disabled,
+  children,
+}: {
+  icon?: ComponentChildren;
+  label: ComponentChildren;
+  disabled?: boolean;
+  children: ComponentChildren;
+}) {
+  const closeAll = useContext(MenuClose);
+  const rowRef = useRef<HTMLButtonElement>(null);
+  const [open, setOpen] = useState<'pointer' | 'keyboard' | null>(null);
+  const timer = useRef<number | undefined>(undefined);
+  useEffect(() => () => window.clearTimeout(timer.current), []);
+  const show = (how: 'pointer' | 'keyboard') => {
+    window.clearTimeout(timer.current);
+    if (!disabled) setOpen(how);
+  };
+  const hide = () => {
+    window.clearTimeout(timer.current);
+    timer.current = window.setTimeout(() => setOpen(null), 200);
+  };
+  return (
+    <div onMouseEnter={() => show('pointer')} onMouseLeave={hide}>
+      <button
+        ref={rowRef}
+        type="button"
+        tabIndex={-1}
+        role="menuitem"
+        aria-haspopup="menu"
+        aria-expanded={open !== null}
+        disabled={disabled}
+        class={`${MENU_ITEM} text-fg-primary ${open ? 'bg-interactive-hover' : ''}`}
+        onClick={() => {
+          if (open) setOpen(null);
+          else show('pointer');
+        }}
+        onKeyDown={(e) => {
+          if (e.key !== 'ArrowRight' && e.key !== 'Enter' && e.key !== ' ') return;
+          e.preventDefault();
+          e.stopPropagation();
+          show('keyboard');
+        }}
+      >
+        <span class="flex w-4 shrink-0 justify-center">{icon}</span>
+        <span class="min-w-0 flex-1 truncate">{label}</span>
+        <CaretRightIcon size={12} weight="bold" class="text-fg-muted shrink-0" />
+      </button>
+      {open && !disabled ? (
+        <MenuPanel
+          reference={() => rowRef.current}
+          referenceKey={rowRef}
+          placement="right-start"
+          gap={2}
+          onClose={() => setOpen(null)}
+          closeItems={closeAll}
+          dismissOutside={rowRef}
+          initialFocus={open === 'keyboard' ? 'first' : 'none'}
+          back
+        >
+          {children}
+        </MenuPanel>
+      ) : null}
+    </div>
   );
 }
 

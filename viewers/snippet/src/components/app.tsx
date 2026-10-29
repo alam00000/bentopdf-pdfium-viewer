@@ -170,6 +170,7 @@ import { MeasurementHud } from './measurement-hud';
 import { MeasurementCalibratePageVisual } from './measurement-calibrate-overlay';
 import { ScaleAreaLayer } from './scale-area-layer';
 import { MeasurementLoupeToggle, MeasurementSnapToggles } from './measurement-snap-toggles';
+import { AnnotationSectionLabel } from './annotation-section-label';
 
 // ============================================================================
 // Main Configuration Interface - Uses actual plugin config types directly
@@ -606,6 +607,7 @@ export function PDFViewer({ config, onRegistryReady }: PDFViewerProps) {
       'redaction-sidebar': RedactionSidebar,
       'measurement-snap-button': MeasurementSnapToggles,
       'measurement-loupe-button': MeasurementLoupeToggle,
+      'annotation-section-label': AnnotationSectionLabel,
     }),
     [],
   );

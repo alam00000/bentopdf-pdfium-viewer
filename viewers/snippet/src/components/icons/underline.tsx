@@ -3,26 +3,27 @@ import { IconProps } from './types';
 
 export const UnderlineIcon = ({
   size = 24,
-  strokeWidth = 2,
   primaryColor = 'currentColor',
+  secondaryColor,
   className,
   title,
 }: IconProps) => (
   <svg
     width={size}
     height={size}
-    viewBox="0 0 24 24"
+    viewBox="0 0 256 256"
     fill="none"
-    stroke-width={strokeWidth}
-    stroke-linecap="round"
-    stroke-linejoin="round"
-    class={className}
-    role="img"
+    xmlns="http://www.w3.org/2000/svg"
+    className={className}
     aria-label={title}
   >
-    <path stroke="none" d="M0 0h24v24H0z" fill="none" />
-    <path d="M4 20h16" stroke={primaryColor} />
-    <path d="M8 16v-8a4 4 0 1 1 8 0v8" stroke="currentColor" />
-    <path d="M8 10h8" stroke="currentColor" />
+    <path
+      d="M128,200a64.07,64.07,0,0,0,64-64V56a8,8,0,0,0-16,0v80a48,48,0,0,1-96,0V56a8,8,0,0,0-16,0v80A64.07,64.07,0,0,0,128,200Z"
+      fill={primaryColor}
+    />
+    <path
+      d="M200,224a8,8,0,0,1-8,8H64a8,8,0,0,1,0-16H192A8,8,0,0,1,200,224Z"
+      fill={secondaryColor ?? primaryColor}
+    />
   </svg>
 );

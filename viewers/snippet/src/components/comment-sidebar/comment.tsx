@@ -6,6 +6,7 @@ import { UserAvatar } from './user-avatar';
 import { MenuDropdown } from './menu-dropdown';
 import { EditCommentForm } from './edit-comment-form';
 import { formatDate } from '@/components/utils';
+import { DotsIcon } from '../icons/dots';
 
 interface CommentProps {
   annotation: PdfAnnotationObject;
@@ -75,9 +76,7 @@ export const Comment = ({
                   }}
                   className="text-fg-muted hover:bg-interactive-hover rounded-md p-1"
                 >
-                  <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zM12 10a2 2 0 11-4 0 2 2 0 014 0zM16 12a2 2 0 100-4 2 2 0 000 4z" />
-                  </svg>
+                  <DotsIcon className="h-4 w-4" />
                 </button>
                 {isMenuOpen && (
                   <MenuDropdown

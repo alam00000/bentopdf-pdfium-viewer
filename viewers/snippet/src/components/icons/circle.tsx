@@ -3,26 +3,19 @@ import { IconProps } from './types';
 
 export const CircleIcon = ({
   size = 24,
-  strokeWidth = 2,
   primaryColor = 'currentColor',
-  secondaryColor = 'none',
   className,
   title,
 }: IconProps) => (
   <svg
     width={size}
     height={size}
-    viewBox="0 0 24 24"
-    fill={secondaryColor}
-    stroke={primaryColor}
-    stroke-width={strokeWidth}
-    stroke-linecap="round"
-    stroke-linejoin="round"
+    viewBox="0 0 256 256"
+    fill={primaryColor}
     class={className}
     role="img"
     aria-label={title}
   >
-    <path stroke="none" d="M0 0h24v24H0z" fill="none" />
-    <path d="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0 -18 0" />
+    <path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Z" />
   </svg>
 );

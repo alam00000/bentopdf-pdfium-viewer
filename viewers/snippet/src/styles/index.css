@@ -122,3 +122,12 @@
 :host *::-webkit-scrollbar-thumb:hover {
   background: var(--ep-scrollbar-thumb-hover);
 }
+
+@keyframes bento-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}

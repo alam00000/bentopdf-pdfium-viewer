@@ -1,19 +1,21 @@
 import { h } from 'preact';
-import { IconComponent } from './types';
+import { IconProps } from './types';
 
-export const ExternalLinkIcon: IconComponent = ({ className }) => (
+export const ExternalLinkIcon = ({
+  size = 24,
+  primaryColor = 'currentColor',
+  className,
+  title,
+}: IconProps) => (
   <svg
-    xmlns="http://www.w3.org/2000/svg"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className={className}
+    width={size}
+    height={size}
+    viewBox="0 0 256 256"
+    fill={primaryColor}
+    class={className}
+    role="img"
+    aria-label={title}
   >
-    <path d="M12 6h-6a2 2 0 0 0 -2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-6" />
-    <path d="M11 13l9 -9" />
-    <path d="M15 4h5v5" />
+    <path d="M224,104a8,8,0,0,1-16,0V59.32l-66.33,66.34a8,8,0,0,1-11.32-11.32L196.68,48H152a8,8,0,0,1,0-16h64a8,8,0,0,1,8,8Zm-40,24a8,8,0,0,0-8,8v72H48V80h72a8,8,0,0,0,0-16H48A16,16,0,0,0,32,80V208a16,16,0,0,0,16,16H176a16,16,0,0,0,16-16V136A8,8,0,0,0,184,128Z" />
   </svg>
 );

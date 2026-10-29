@@ -32,9 +32,9 @@ import {
   PickerSelect,
   SidebarCard,
   TextField,
-} from '../measurement/ui/controls';
-import { Modal, ModalHeader, ModalBody, ModalActions } from '../measurement/ui/floating';
-import { TrashIcon, PlusIcon } from '../measurement/ui/icons';
+} from './ds/controls';
+import { Modal, ModalHeader, ModalBody, ModalActions } from './ds/floating';
+import { TrashIcon, PlusIcon } from './ds/icons';
 import { UNITS, UNIT_LABEL, type Unit } from '../measurement/units';
 
 interface Props {

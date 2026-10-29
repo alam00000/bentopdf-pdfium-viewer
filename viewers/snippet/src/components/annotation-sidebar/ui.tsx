@@ -8,6 +8,9 @@ import {
   PdfAnnotationBorderStyle,
   PdfAnnotationLineEnding,
 } from '@embedpdf/models';
+import { ChevronDownIcon } from '../icons/chevron-down';
+import { RotateClockwiseIcon } from '../icons/rotate-clockwise';
+import { RotateCounterClockwiseIcon } from '../icons/rotate-counter-clockwise';
 
 /* * ==================================================================
  * Reusable Dropdown Hook & Generic Components
@@ -83,13 +86,7 @@ const GenericSelect = <T,>({
       >
         {renderValue(value)}
         {/* Chevron */}
-        <svg class="text-fg-secondary h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-          <path
-            fillRule="evenodd"
-            d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.24a.75.75 0 01-1.06 0L5.21 8.29a.75.75 0 01.02-1.08z"
-            clipRule="evenodd"
-          />
-        </svg>
+        <ChevronDownIcon className="text-fg-secondary h-4 w-4" />
       </button>
 
       {/* Dropdown Panel */}
@@ -446,19 +443,7 @@ export const RotationInput = ({
         class="border-border-default bg-bg-input text-fg-primary hover:bg-interactive-hover flex h-8 w-8 shrink-0 items-center justify-center rounded border"
         onClick={() => rotate(-90)}
       >
-        <svg
-          width="16"
-          height="16"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        >
-          <path d="M1 4v6h6" />
-          <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
-        </svg>
+        <RotateCounterClockwiseIcon size={16} />
       </button>
 
       {/* Numeric input */}
@@ -488,19 +473,7 @@ export const RotationInput = ({
         class="border-border-default bg-bg-input text-fg-primary hover:bg-interactive-hover flex h-8 w-8 shrink-0 items-center justify-center rounded border"
         onClick={() => rotate(90)}
       >
-        <svg
-          width="16"
-          height="16"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        >
-          <path d="M23 4v6h-6" />
-          <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
-        </svg>
+        <RotateClockwiseIcon size={16} />
       </button>
     </div>
   );
@@ -540,13 +513,7 @@ export const FontSizeInputSelect = ({
         onClick={() => setOpen((o) => !o)}
         tabIndex={-1}
       >
-        <svg class="text-fg-secondary h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-          <path
-            fill-rule="evenodd"
-            d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.24a.75.75 0 01-1.06 0L5.21 8.29a.75.75 0 01.02-1.08z"
-            clip-rule="evenodd"
-          />
-        </svg>
+        <ChevronDownIcon className="text-fg-secondary h-4 w-4" />
       </button>
 
       {open && (

@@ -18,15 +18,11 @@ export const Checkbox = ({ label, checked, onChange }: CheckboxProps) => (
 
     {/* 2️⃣ overlayed check icon that fades in only when checked */}
     <svg
-      viewBox="0 0 24 24"
+      viewBox="0 0 256 256"
       className="/* fine-tune centering */ text-fg-on-accent pointer-events-none absolute h-3.5 w-3.5 translate-x-[1px] translate-y-[1px] opacity-0 peer-checked:opacity-100"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={3}
-      strokeLinecap="round"
-      strokeLinejoin="round"
+      fill="currentColor"
     >
-      <polyline points="20 6 9 17 4 12" />
+      <path d="M232.49,80.49l-128,128a12,12,0,0,1-17,0l-56-56a12,12,0,1,1,17-17L96,183,215.51,63.51a12,12,0,0,1,17,17Z" />
     </svg>
 
     {label}

@@ -3,7 +3,6 @@ import { IconProps } from './types';
 
 export const ScreenshotIcon = ({
   size = 24,
-  strokeWidth = 2,
   primaryColor = 'currentColor',
   className,
   title,
@@ -11,25 +10,12 @@ export const ScreenshotIcon = ({
   <svg
     width={size}
     height={size}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke={primaryColor}
-    stroke-width={strokeWidth}
-    stroke-linecap="round"
-    stroke-linejoin="round"
+    viewBox="0 0 256 256"
+    fill={primaryColor}
     class={className}
     role="img"
     aria-label={title}
   >
-    <path stroke="none" d="M0 0h24v24H0z" fill="none" />
-    <path d="M7 19a2 2 0 0 1 -2 -2" />
-    <path d="M5 13v-2" />
-    <path d="M5 7a2 2 0 0 1 2 -2" />
-    <path d="M11 5h2" />
-    <path d="M17 5a2 2 0 0 1 2 2" />
-    <path d="M19 11v2" />
-    <path d="M19 17v4" />
-    <path d="M21 19h-4" />
-    <path d="M13 19h-2" />
+    <path d="M200,80v32a8,8,0,0,1-16,0V88H160a8,8,0,0,1,0-16h32A8,8,0,0,1,200,80ZM96,168H72V144a8,8,0,0,0-16,0v32a8,8,0,0,0,8,8H96a8,8,0,0,0,0-16ZM232,56V200a16,16,0,0,1-16,16H40a16,16,0,0,1-16-16V56A16,16,0,0,1,40,40H216A16,16,0,0,1,232,56ZM216,200V56H40V200H216Z" />
   </svg>
 );

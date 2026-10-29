@@ -35,15 +35,15 @@ import {
   subscribeCalibration,
   subscribePendingMode,
 } from '../measurement/scale-store';
-import { Badge } from '../measurement/ui/controls';
-import { PopupMenu, PopupMenuDivider, PopupMenuItem } from '../measurement/ui/floating';
-import { CopyIcon, PencilSimpleIcon, StackIcon, TrashIcon } from '../measurement/ui/icons';
+import { Badge } from './ds/controls';
+import { PopupMenu, PopupMenuDivider, PopupMenuItem } from './ds/floating';
+import { CopyIcon, PencilSimpleIcon, StackIcon, TrashIcon } from './ds/icons';
 import {
   PageRegion,
   SelectionFrame,
   SelectionHandle,
   type SelectionHandlePosition,
-} from '../measurement/ui/page';
+} from './ds/page';
 
 interface Props {
   documentId: string;

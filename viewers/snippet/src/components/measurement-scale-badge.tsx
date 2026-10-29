@@ -2,7 +2,7 @@ import { h } from 'preact';
 
 import { buildScaleRatio } from '../measurement/formatter';
 import { useScaleStore } from '../measurement/scale-store';
-import { Button } from '../measurement/ui/controls';
+import { Button } from './ds/controls';
 
 interface Props {
   documentId: string;

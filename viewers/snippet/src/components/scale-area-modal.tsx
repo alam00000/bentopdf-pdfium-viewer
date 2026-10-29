@@ -34,9 +34,9 @@ import {
   PageScopeField,
   PickerSelect,
   TextField,
-} from '../measurement/ui/controls';
-import { Modal, ModalBody, ModalHeader, ModalActions } from '../measurement/ui/floating';
-import { resolvePageScope, type PageScopeValue } from '../measurement/ui/page-range';
+} from './ds/controls';
+import { Modal, ModalBody, ModalHeader, ModalActions } from './ds/floating';
+import { resolvePageScope, type PageScopeValue } from './ds/page-range';
 import { TO_IN, type Unit } from '../measurement/units';
 
 interface Props {

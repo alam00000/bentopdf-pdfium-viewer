@@ -3,44 +3,19 @@ import { IconProps } from './types';
 
 export const RedactAreaIcon = ({
   size = 24,
-  strokeWidth = 2,
   primaryColor = 'currentColor',
-  secondaryColor = 'currentColor',
   className,
   title,
 }: IconProps) => (
   <svg
     width={size}
     height={size}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke={primaryColor}
-    stroke-width={strokeWidth}
-    stroke-linecap="round"
-    stroke-linejoin="round"
+    viewBox="0 0 256 256"
+    fill={primaryColor}
     class={className}
     role="img"
     aria-label={title}
   >
-    <path stroke="none" d="M0 0h24v24H0z" fill="none" />
-    <path d="M6 20h-1a2 2 0 0 1 -2 -2v-1" />
-    <path d="M3 13v-3" />
-    <path d="M3 6v-1a2 2 0 0 1 2 -2h1" />
-    <path d="M10 3h3" />
-    <path d="M17 3h1a2 2 0 0 1 2 2v1" />
-    <defs>
-      <clipPath id="redactClip">
-        <rect x="10" y="10" width="12" height="12" rx="2" />
-      </clipPath>
-    </defs>
-    <rect x="10" y="10" width="12" height="12" rx="2" fill="none" />
-    <g clip-path="url(#redactClip)" stroke={secondaryColor}>
-      <path d="M-2 24l14 -14" />
-      <path d="M2 24l14 -14" />
-      <path d="M6 24l14 -14" />
-      <path d="M10 24l15 -15" />
-      <path d="M14 24l15 -15" />
-      <path d="M18 24l15 -15" />
-    </g>
+    <path d="M213.66,82.34l-56-56A8,8,0,0,0,152,24H56A16,16,0,0,0,40,40V216a16,16,0,0,0,16,16H200a16,16,0,0,0,16-16V88A8,8,0,0,0,213.66,82.34ZM160,51.31,188.69,80H160ZM200,216H56V40h88V88a8,8,0,0,0,8,8h48V216Zm-32-80a8,8,0,0,1-8,8H96a8,8,0,0,1,0-16h64A8,8,0,0,1,168,136Zm0,32a8,8,0,0,1-8,8H96a8,8,0,0,1,0-16h64A8,8,0,0,1,168,168Z" />
   </svg>
 );

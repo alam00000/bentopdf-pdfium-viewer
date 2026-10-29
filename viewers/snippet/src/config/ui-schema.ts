@@ -723,6 +723,18 @@ export const viewerUISchema: UISchema = {
         slot: 'secondary',
         order: 0,
       },
+      responsive: {
+        breakpoints: {
+          sm: {
+            maxWidth: 768,
+            hide: ['measure-label-calibrate', 'measure-label-measure', 'measure-label-aids'],
+          },
+          md: {
+            minWidth: 768,
+            show: ['measure-label-calibrate', 'measure-label-measure', 'measure-label-aids'],
+          },
+        },
+      },
       permanent: false,
       categories: ['annotation-measurement'],
       items: [
@@ -733,6 +745,12 @@ export const viewerUISchema: UISchema = {
           alignment: 'center',
           gap: 2,
           items: [
+            {
+              type: 'custom',
+              id: 'measure-label-calibrate',
+              componentId: 'annotation-section-label',
+              props: { labelKey: 'measurement.calibrate' },
+            },
             {
               type: 'command-button',
               id: 'measurement-calibrate',
@@ -760,6 +778,12 @@ export const viewerUISchema: UISchema = {
               orientation: 'vertical',
             },
             {
+              type: 'custom',
+              id: 'measure-label-measure',
+              componentId: 'annotation-section-label',
+              props: { labelKey: 'mode.measure' },
+            },
+            {
               type: 'command-button',
               id: 'add-distance',
               commandId: 'annotation:add-distance',
@@ -784,6 +808,12 @@ export const viewerUISchema: UISchema = {
               type: 'divider',
               id: 'measure-toolbar-divider',
               orientation: 'vertical',
+            },
+            {
+              type: 'custom',
+              id: 'measure-label-aids',
+              componentId: 'annotation-section-label',
+              props: { labelKey: 'measurement.aids' },
             },
             {
               type: 'custom',

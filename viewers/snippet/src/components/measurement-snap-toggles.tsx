@@ -10,8 +10,8 @@ import {
   setSnapKind,
   useSnapSettings,
 } from '../measurement/snap-settings';
-import { IconButton } from '../measurement/ui/controls';
-import { Menu, PopupMenuItem, PopupMenuLabel } from '../measurement/ui/floating';
+import { IconButton } from './ds/controls';
+import { Menu, PopupMenuItem, PopupMenuLabel } from './ds/floating';
 import {
   CircleIcon,
   MagnetIcon,
@@ -20,7 +20,7 @@ import {
   TriangleIcon,
   XIcon,
   type Icon,
-} from '../measurement/ui/icons';
+} from './ds/icons';
 
 const SNAP_KINDS: {
   kind: SnapKind;

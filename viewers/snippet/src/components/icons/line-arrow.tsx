@@ -3,7 +3,6 @@ import { IconProps } from './types';
 
 export const LineArrowIcon = ({
   size = 24,
-  strokeWidth = 2.2,
   primaryColor = 'currentColor',
   className,
   title,
@@ -11,18 +10,12 @@ export const LineArrowIcon = ({
   <svg
     width={size}
     height={size}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke={primaryColor}
-    stroke-width={strokeWidth}
-    stroke-linecap="round"
-    stroke-linejoin="round"
+    viewBox="0 0 256 256"
+    fill={primaryColor}
     class={className}
     role="img"
     aria-label={title}
   >
-    <path stroke="none" d="M0 0h24v24H0z" fill="none" />
-    <path d="M20 4l-16 16" />
-    <path d="M16 3h5v5" />
+    <path d="M221.66,133.66l-72,72a8,8,0,0,1-11.32-11.32L196.69,136H40a8,8,0,0,1,0-16H196.69L138.34,61.66a8,8,0,0,1,11.32-11.32l72,72A8,8,0,0,1,221.66,133.66Z" />
   </svg>
 );

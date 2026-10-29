@@ -34,16 +34,9 @@ import {
   cacheMatches as snapCacheMatches,
 } from '../measurement/snap-engine';
 import { getSnapSettings } from '../measurement/snap-settings';
-import {
-  Button,
-  IconButton,
-  Kbd,
-  Notice,
-  NumberField,
-  PickerSelect,
-} from '../measurement/ui/controls';
-import { FloatingMenu } from '../measurement/ui/floating';
-import { XIcon } from '../measurement/ui/icons';
+import { Button, IconButton, Kbd, Notice, NumberField, PickerSelect } from './ds/controls';
+import { FloatingMenu } from './ds/floating';
+import { XIcon } from './ds/icons';
 import { CALIBRATE_UNITS, UNIT_LABEL, type Unit } from '../measurement/units';
 
 interface Props {

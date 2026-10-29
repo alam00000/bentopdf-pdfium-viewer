@@ -10,6 +10,8 @@ import { MenuDropdown } from './menu-dropdown';
 import { formatDate } from '../utils';
 import { AnnotationIcon } from './annotation-icon';
 import { EditCommentForm } from './edit-comment-form';
+import { DotsIcon } from '../icons/dots';
+import { ChevronDownIcon } from '../icons/chevron-down';
 
 interface AnnotationCardProps {
   entry: SidebarAnnotationEntry;
@@ -98,9 +100,7 @@ export const AnnotationCard = ({
                     }}
                     className="text-fg-disabled hover:bg-interactive-hover hover:text-fg-secondary rounded-md p-1"
                   >
-                    <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zM12 10a2 2 0 11-4 0 2 2 0 014 0zM16 12a2 2 0 100-4 2 2 0 000 4z" />
-                    </svg>
+                    <DotsIcon className="h-4 w-4" />
                   </button>
                   {isMenuOpen && (
                     <MenuDropdown
@@ -172,15 +172,9 @@ export const AnnotationCard = ({
                 : translate('comments.showAllAnnotations', {
                     fallback: 'Show All Annotations',
                   })}
-              <svg
+              <ChevronDownIcon
                 className={`h-4 w-4 transition-transform ${isGroupExpanded ? 'rotate-180' : ''}`}
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-              </svg>
+              />
             </button>
             {isGroupExpanded && (
               <div className="mt-3 space-y-3">

@@ -190,6 +190,7 @@ export const englishTranslations: Locale = {
       calibrate: 'Calibrate',
       scaleArea: 'Scale Area',
       scaleAreaDragTip: 'Drag to draw a scale area',
+      aids: 'Aids',
     },
     redaction: {
       redact: 'Redact',
@@ -551,6 +552,7 @@ export const germanTranslations: Locale = {
       calibrate: 'Kalibrieren',
       scaleArea: 'Maßstabsbereich',
       scaleAreaDragTip: 'Ziehen Sie, um einen Maßstabsbereich zu zeichnen',
+      aids: 'Hilfen',
     },
     redaction: {
       redact: 'Schwärzen',
@@ -914,6 +916,7 @@ export const dutchTranslations: Locale = {
       calibrate: 'Kalibreren',
       scaleArea: 'Schaalgebied',
       scaleAreaDragTip: 'Sleep om een schaalgebied te tekenen',
+      aids: 'Hulpmiddelen',
     },
     redaction: {
       redact: 'Redigeren',
@@ -1275,6 +1278,7 @@ export const frenchTranslations: Locale = {
       calibrate: 'Étalonner',
       scaleArea: "Zone d'échelle",
       scaleAreaDragTip: "Faites glisser pour tracer une zone d'échelle",
+      aids: 'Aides',
     },
     redaction: {
       redact: 'Caviarder',
@@ -1638,6 +1642,7 @@ export const spanishTranslations: Locale = {
       calibrate: 'Calibrar',
       scaleArea: 'Área de escala',
       scaleAreaDragTip: 'Arrastre para dibujar un área de escala',
+      aids: 'Ayudas',
     },
     redaction: {
       redact: 'Redactar',
@@ -1999,6 +2004,7 @@ export const simplifiedChineseTranslations: Locale = {
       calibrate: '校准',
       scaleArea: '比例区域',
       scaleAreaDragTip: '拖动以绘制比例区域',
+      aids: '辅助',
     },
     redaction: {
       redact: '遮蔽',
@@ -2352,6 +2358,7 @@ export const swedishTranslations: Locale = {
       calibrate: 'Kalibrera',
       scaleArea: 'Skalområde',
       scaleAreaDragTip: 'Dra för att rita ett skalområde',
+      aids: 'Hjälpmedel',
     },
     redaction: {
       redact: 'Maskera',
@@ -2709,6 +2716,7 @@ export const japaneseTranslations: Locale = {
       calibrate: 'キャリブレーション',
       scaleArea: 'スケール領域',
       scaleAreaDragTip: 'ドラッグしてスケール領域を描画',
+      aids: '補助',
     },
     redaction: {
       redact: '黒塗り',

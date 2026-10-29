@@ -3,7 +3,6 @@ import { IconProps } from './types';
 
 export const ZoomInAreaIcon = ({
   size = 24,
-  strokeWidth = 2,
   primaryColor = 'currentColor',
   className,
   title,
@@ -14,7 +13,7 @@ export const ZoomInAreaIcon = ({
     viewBox="0 0 24 24"
     fill="none"
     stroke={primaryColor}
-    stroke-width={strokeWidth}
+    stroke-width={1.5}
     stroke-linecap="round"
     stroke-linejoin="round"
     class={className}

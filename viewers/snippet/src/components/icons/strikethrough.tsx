@@ -1,27 +1,28 @@
 import { h } from 'preact';
 import { IconProps } from './types';
 
+const FULL_PATH =
+  'M224,128a8,8,0,0,1-8,8H175.93c9.19,7.11,16.07,17.2,16.07,32,0,13.34-7,25.7-19.75,34.79C160.33,211.31,144.61,216,128,216s-32.33-4.69-44.25-13.21C71,193.7,64,181.34,64,168a8,8,0,0,1,16,0c0,17.35,22,32,48,32s48-14.65,48-32c0-14.85-10.54-23.58-38.77-32H40a8,8,0,0,1,0-16H216A8,8,0,0,1,224,128ZM76.33,104a8,8,0,0,0,7.61-10.49A17.3,17.3,0,0,1,83.11,88c0-18.24,19.3-32,44.89-32,18.84,0,34.16,7.42,41,19.85a8,8,0,0,0,14-7.7C173.33,50.52,152.77,40,128,40,93.29,40,67.11,60.63,67.11,88a33.73,33.73,0,0,0,1.62,10.49A8,8,0,0,0,76.33,104Z';
+
+const STRIKE_PATH = 'M224,128a8,8,0,0,1-8,8H40a8,8,0,0,1,0-16H216A8,8,0,0,1,224,128Z';
+
 export const StrikethroughIcon = ({
   size = 24,
-  strokeWidth = 2,
   primaryColor = 'currentColor',
+  secondaryColor,
   className,
   title,
 }: IconProps) => (
   <svg
     width={size}
     height={size}
-    viewBox="0 0 24 24"
+    viewBox="0 0 256 256"
     fill="none"
-    stroke-width={strokeWidth}
-    stroke-linecap="round"
-    stroke-linejoin="round"
-    class={className}
-    role="img"
+    xmlns="http://www.w3.org/2000/svg"
+    className={className}
     aria-label={title}
   >
-    <path stroke="none" d="M0 0h24v24H0z" fill="none" />
-    <path d="M8 16v-8a4 4 0 1 1 8 0v8" stroke="currentColor" />
-    <path d="M4 10h16" stroke={primaryColor} />
+    <path d={FULL_PATH} fill={primaryColor} />
+    <path d={STRIKE_PATH} fill={secondaryColor ?? primaryColor} />
   </svg>
 );
