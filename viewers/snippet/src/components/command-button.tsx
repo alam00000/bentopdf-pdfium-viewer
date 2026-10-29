@@ -1,10 +1,36 @@
 import { h, Fragment } from 'preact';
-import { useCommand } from '@embedpdf/plugin-commands/preact';
+import { useEffect, useState } from 'preact/hooks';
+import { useCommandsCapability } from '@embedpdf/plugin-commands/preact';
 import { useRegisterAnchor } from '@embedpdf/plugin-ui/preact';
 import { twMerge } from 'tailwind-merge';
 import { Button } from './ui/button';
 import { Tooltip } from './ui/tooltip';
 import { Icon } from './ui/icon';
+import { subscribeCommandRefresh } from '@/lib/command-refresh';
+
+function useReactiveCommand(commandId: string, documentId: string) {
+  const { provides } = useCommandsCapability();
+  const [command, setCommand] = useState(() =>
+    provides ? provides.resolve(commandId, documentId) : null,
+  );
+  useEffect(() => {
+    if (!provides) {
+      setCommand(null);
+      return;
+    }
+    const update = () => setCommand(provides.resolve(commandId, documentId));
+    update();
+    const unsubCmd = provides.onCommandStateChanged((event) => {
+      if (event.commandId === commandId && event.documentId === documentId) update();
+    });
+    const unsubExt = subscribeCommandRefresh(update);
+    return () => {
+      unsubCmd();
+      unsubExt();
+    };
+  }, [provides, commandId, documentId]);
+  return command;
+}
 
 type CommandButtonProps = {
   commandId: string;
@@ -25,7 +51,7 @@ export function CommandButton({
   itemId,
   className,
 }: CommandButtonProps) {
-  const command = useCommand(commandId, documentId);
+  const command = useReactiveCommand(commandId, documentId);
   // Register this button with the anchor registry if itemId is provided
   const finalItemId = itemId || commandId;
   const anchorRef = useRegisterAnchor(documentId, finalItemId);

@@ -1,5 +1,6 @@
 /** @jsxImportSource preact */
 import { h } from 'preact';
+import { useEffect, useState } from 'preact/hooks';
 import { useAnnotationCapability, useAnnotation } from '@embedpdf/plugin-annotation/preact';
 import { useTranslations } from '@embedpdf/plugin-i18n/preact';
 import { getSelectedAnnotations } from '@embedpdf/plugin-annotation';
@@ -7,6 +8,13 @@ import { getSelectedAnnotations } from '@embedpdf/plugin-annotation';
 import { EmptyState } from './annotation-sidebar/empty-state';
 import { DynamicSidebar } from './annotation-sidebar/dynamic-sidebar';
 import { ANNOTATION_PROPERTIES } from './annotation-sidebar/property-schema';
+import { MeasurementScaleBadge } from './measurement-scale-badge';
+import {
+  getPendingMode,
+  resolveMeasurementToolId,
+  subscribePendingMode,
+  type MeasurementMode,
+} from '../measurement/scale-store';
 
 /**
  * Map annotation subtypes to their translation keys for the sidebar title.
@@ -33,16 +41,41 @@ const ANNOTATION_TYPE_KEYS: Record<number, string> = {
   28: 'annotation.redact',
 };
 
+const MEASUREMENT_TOOL_KEYS: Record<string, string> = {
+  distance: 'annotation.distance',
+  perimeter: 'annotation.perimeter',
+  area: 'annotation.area',
+};
+
+function usePendingMeasurementMode(documentId: string): MeasurementMode | null {
+  const [mode, setMode] = useState<MeasurementMode | null>(() => getPendingMode(documentId));
+  useEffect(() => {
+    setMode(getPendingMode(documentId));
+    return subscribePendingMode(documentId, () => setMode(getPendingMode(documentId)));
+  }, [documentId]);
+  return mode;
+}
+
 export function AnnotationSidebar({ documentId }: { documentId: string }) {
   const { provides: annotationCapability } = useAnnotationCapability();
   const { provides: annotation, state } = useAnnotation(documentId);
   const { translate } = useTranslations(documentId);
+  const pendingMode = usePendingMeasurementMode(documentId);
 
   if (!annotationCapability || !annotation) return null;
 
   const colorPresets = annotationCapability?.getColorPresets() ?? [];
   const selectedAnnotations = getSelectedAnnotations(state);
-  const activeTool = annotation.getActiveTool();
+  const baseTool = annotation.getActiveTool();
+  const measurementToolId = resolveMeasurementToolId(pendingMode, baseTool?.id ?? null);
+  const activeTool =
+    (measurementToolId && annotationCapability.getTool(measurementToolId)) || baseTool;
+  const measurementKey =
+    MEASUREMENT_TOOL_KEYS[
+      (selectedAnnotations.length > 0
+        ? annotation.findToolForAnnotation(selectedAnnotations[0].object)?.id
+        : activeTool?.id) ?? ''
+    ];
 
   // Determine mode
   const isEditing = selectedAnnotations.length > 0;
@@ -58,7 +91,7 @@ export function AnnotationSidebar({ documentId }: { documentId: string }) {
   } else if (isEditing) {
     // Single annotation selected
     const subtype = selectedAnnotations[0].object.type;
-    const typeKey = ANNOTATION_TYPE_KEYS[subtype];
+    const typeKey = measurementKey ?? ANNOTATION_TYPE_KEYS[subtype];
     const annotationType = typeKey ? translate(typeKey) : '';
     title = annotationType
       ? translate('annotation.styles', { params: { type: annotationType } })
@@ -67,7 +100,7 @@ export function AnnotationSidebar({ documentId }: { documentId: string }) {
     // Tool defaults mode
     const subtype = activeTool.defaults.type;
     if (subtype !== undefined) {
-      const typeKey = ANNOTATION_TYPE_KEYS[subtype];
+      const typeKey = measurementKey ?? ANNOTATION_TYPE_KEYS[subtype];
       const annotationType = typeKey ? translate(typeKey) : '';
       title = annotationType
         ? translate('annotation.defaults', { params: { type: annotationType } })
@@ -93,6 +126,7 @@ export function AnnotationSidebar({ documentId }: { documentId: string }) {
   return (
     <div class="h-full overflow-y-auto p-4">
       {title && <h2 class="text-md mb-4 font-medium">{title}</h2>}
+      {measurementKey && <MeasurementScaleBadge documentId={documentId} />}
       <DynamicSidebar
         documentId={documentId}
         annotations={selectedAnnotations}

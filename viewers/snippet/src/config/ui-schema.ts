@@ -37,6 +37,7 @@ export const viewerUISchema: UISchema = {
                     'annotate-mode',
                     'shapes-mode',
                     'redact-mode',
+                    'measure-mode',
 
                     'pan-button',
                     'pointer-button',
@@ -49,6 +50,7 @@ export const viewerUISchema: UISchema = {
                     'annotate-mode',
                     'shapes-mode',
                     'redact-mode',
+                    'measure-mode',
                     'zoom-toolbar',
                     'pan-button',
                     'pointer-button',
@@ -85,6 +87,7 @@ export const viewerUISchema: UISchema = {
               'view-mode',
               'shapes-mode',
               'redact-mode',
+              'measure-mode',
               'zoom-toolbar',
               'pan-button',
               'pointer-button',
@@ -109,7 +112,13 @@ export const viewerUISchema: UISchema = {
           sm: {
             minWidth: 640,
             maxWidth: 768,
-            hide: ['shapes-mode', 'redact-mode', 'zoom-toolbar', 'mode-select-button'],
+            hide: [
+              'shapes-mode',
+              'redact-mode',
+              'measure-mode',
+              'zoom-toolbar',
+              'mode-select-button',
+            ],
             show: [
               'view-mode',
               'annotate-mode',
@@ -135,7 +144,7 @@ export const viewerUISchema: UISchema = {
           },
           lg: {
             minWidth: 1024,
-            show: ['shapes-mode', 'redact-mode'],
+            show: ['shapes-mode', 'redact-mode', 'measure-mode'],
             hide: ['overflow-tabs-button'],
           },
         },
@@ -247,7 +256,7 @@ export const viewerUISchema: UISchema = {
           componentId: 'mode-select-button',
           categories: ['mode'],
           visibilityDependsOn: {
-            itemIds: ['mode:annotate', 'mode:shapes', 'mode:redact'],
+            itemIds: ['mode:annotate', 'mode:shapes', 'mode:redact', 'mode:measure'],
           },
         },
 
@@ -262,7 +271,7 @@ export const viewerUISchema: UISchema = {
               variant: 'text',
               categories: ['mode', 'mode-view'],
               visibilityDependsOn: {
-                itemIds: ['annotate-mode', 'shapes-mode', 'redact-mode'],
+                itemIds: ['annotate-mode', 'shapes-mode', 'redact-mode', 'measure-mode'],
               },
             },
             {
@@ -282,6 +291,12 @@ export const viewerUISchema: UISchema = {
               commandId: 'mode:redact',
               variant: 'text',
               categories: ['mode', 'mode-redact', 'redaction'],
+            },
+            {
+              id: 'measure-mode',
+              commandId: 'mode:measure',
+              variant: 'text',
+              categories: ['mode', 'mode-measure', 'annotation-measurement'],
             },
             {
               id: 'overflow-tabs-button',
@@ -700,6 +715,127 @@ export const viewerUISchema: UISchema = {
         { type: 'spacer', id: 'spacer-8', flex: true },
       ],
     },
+
+    'measure-toolbar': {
+      id: 'measure-toolbar',
+      position: {
+        placement: 'top',
+        slot: 'secondary',
+        order: 0,
+      },
+      permanent: false,
+      categories: ['annotation-measurement'],
+      items: [
+        { type: 'spacer', id: 'measure-toolbar-spacer-left', flex: true },
+        {
+          type: 'group',
+          id: 'measure-toolbar-tools',
+          alignment: 'center',
+          gap: 2,
+          items: [
+            {
+              type: 'command-button',
+              id: 'measurement-calibrate',
+              commandId: 'measurement:calibrate',
+              variant: 'icon',
+              categories: ['annotation', 'annotation-measurement'],
+            },
+            {
+              type: 'command-button',
+              id: 'measurement-set-scale',
+              commandId: 'measurement:set-scale',
+              variant: 'icon',
+              categories: ['annotation', 'annotation-measurement'],
+            },
+            {
+              type: 'command-button',
+              id: 'measurement-scale-area',
+              commandId: 'measurement:scale-area',
+              variant: 'icon',
+              categories: ['annotation', 'annotation-measurement'],
+            },
+            {
+              type: 'divider',
+              id: 'measure-toolbar-divider-calibrate',
+              orientation: 'vertical',
+            },
+            {
+              type: 'command-button',
+              id: 'add-distance',
+              commandId: 'annotation:add-distance',
+              variant: 'icon',
+              categories: ['annotation', 'annotation-measurement', 'annotation-distance'],
+            },
+            {
+              type: 'command-button',
+              id: 'add-perimeter',
+              commandId: 'annotation:add-perimeter',
+              variant: 'icon',
+              categories: ['annotation', 'annotation-measurement', 'annotation-perimeter'],
+            },
+            {
+              type: 'command-button',
+              id: 'add-area',
+              commandId: 'annotation:add-area',
+              variant: 'icon',
+              categories: ['annotation', 'annotation-measurement', 'annotation-area'],
+            },
+            {
+              type: 'divider',
+              id: 'measure-toolbar-divider',
+              orientation: 'vertical',
+            },
+            {
+              type: 'custom',
+              id: 'measurement-snap-button',
+              componentId: 'measurement-snap-button',
+              categories: ['annotation', 'annotation-measurement'],
+            },
+            {
+              type: 'custom',
+              id: 'measurement-loupe-button',
+              componentId: 'measurement-loupe-button',
+              categories: ['annotation', 'annotation-measurement'],
+            },
+            {
+              type: 'divider',
+              id: 'measure-toolbar-divider-aids',
+              orientation: 'vertical',
+            },
+            {
+              type: 'command-button',
+              id: 'toggle-annotation-style',
+              commandId: 'panel:toggle-annotation-style',
+              variant: 'icon',
+              categories: ['panel', 'panel-annotation-style'],
+            },
+            {
+              type: 'divider',
+              id: 'measure-toolbar-divider-style',
+              orientation: 'vertical',
+              visibilityDependsOn: {
+                itemIds: ['toggle-annotation-style'],
+              },
+            },
+            {
+              type: 'command-button',
+              id: 'undo-button',
+              commandId: 'history:undo',
+              variant: 'icon',
+              categories: ['history', 'history-undo'],
+            },
+            {
+              type: 'command-button',
+              id: 'redo-button',
+              commandId: 'history:redo',
+              variant: 'icon',
+              categories: ['history', 'history-redo'],
+            },
+          ],
+        },
+        { type: 'spacer', id: 'measure-toolbar-spacer-right', flex: true },
+      ],
+    },
   },
 
   // ─────────────────────────────────────────────────────────
@@ -773,12 +909,18 @@ export const viewerUISchema: UISchema = {
           commandId: 'mode:redact',
           categories: ['mode', 'mode-redact', 'redaction'],
         },
+        {
+          type: 'command',
+          id: 'mode:measure',
+          commandId: 'mode:measure',
+          categories: ['mode', 'mode-measure', 'annotation-measurement'],
+        },
       ],
       responsive: {
         breakpoints: {
           xs: {
             maxWidth: 640,
-            show: ['mode:view', 'mode:annotate', 'mode:shapes', 'mode:redact'],
+            show: ['mode:view', 'mode:annotate', 'mode:shapes', 'mode:redact', 'mode:measure'],
           },
           sm: {
             minWidth: 640,

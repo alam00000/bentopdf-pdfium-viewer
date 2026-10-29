@@ -22,6 +22,43 @@ interface DocumentHistoryData {
   globalIndex: number;
 }
 
+const GROUP_TAG = '__embedpdfCommandGroup';
+
+interface GroupCommand extends Command {
+  [GROUP_TAG]: Command[];
+}
+
+function isGroupCommand(command: Command): command is GroupCommand {
+  return Array.isArray((command as Partial<GroupCommand>)[GROUP_TAG]);
+}
+
+function flattenCommands(commands: Command[]): Command[] {
+  return commands.flatMap((c) => (isGroupCommand(c) ? c[GROUP_TAG] : [c]));
+}
+
+function mergeGroupMetadata(commands: Command[]): unknown {
+  const annotationIds: unknown[] = [];
+  for (const c of commands) {
+    const meta = c.metadata as { annotationIds?: unknown[] } | undefined;
+    if (meta && Array.isArray(meta.annotationIds)) annotationIds.push(...meta.annotationIds);
+  }
+  return annotationIds.length > 0 ? { annotationIds } : undefined;
+}
+
+export function makeCommandGroup(commands: Command[]): GroupCommand {
+  const members = flattenCommands(commands);
+  return {
+    [GROUP_TAG]: members,
+    execute: () => {
+      for (const c of members) c.execute();
+    },
+    undo: () => {
+      for (let i = members.length - 1; i >= 0; i--) members[i].undo();
+    },
+    metadata: mergeGroupMetadata(members),
+  };
+}
+
 export class HistoryPlugin extends BasePlugin<
   HistoryPluginConfig,
   HistoryCapability,
@@ -32,6 +69,8 @@ export class HistoryPlugin extends BasePlugin<
 
   // Per-document history data (persisted with state)
   private readonly documentHistories = new Map<string, DocumentHistoryData>();
+
+  private readonly transactionStacks = new Map<string, HistoryEntry[][]>();
 
   // Event emitter for history changes
   private readonly historyChange$ = createEmitter<HistoryChangeEvent>();
@@ -72,6 +111,7 @@ export class HistoryPlugin extends BasePlugin<
 
     // Cleanup document history data
     this.documentHistories.delete(documentId);
+    this.transactionStacks.delete(documentId);
 
     this.logger.debug(
       'HistoryPlugin',
@@ -134,6 +174,16 @@ export class HistoryPlugin extends BasePlugin<
   // ─────────────────────────────────────────────────────────
 
   private register(command: Command, topic: string, documentId: string): void {
+    const frame = this.currentTransactionFrame(documentId);
+    if (frame) {
+      command.execute();
+      frame.push({ command, topic });
+      return;
+    }
+    this.commitEntry(command, topic, documentId, true);
+  }
+
+  private commitEntry(command: Command, topic: string, documentId: string, execute: boolean): void {
     const data = this.getDocumentHistoryData(documentId);
 
     // 1. Manage Topic History
@@ -152,8 +202,76 @@ export class HistoryPlugin extends BasePlugin<
     data.globalIndex++;
 
     // 3. Execute and notify with the specific topic
-    command.execute();
+    if (execute) command.execute();
     this.emitHistoryChange(documentId, topic);
+  }
+
+  private currentTransactionFrame(documentId: string): HistoryEntry[] | null {
+    const stack = this.transactionStacks.get(documentId);
+    return stack && stack.length > 0 ? stack[stack.length - 1] : null;
+  }
+
+  private amendLast(command: Command, topic: string, documentId: string): void {
+    const frame = this.currentTransactionFrame(documentId);
+    if (frame) {
+      command.execute();
+      frame.push({ command, topic });
+      return;
+    }
+
+    const data = this.getDocumentHistoryData(documentId);
+    const tail =
+      data.globalIndex > -1 && data.globalIndex === data.globalTimeline.length - 1
+        ? data.globalTimeline[data.globalIndex]
+        : undefined;
+    const topicHistory = data.topicHistories.get(topic);
+    const canMerge =
+      !!tail &&
+      tail.topic === topic &&
+      !!topicHistory &&
+      topicHistory.currentIndex > -1 &&
+      topicHistory.commands[topicHistory.currentIndex] === tail.command;
+    if (!canMerge) {
+      this.commitEntry(command, topic, documentId, true);
+      return;
+    }
+
+    command.execute();
+    const group = makeCommandGroup([tail.command, command]);
+    tail.command = group;
+    topicHistory!.commands[topicHistory!.currentIndex] = group;
+    this.emitHistoryChange(documentId, topic);
+  }
+
+  private beginTransaction(documentId: string): void {
+    let stack = this.transactionStacks.get(documentId);
+    if (!stack) {
+      stack = [];
+      this.transactionStacks.set(documentId, stack);
+    }
+    stack.push([]);
+  }
+
+  private endTransaction(groupTopic: string | undefined, documentId: string): void {
+    const stack = this.transactionStacks.get(documentId);
+    if (!stack || stack.length === 0) return;
+    const frame = stack.pop()!;
+    if (frame.length === 0) return;
+
+    const entry: HistoryEntry =
+      frame.length === 1
+        ? frame[0]
+        : {
+            command: makeCommandGroup(frame.map((f) => f.command)),
+            topic: groupTopic ?? frame[0].topic,
+          };
+
+    const outer = stack.length > 0 ? stack[stack.length - 1] : null;
+    if (outer) {
+      outer.push(entry);
+    } else {
+      this.commitEntry(entry.command, entry.topic, documentId, false);
+    }
   }
 
   private undo(topic: string | undefined, documentId: string): void {
@@ -322,6 +440,9 @@ export class HistoryPlugin extends BasePlugin<
   private createHistoryScope(documentId: string): HistoryScope {
     return {
       register: (command: Command, topic: string) => this.register(command, topic, documentId),
+      amendLast: (command: Command, topic: string) => this.amendLast(command, topic, documentId),
+      beginTransaction: () => this.beginTransaction(documentId),
+      endTransaction: (groupTopic?: string) => this.endTransaction(groupTopic, documentId),
       undo: (topic?: string) => this.undo(topic, documentId),
       redo: (topic?: string) => this.redo(topic, documentId),
       canUndo: (topic?: string) => this.canUndo(topic, documentId),
@@ -348,6 +469,21 @@ export class HistoryPlugin extends BasePlugin<
       register: (command: Command, topic: string) => {
         const documentId = this.getActiveDocumentId();
         this.register(command, topic, documentId);
+      },
+
+      amendLast: (command: Command, topic: string) => {
+        const documentId = this.getActiveDocumentId();
+        this.amendLast(command, topic, documentId);
+      },
+
+      beginTransaction: () => {
+        const documentId = this.getActiveDocumentId();
+        this.beginTransaction(documentId);
+      },
+
+      endTransaction: (groupTopic?: string) => {
+        const documentId = this.getActiveDocumentId();
+        this.endTransaction(groupTopic, documentId);
       },
 
       undo: (topic?: string) => {
@@ -399,6 +535,7 @@ export class HistoryPlugin extends BasePlugin<
 
     // Clear document histories
     this.documentHistories.clear();
+    this.transactionStacks.clear();
 
     super.destroy();
   }

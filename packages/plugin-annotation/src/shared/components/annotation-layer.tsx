@@ -121,7 +121,12 @@ export function AnnotationLayer({
         annotationRenderers={allRenderers}
       />
       <TextMarkup documentId={documentId} pageIndex={pageIndex} scale={actualScale} />
-      <AnnotationPaintLayer documentId={documentId} pageIndex={pageIndex} scale={actualScale} />
+      <AnnotationPaintLayer
+        documentId={documentId}
+        pageIndex={pageIndex}
+        scale={actualScale}
+        pageRotation={actualRotation}
+      />
     </div>
   );
 }

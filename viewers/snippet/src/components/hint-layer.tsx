@@ -5,7 +5,7 @@ import { useTranslations } from '@embedpdf/plugin-i18n/preact';
 
 interface HintState {
   show: boolean;
-  mode: 'marqueeZoom' | 'marqueeCapture' | null;
+  mode: 'marqueeZoom' | 'marqueeCapture' | 'measurementScaleArea' | null;
   isAnimating: boolean;
 }
 
@@ -26,7 +26,11 @@ export const HintLayer = ({ documentId }: HintLayerProps) => {
     if (!interactionManager) return;
 
     return interactionManager.onModeChange(({ activeMode }) => {
-      if (activeMode === 'marqueeZoom' || activeMode === 'marqueeCapture') {
+      if (
+        activeMode === 'marqueeZoom' ||
+        activeMode === 'marqueeCapture' ||
+        activeMode === 'measurementScaleArea'
+      ) {
         // Show hint for these modes
         setHint({
           show: true,
@@ -60,9 +64,18 @@ export const HintLayer = ({ documentId }: HintLayerProps) => {
   if (!hint.show && !hint.isAnimating) return null;
 
   const hintText =
-    hint.mode === 'marqueeZoom' ? translate('zoom.dragTip') : translate('capture.dragTip');
+    hint.mode === 'marqueeZoom'
+      ? translate('zoom.dragTip')
+      : hint.mode === 'measurementScaleArea'
+        ? translate('measurement.scaleAreaDragTip')
+        : translate('capture.dragTip');
 
-  const hintColor = hint.mode === 'marqueeZoom' ? 'rgba(33,150,243,0.8)' : 'rgba(76,175,80,0.8)';
+  const hintColor =
+    hint.mode === 'marqueeZoom'
+      ? 'rgba(33,150,243,0.8)'
+      : hint.mode === 'measurementScaleArea'
+        ? 'rgba(59,130,246,0.8)'
+        : 'rgba(76,175,80,0.8)';
 
   return (
     <div

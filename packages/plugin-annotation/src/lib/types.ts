@@ -24,6 +24,10 @@ export interface AnnotationCommandMetadata {
   annotationIds: string[];
 }
 
+export interface UpdateAnnotationOptions {
+  amendPrevious?: boolean;
+}
+
 export type AnnotationEvent =
   | {
       type: 'create';
@@ -249,6 +253,7 @@ export interface AnnotationScope {
     pageIndex: number,
     annotationId: string,
     patch: Partial<PdfAnnotationObject>,
+    options?: UpdateAnnotationOptions,
   ): void;
   /** Batch update multiple annotations at once */
   updateAnnotations(
@@ -338,6 +343,7 @@ export interface AnnotationCapability {
     pageIndex: number,
     annotationId: string,
     patch: Partial<PdfAnnotationObject>,
+    options?: UpdateAnnotationOptions,
   ) => void;
   /** Batch update multiple annotations at once */
   updateAnnotations: (

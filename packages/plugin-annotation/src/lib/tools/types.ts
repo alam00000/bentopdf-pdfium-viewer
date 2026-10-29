@@ -1,6 +1,7 @@
 import { PdfAnnotationObject, PdfAnnotationSubtype, Size } from '@embedpdf/models';
 
 import type { HandlerFactory } from '../handlers/types';
+import type { TransformContext } from '../patching/patch-registry';
 
 /**
  * A dynamic boolean property that can be either a static boolean
@@ -208,6 +209,8 @@ export type AnnotationTool<T extends PdfAnnotationObject = PdfAnnotationObject> 
 
   /** Pointer-based creation handler (drag-to-create, click-to-place). */
   pointerHandler?: HandlerFactory<PdfAnnotationObject>;
+
+  transform?(original: T, context: TransformContext<T>): Partial<T>;
 
   /** Tool-specific behavior settings that override plugin defaults */
   behavior?: {

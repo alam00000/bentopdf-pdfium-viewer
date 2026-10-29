@@ -49,6 +49,11 @@ import { SquareIcon } from './square';
 import { LineIcon } from './line';
 import { LineArrowIcon } from './line-arrow';
 import { PolygonIcon } from './polygon';
+import { LineSegmentIcon } from './line-segment';
+import { PathIcon } from './path';
+import { RulerIcon } from './ruler';
+import { CompassIcon } from './compass';
+import { FrameCornersIcon } from './frame-corners';
 import { ZigzagIcon } from './zigzag';
 import { TextIcon } from './text';
 import { ItalicIcon } from './italic';
@@ -144,6 +149,11 @@ export const icons: Icons = {
   line: LineIcon,
   lineArrow: LineArrowIcon,
   polygon: PolygonIcon,
+  lineSegment: LineSegmentIcon,
+  path: PathIcon,
+  ruler: RulerIcon,
+  compass: CompassIcon,
+  frameCorners: FrameCornersIcon,
   zigzag: ZigzagIcon,
   text: TextIcon,
   italic: ItalicIcon,

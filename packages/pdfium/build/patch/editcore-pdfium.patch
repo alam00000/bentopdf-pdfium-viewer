@@ -69,7 +69,7 @@ index fe26c52a3..df92c7f0d 100644
  
    CFX_PointF CalcPositionData(float horz_scale);
 diff --git a/core/fpdfdoc/cpdf_generateap.cpp b/core/fpdfdoc/cpdf_generateap.cpp
-index 4b3984ac5..4bfc0f6fa 100644
+index 4b3984ac5..be6b361fd 100644
 --- a/core/fpdfdoc/cpdf_generateap.cpp
 +++ b/core/fpdfdoc/cpdf_generateap.cpp
 @@ -660,6 +660,65 @@ ShapeRotationInfo GetShapeRotationInfo(const CPDF_Dictionary* annot_dict) {
@@ -207,7 +207,427 @@ index 4b3984ac5..4bfc0f6fa 100644
  bool GenerateHighlightAP(APGenerationTarget* target,
                           CPDF_Dictionary* annot_dict,
                           const ByteString& blend_name) {
-@@ -2692,8 +2793,23 @@ bool GenerateUnderlineAP(APGenerationTarget* target,
+@@ -2363,27 +2464,138 @@ bool GenerateHighlightAP(APGenerationTarget* target,
+   return true;
+ }
+ 
++int MeasurementCaptionPageQuarter(const CPDF_Dictionary* annot_dict) {
++  if (annot_dict->KeyExist("EPDFPageRot"))
++    return ((annot_dict->GetIntegerFor("EPDFPageRot") % 4) + 4) % 4;
++  RetainPtr<const CPDF_Dictionary> node = annot_dict->GetDictFor("P");
++  for (int depth = 0; node && depth < 32; ++depth) {
++    RetainPtr<const CPDF_Object> rotate = node->GetDirectObjectFor("Rotate");
++    if (rotate) {
++      const int quarter = rotate->GetInteger() / 90;
++      return ((quarter % 4) + 4) % 4;
++    }
++    node = node->GetDictFor("Parent");
++  }
++  return 0;
++}
++
++bool MaybeAddMeasurementCaption(fxcrt::ostringstream& ap,
++                                       const CPDF_Dictionary* annot_dict,
++                                       float anchor_x,
++                                       float anchor_y) {
++  ByteString intent = annot_dict->GetByteStringFor("IT");
++  if (intent != "LineDimension" && intent != "PolyLineDimension" &&
++      intent != "PolygonDimension") {
++    return false;
++  }
++  WideString contents_w = annot_dict->GetUnicodeTextFor("Contents");
++  if (contents_w.IsEmpty()) return false;
++
++  fxcrt::ostringstream esc;
++  for (size_t i = 0; i < contents_w.GetLength(); ++i) {
++    wchar_t wc = contents_w[i];
++    if (wc < 0x20 || wc >= 0x100) {
++      continue;
++    }
++    unsigned char c = static_cast<unsigned char>(wc);
++    if (c == '(' || c == ')' || c == '\\') {
++      esc << '\\' << static_cast<char>(c);
++    } else if (c < 0x7F) {
++      esc << static_cast<char>(c);
++    } else {
++      char buf[8];
++      snprintf(buf, sizeof(buf), "\\%03o", c);
++      esc << buf;
++    }
++  }
++  ByteString esc_str(esc);
++  if (esc_str.IsEmpty()) return false;
++
++  const float font_size = 11.0f;
++  const float text_w = contents_w.GetLength() * font_size * 0.55f;
++
++  const float text_x = anchor_x - text_w * 0.5f;
++  const float text_y = anchor_y - font_size * 0.35f;
++
++  const int page_quarter = MeasurementCaptionPageQuarter(annot_dict);
++  const float off_x = text_x - anchor_x;
++  const float off_y = text_y - anchor_y;
++  float m_a = 1, m_b = 0, m_c = 0, m_d = 1;
++  float rot_off_x = off_x, rot_off_y = off_y;
++  switch (page_quarter) {
++    case 1:
++      m_a = 0; m_b = 1; m_c = -1; m_d = 0;
++      rot_off_x = -off_y; rot_off_y = off_x;
++      break;
++    case 2:
++      m_a = -1; m_b = 0; m_c = 0; m_d = -1;
++      rot_off_x = -off_x; rot_off_y = -off_y;
++      break;
++    case 3:
++      m_a = 0; m_b = -1; m_c = 1; m_d = 0;
++      rot_off_x = off_y; rot_off_y = -off_x;
++      break;
++    default:
++      break;
++  }
++
++  ap << "q\n";
++  ap << "0 0 0 rg\n";
++  if (page_quarter == 0) {
++    ap << "BT /F1 " << font_size << " Tf "
++       << text_x << " " << text_y << " Td ("
++       << ByteString(esc_str).c_str() << ") Tj ET\n";
++  } else {
++    ap << "BT /F1 " << font_size << " Tf " << m_a << " " << m_b << " "
++       << m_c << " " << m_d << " " << (anchor_x + rot_off_x) << " "
++       << (anchor_y + rot_off_y) << " Tm ("
++       << ByteString(esc_str).c_str() << ") Tj ET\n";
++  }
++  ap << "Q\n";
++  return true;
++}
++
++RetainPtr<CPDF_Dictionary> BuildHelveticaResourceFontDict(
++    APGenerationTarget* target) {
++  CPDF_Document* doc = target->doc;
++  RetainPtr<CPDF_Dictionary> helv =
++      target->IsPersistent() ? doc->NewIndirect<CPDF_Dictionary>()
++                             : pdfium::MakeRetain<CPDF_Dictionary>();
++  helv->SetNewFor<CPDF_Name>("Type", "Font");
++  helv->SetNewFor<CPDF_Name>("Subtype", "Type1");
++  helv->SetNewFor<CPDF_Name>("BaseFont", "Helvetica");
++  helv->SetNewFor<CPDF_Name>("Encoding",
++                             pdfium::font_encodings::kWinAnsiEncoding);
++  auto font_res = doc->New<CPDF_Dictionary>();
++  if (target->IsPersistent()) {
++    font_res->SetNewFor<CPDF_Reference>("F1", doc, helv->GetObjNum());
++  } else {
++    font_res->SetFor("F1", std::move(helv));
++  }
++  return font_res;
++}
++
+ bool GeneratePolygonAP(APGenerationTarget* target,
+                        CPDF_Dictionary* annot_dict,
+                        const ByteString& blend_name) {
+   RetainPtr<const CPDF_Array> verts =
+       annot_dict->GetArrayFor(pdfium::annotation::kVertices);
+-  // A polygon needs ≥ 3 points  (= 6 floats).
+-  if (!verts || verts->size() < 6) {
++  if (!verts || verts->size() < 6)
+     return false;
+-  }
+ 
+   fxcrt::ostringstream app;
+   app << "/" << kGSDictName << " gs ";
+ 
+   RetainPtr<const CPDF_Array> interior_color = annot_dict->GetArrayFor("IC");
+-  app << GetColorStringWithDefault(interior_color.Get(),
+-                                   CFX_Color(CFX_Color::Type::kTransparent),
+-                                   PaintOperation::kFill);
++  app << GetColorStringWithDefault(
++            interior_color.Get(),
++            CFX_Color(CFX_Color::Type::kTransparent),
++            PaintOperation::kFill);
+ 
+   app << GetColorStringWithDefault(
+-      annot_dict->GetArrayFor(pdfium::annotation::kC).Get(),
+-      CFX_Color(CFX_Color::Type::kRGB, 0, 0, 0), PaintOperation::kStroke);
++            annot_dict->GetArrayFor(pdfium::annotation::kC).Get(),
++            CFX_Color(CFX_Color::Type::kRGB, 0, 0, 0),
++            PaintOperation::kStroke);
+ 
+   const float border_w = GetBorderWidth(annot_dict);
+   const bool do_stroke = border_w > 0;
+@@ -2400,73 +2612,164 @@ bool GeneratePolygonAP(APGenerationTarget* target,
+ 
+   if (cloudy_info.is_cloudy) {
+     std::vector<CFX_PointF> points;
+-    for (size_t i = 0; i + 1 < verts->size(); i += 2) {
++    for (size_t i = 0; i + 1 < verts->size(); i += 2)
+       points.push_back({verts->GetFloatAt(i), verts->GetFloatAt(i + 1)});
+-    }
+     GenerateCloudyPolygonPath(app, points, cloudy_info.intensity, border_w);
+   } else {
+     app << verts->GetFloatAt(0) << " " << verts->GetFloatAt(1) << " m ";
+-    for (size_t i = 2; i + 1 < verts->size(); i += 2) {
++    for (size_t i = 2; i + 1 < verts->size(); i += 2)
+       app << verts->GetFloatAt(i) << " " << verts->GetFloatAt(i + 1) << " l ";
+-    }
+     app << "h ";
+   }
+ 
+   const bool do_fill = interior_color && !interior_color->IsEmpty();
+   app << GetPaintOperatorString(do_stroke, do_fill) << "\n";
+ 
+-  auto gs_dict = GenerateExtGStateDict(*annot_dict, blend_name);
++  float caption_x = 0, caption_y = 0;
++  if (verts->size() >= 6) {
++    float minX = verts->GetFloatAt(0);
++    float maxX = minX;
++    float minY = verts->GetFloatAt(1);
++    float maxY = minY;
++    for (size_t i = 2; i + 1 < verts->size(); i += 2) {
++      const float x = verts->GetFloatAt(i);
++      const float y = verts->GetFloatAt(i + 1);
++      if (x < minX) minX = x;
++      if (x > maxX) maxX = x;
++      if (y < minY) minY = y;
++      if (y > maxY) maxY = y;
++    }
++    caption_x = (minX + maxX) * 0.5f;
++    caption_y = (minY + maxY) * 0.5f;
++  }
++  const bool has_caption =
++      MaybeAddMeasurementCaption(app, annot_dict, caption_x, caption_y);
++
++  auto gs_dict  = GenerateExtGStateDict(*annot_dict, blend_name);
++  RetainPtr<CPDF_Dictionary> font_res =
++      has_caption ? BuildHelveticaResourceFontDict(target) : nullptr;
+   auto res_dict =
+-      GenerateResourcesDict(target->doc, std::move(gs_dict), nullptr);
++      GenerateResourcesDict(target->doc, std::move(gs_dict), std::move(font_res));
+   GenerateAndSetAPDict(target, annot_dict, &app, std::move(res_dict),
+-                       /*is_text_markup=*/false);
++                       false);
+   return true;
+ }
+ 
+ bool GenerateLineAP(APGenerationTarget* target,
+                     CPDF_Dictionary* annot_dict,
+                     const ByteString& blend_name) {
+-  RetainPtr<const CPDF_Array> L =
+-      annot_dict->GetArrayFor(pdfium::annotation::kL);
+-  if (!L || L->size() < 4) {
++  RetainPtr<const CPDF_Array> L = annot_dict->GetArrayFor(pdfium::annotation::kL);
++  if (!L || L->size() < 4)
+     return false;
+-  }
+ 
+   std::vector<CFX_PointF> points;
+   points.push_back({L->GetFloatAt(0), L->GetFloatAt(1)});
+   points.push_back({L->GetFloatAt(2), L->GetFloatAt(3)});
+ 
++  const float ll = annot_dict->GetFloatFor("LL");
++
++  const float dx = points[1].x - points[0].x;
++  const float dy = points[1].y - points[0].y;
++  float seg_len = std::sqrt(dx * dx + dy * dy);
++  if (seg_len < 1e-6f) seg_len = 1.0f;
++  const float perp_x = -dy / seg_len;
++  const float perp_y = dx / seg_len;
++
++  const float offset_x = perp_x * ll;
++  const float offset_y = perp_y * ll;
++
++  std::vector<CFX_PointF> offset_points;
++  offset_points.push_back({points[0].x + offset_x, points[0].y + offset_y});
++  offset_points.push_back({points[1].x + offset_x, points[1].y + offset_y});
++
+   fxcrt::ostringstream ap;
+   ap << "/" << kGSDictName << " gs\n";
+ 
+-  // Set colors and border styles.
+   RetainPtr<const CPDF_Array> interior_color = annot_dict->GetArrayFor("IC");
+   if (interior_color && !interior_color->IsEmpty()) {
+-    ap << GetColorStringWithDefault(interior_color.Get(), {},
+-                                    PaintOperation::kFill);
++    ap << GetColorStringWithDefault(interior_color.Get(), {}, PaintOperation::kFill);
+   }
+   ap << GetColorStringWithDefault(
+       annot_dict->GetArrayFor(pdfium::annotation::kC).Get(),
+-      CFX_Color(CFX_Color::Type::kRGB, 0, 0, 0), PaintOperation::kStroke);
++      CFX_Color(CFX_Color::Type::kRGB, 0, 0, 0),
++      PaintOperation::kStroke);
+ 
+   const float border_w = GetBorderWidth(annot_dict);
+   if (border_w > 0) {
+     ap << border_w << " w " << GetDashPatternString(annot_dict);
+   }
+ 
+-  // Draw the main line segment.
+-  ap << points[0].x << " " << points[0].y << " m " << points[1].x << " "
+-     << points[1].y << " l S\n";
++  if (std::fabs(ll) > 0.01f) {
++    ap << points[0].x << " " << points[0].y << " m "
++       << offset_points[0].x << " " << offset_points[0].y << " l S\n";
++    ap << points[1].x << " " << points[1].y << " m "
++       << offset_points[1].x << " " << offset_points[1].y << " l S\n";
++  }
++
++  const float caption_x = (offset_points[0].x + offset_points[1].x) * 0.5f;
++  const float caption_y = (offset_points[0].y + offset_points[1].y) * 0.5f;
++  const float body_dx = offset_points[1].x - offset_points[0].x;
++  const float body_dy = offset_points[1].y - offset_points[0].y;
++  const float body_len = std::max(
++      std::sqrt(body_dx * body_dx + body_dy * body_dy), 1.0f);
++  const float body_ux = body_dx / body_len;
++  const float body_uy = body_dy / body_len;
++
++  WideString contents_for_gap = annot_dict->GetUnicodeTextFor("Contents");
++  ByteString intent_for_gap = annot_dict->GetByteStringFor("IT");
++  const bool intent_is_measurement =
++      intent_for_gap == "LineDimension" ||
++      intent_for_gap == "PolyLineDimension" ||
++      intent_for_gap == "PolygonDimension";
++  const float caption_font_size = 11.0f;
++  const float caption_text_w =
++      intent_is_measurement
++          ? contents_for_gap.GetLength() * caption_font_size * 0.55f
++          : 0.0f;
++  const float caption_gap_half =
++      caption_text_w > 0.0f ? caption_text_w * 0.5f + 4.0f : 0.0f;
++  const bool body_has_gap =
++      caption_gap_half > 0.0f && body_len > caption_gap_half * 2.0f + 4.0f;
++
++  if (body_has_gap) {
++    const float gap_start_x = caption_x - body_ux * caption_gap_half;
++    const float gap_start_y = caption_y - body_uy * caption_gap_half;
++    const float gap_end_x = caption_x + body_ux * caption_gap_half;
++    const float gap_end_y = caption_y + body_uy * caption_gap_half;
++    ap << offset_points[0].x << " " << offset_points[0].y << " m "
++       << gap_start_x << " " << gap_start_y << " l S\n";
++    ap << gap_end_x << " " << gap_end_y << " m "
++       << offset_points[1].x << " " << offset_points[1].y << " l S\n";
++  } else {
++    ap << offset_points[0].x << " " << offset_points[0].y << " m "
++       << offset_points[1].x << " " << offset_points[1].y << " l S\n";
++  }
++
++  const bool is_distance = intent_for_gap == "LineDimension";
++  if (is_distance)
++    ap << "2 j\n";
++  GenerateLineEndings(ap, offset_points, annot_dict);
++  if (is_distance) {
++    constexpr float kDimensionTickHalf = 4.0f;
++    ap << "[] 0 d\n";
++    for (const CFX_PointF& p : offset_points) {
++      ap << p.x - perp_x * kDimensionTickHalf << " "
++         << p.y - perp_y * kDimensionTickHalf << " m "
++         << p.x + perp_x * kDimensionTickHalf << " "
++         << p.y + perp_y * kDimensionTickHalf << " l S\n";
++    }
++  }
+ 
+-  // Draw the endings.
+-  GenerateLineEndings(ap, points, annot_dict);
++  const bool has_caption =
++      MaybeAddMeasurementCaption(ap, annot_dict, caption_x, caption_y);
+ 
+-  // Finalize and set the Appearance Stream.
+   auto gs_dict = GenerateExtGStateDict(*annot_dict, blend_name);
++  RetainPtr<CPDF_Dictionary> font_res =
++      has_caption ? BuildHelveticaResourceFontDict(target) : nullptr;
+   auto res_dict =
+-      GenerateResourcesDict(target->doc, std::move(gs_dict), nullptr);
++      GenerateResourcesDict(target->doc, std::move(gs_dict), std::move(font_res));
+   GenerateAndSetAPDict(target, annot_dict, &ap, std::move(res_dict),
+-                       /*is_text_markup=*/false);
++                       false);
+   return true;
+ }
+ 
+@@ -2475,9 +2778,8 @@ bool GeneratePolyLineAP(APGenerationTarget* target,
+                         const ByteString& blend_name) {
+   RetainPtr<const CPDF_Array> verts =
+       annot_dict->GetArrayFor(pdfium::annotation::kVertices);
+-  if (!verts || verts->size() < 4) {
++  if (!verts || verts->size() < 4)
+     return false;
+-  }
+ 
+   std::vector<CFX_PointF> points;
+   for (size_t i = 0; i + 1 < verts->size(); i += 2) {
+@@ -2487,37 +2789,64 @@ bool GeneratePolyLineAP(APGenerationTarget* target,
+   fxcrt::ostringstream ap;
+   ap << "/" << kGSDictName << " gs\n";
+ 
+-  // Set colors and border styles.
+   RetainPtr<const CPDF_Array> interior_color = annot_dict->GetArrayFor("IC");
+   if (interior_color && !interior_color->IsEmpty()) {
+-    ap << GetColorStringWithDefault(interior_color.Get(), {},
+-                                    PaintOperation::kFill);
++    ap << GetColorStringWithDefault(interior_color.Get(), {}, PaintOperation::kFill);
+   }
+   ap << GetColorStringWithDefault(
+       annot_dict->GetArrayFor(pdfium::annotation::kC).Get(),
+-      CFX_Color(CFX_Color::Type::kRGB, 0, 0, 0), PaintOperation::kStroke);
++      CFX_Color(CFX_Color::Type::kRGB, 0, 0, 0),
++      PaintOperation::kStroke);
+ 
+   const float border_w = GetBorderWidth(annot_dict);
+   if (border_w > 0) {
+     ap << border_w << " w " << GetDashPatternString(annot_dict);
+   }
+ 
+-  // Draw the main polyline path.
+   ap << points[0].x << " " << points[0].y << " m ";
+   for (size_t i = 1; i < points.size(); ++i) {
+     ap << points[i].x << " " << points[i].y << " l ";
+   }
+   ap << "S\n";
+ 
+-  // Draw the endings.
+   GenerateLineEndings(ap, points, annot_dict);
+ 
+-  // Finalize and set the Appearance Stream.
++  float caption_x = 0, caption_y = 0;
++  if (points.size() >= 2) {
++    size_t best_i = 1;
++    float best_len = -1.0f;
++    for (size_t i = 1; i < points.size(); ++i) {
++      const float dx = points[i].x - points[i - 1].x;
++      const float dy = points[i].y - points[i - 1].y;
++      const float l = std::sqrt(dx * dx + dy * dy);
++      if (l > best_len) {
++        best_len = l;
++        best_i = i;
++      }
++    }
++    const CFX_PointF& a = points[best_i - 1];
++    const CFX_PointF& b = points[best_i];
++    const float mx = (a.x + b.x) * 0.5f;
++    const float my = (a.y + b.y) * 0.5f;
++    const float dx = b.x - a.x;
++    const float dy = b.y - a.y;
++    const float l = std::max(std::sqrt(dx * dx + dy * dy), 1.0f);
++    const float nx = -dy / l;
++    const float ny = dx / l;
++    const float kPerp = 12.0f;
++    caption_x = mx + nx * kPerp;
++    caption_y = my + ny * kPerp;
++  }
++  const bool has_caption =
++      MaybeAddMeasurementCaption(ap, annot_dict, caption_x, caption_y);
++
+   auto gs_dict = GenerateExtGStateDict(*annot_dict, blend_name);
++  RetainPtr<CPDF_Dictionary> font_res =
++      has_caption ? BuildHelveticaResourceFontDict(target) : nullptr;
+   auto res_dict =
+-      GenerateResourcesDict(target->doc, std::move(gs_dict), nullptr);
++      GenerateResourcesDict(target->doc, std::move(gs_dict), std::move(font_res));
+   GenerateAndSetAPDict(target, annot_dict, &ap, std::move(res_dict),
+-                       /*is_text_markup=*/false);
++                       false);
+   return true;
+ }
+ 
+@@ -2692,8 +3021,23 @@ bool GenerateUnderlineAP(APGenerationTarget* target,
  
        CFX_FloatRect rect = CPDF_Annot::RectFromQuadPoints(annot_dict, i);
        rect.Normalize();
@@ -233,7 +653,7 @@ index 4b3984ac5..4bfc0f6fa 100644
      }
    }
  
-@@ -2841,26 +2957,51 @@ bool GenerateSquigglyAP(APGenerationTarget* target,
+@@ -2841,26 +3185,51 @@ bool GenerateSquigglyAP(APGenerationTarget* target,
        CFX_FloatRect rect = CPDF_Annot::RectFromQuadPoints(annot_dict, i);
        rect.Normalize();
  
@@ -297,7 +717,7 @@ index 4b3984ac5..4bfc0f6fa 100644
      }
    }
  
-@@ -2904,10 +3045,17 @@ bool GenerateStrikeOutAP(APGenerationTarget* target,
+@@ -2904,10 +3273,17 @@ bool GenerateStrikeOutAP(APGenerationTarget* target,
        CFX_FloatRect rect = CPDF_Annot::RectFromQuadPoints(annot_dict, i);
        rect.Normalize();
  
@@ -319,10 +739,25 @@ index 4b3984ac5..4bfc0f6fa 100644
    }
  
 diff --git a/fpdfsdk/fpdf_annot.cpp b/fpdfsdk/fpdf_annot.cpp
-index dde86d33b..8a04f597b 100644
+index dde86d33b..c74e57e49 100644
 --- a/fpdfsdk/fpdf_annot.cpp
 +++ b/fpdfsdk/fpdf_annot.cpp
-@@ -3332,8 +3332,15 @@ EPDFAnnot_GenerateAppearance(FPDF_ANNOTATION annot) {
+@@ -36,12 +36,14 @@
+ #include "core/fpdfapi/parser/cpdf_stream.h"
+ #include "core/fpdfapi/parser/cpdf_stream_acc.h"
+ #include "core/fpdfapi/parser/cpdf_string.h"
++#include "core/fpdfapi/parser/cpdf_syntax_parser.h"
+ #include "core/fpdfapi/parser/fpdf_parser_utility.h"
+ #include "core/fpdfdoc/cpdf_annot.h"
+ #include "core/fpdfdoc/cpdf_color_utils.h"
+ #include "core/fpdfdoc/cpdf_formfield.h"
+ #include "core/fpdfdoc/cpdf_generateap.h"
+ #include "core/fpdfdoc/cpdf_interactiveform.h"
++#include "core/fxcrt/cfx_memorystream.h"
+ #include "core/fxcrt/check.h"
+ #include "core/fxcrt/containers/contains.h"
+ #include "core/fxcrt/containers/unique_ptr_adapters.h"
+@@ -3332,8 +3334,15 @@ EPDFAnnot_GenerateAppearance(FPDF_ANNOTATION annot) {
    const CPDF_Annot::Subtype subtype = CPDF_Annot::StringToAnnotSubtype(
        pAnnotDict->GetNameFor(pdfium::annotation::kSubtype));
  
@@ -340,7 +775,7 @@ index dde86d33b..8a04f597b 100644
  }
  
  FPDF_EXPORT FPDF_BOOL FPDF_CALLCONV
-@@ -3360,8 +3367,15 @@ EPDFAnnot_GenerateAppearanceWithBlend(FPDF_ANNOTATION annot,
+@@ -3360,8 +3369,15 @@ EPDFAnnot_GenerateAppearanceWithBlend(FPDF_ANNOTATION annot,
    // Validate blend enum range if needed (already static_assert aligned).
    auto internal = static_cast<BlendMode>(blend);
  
@@ -358,7 +793,7 @@ index dde86d33b..8a04f597b 100644
  }
  
  FPDF_EXPORT FPDF_BLENDMODE FPDF_CALLCONV
-@@ -5473,3 +5487,77 @@ FPDF_EXPORT FPDF_BOOL FPDF_CALLCONV EPDFPage_MoveAnnots(FPDF_PAGE page,
+@@ -5473,3 +5489,715 @@ FPDF_EXPORT FPDF_BOOL FPDF_CALLCONV EPDFPage_MoveAnnots(FPDF_PAGE page,
    }
    return true;
  }
@@ -436,6 +871,644 @@ index dde86d33b..8a04f597b 100644
 +  }
 +  return FPDF_VERTICAL_ALIGNMENT_TOP;
 +}
++
++namespace {
++
++RetainPtr<CPDF_Dictionary> BuildNumberFormatDict(
++    const EPDFNumberFormat& nf) {
++  auto dict = pdfium::MakeRetain<CPDF_Dictionary>();
++  dict->SetNewFor<CPDF_Name>("Type", "NumberFormat");
++  if (nf.unit_utf8 && *nf.unit_utf8) {
++    WideString u_wide = WideString::FromUTF8(ByteStringView(nf.unit_utf8));
++    dict->SetNewFor<CPDF_String>("U", u_wide.AsStringView());
++  } else {
++    dict->SetNewFor<CPDF_String>("U", ByteString());
++  }
++  float conv = static_cast<float>(nf.conversion);
++  if (!std::isfinite(conv)) conv = 0.0f;
++  dict->SetNewFor<CPDF_Number>("C", conv);
++
++  char f = nf.format;
++  if (f != 'D' && f != 'F' && f != 'R' && f != 'T') {
++    f = 'D';
++  }
++  char f_str[2] = {f, 0};
++  dict->SetNewFor<CPDF_Name>("F", ByteString(f_str));
++
++  if (nf.precision > 0) {
++    dict->SetNewFor<CPDF_Number>("D", nf.precision);
++  }
++
++  if (nf.force_exact) {
++    dict->SetNewFor<CPDF_Boolean>("FD", true);
++  }
++
++  if (nf.thousands_sep) {
++    dict->SetNewFor<CPDF_String>("RT", ByteString(nf.thousands_sep));
++  }
++  if (nf.decimal_sep) {
++    dict->SetNewFor<CPDF_String>("RD", ByteString(nf.decimal_sep));
++  }
++  if (nf.prefix) {
++    dict->SetNewFor<CPDF_String>("PS", ByteString(nf.prefix));
++  }
++  if (nf.suffix) {
++    dict->SetNewFor<CPDF_String>("SS", ByteString(nf.suffix));
++  }
++
++  if (nf.order == 'P') {
++    dict->SetNewFor<CPDF_Name>("O", "P");
++  } else if (nf.order == 'S') {
++    dict->SetNewFor<CPDF_Name>("O", "S");
++  }
++
++  return dict;
++}
++
++void AppendNumberFormatArray(CPDF_Dictionary* measure_dict,
++                             const char* key,
++                             const EPDFNumberFormat* arr,
++                             int count) {
++  if (count <= 0 || !arr) {
++    return;
++  }
++  auto out_array = pdfium::MakeRetain<CPDF_Array>();
++  for (int i = 0; i < count; ++i) {
++    out_array->Append(BuildNumberFormatDict(arr[i]));
++  }
++  measure_dict->SetFor(key, std::move(out_array));
++}
++
++ByteString JsonEscape(const ByteString& s) {
++  fxcrt::ostringstream out;
++  out << '"';
++  for (size_t i = 0; i < s.GetLength(); ++i) {
++    const unsigned char c = static_cast<unsigned char>(s[i]);
++    switch (c) {
++      case '"':  out << "\\\""; break;
++      case '\\': out << "\\\\"; break;
++      case '\b': out << "\\b";  break;
++      case '\f': out << "\\f";  break;
++      case '\n': out << "\\n";  break;
++      case '\r': out << "\\r";  break;
++      case '\t': out << "\\t";  break;
++      default:
++        if (c < 0x20) {
++          char buf[8];
++          snprintf(buf, sizeof(buf), "\\u%04x", c);
++          out << buf;
++        } else {
++          out << static_cast<char>(c);
++        }
++        break;
++    }
++  }
++  out << '"';
++  return ByteString(out);
++}
++
++void NumberFormatToJson(const CPDF_Dictionary* nf, fxcrt::ostringstream& out) {
++  out << "{";
++  bool first = true;
++  auto emit_str = [&](const char* key, const ByteString& val) {
++    if (!first) out << ",";
++    first = false;
++    out << "\"" << key << "\":" << JsonEscape(val);
++  };
++  auto emit_num = [&](const char* key, double val) {
++    if (!first) out << ",";
++    first = false;
++    out << "\"" << key << "\":" << (std::isfinite(val) ? val : 0.0);
++  };
++  auto emit_bool = [&](const char* key, bool val) {
++    if (!first) out << ",";
++    first = false;
++    out << "\"" << key << "\":" << (val ? "true" : "false");
++  };
++
++  emit_str("U", nf->GetUnicodeTextFor("U").ToUTF8());
++  emit_num("C", nf->GetFloatFor("C"));
++  ByteString F = nf->GetNameFor("F");
++  if (F.IsEmpty()) F = "D";
++  emit_str("F", F);
++  emit_num("D", nf->GetIntegerFor("D"));
++  emit_bool("FD", nf->GetBooleanFor("FD", false));
++
++  RetainPtr<const CPDF_Object> rt_obj = nf->GetObjectFor("RT");
++  if (rt_obj && rt_obj->IsString())
++    emit_str("RT", rt_obj->GetString());
++  RetainPtr<const CPDF_Object> rd_obj = nf->GetObjectFor("RD");
++  if (rd_obj && rd_obj->IsString())
++    emit_str("RD", rd_obj->GetString());
++  RetainPtr<const CPDF_Object> ps_obj = nf->GetObjectFor("PS");
++  if (ps_obj && ps_obj->IsString())
++    emit_str("PS", ps_obj->GetString());
++  RetainPtr<const CPDF_Object> ss_obj = nf->GetObjectFor("SS");
++  if (ss_obj && ss_obj->IsString())
++    emit_str("SS", ss_obj->GetString());
++
++  ByteString O = nf->GetNameFor("O");
++  if (!O.IsEmpty()) emit_str("O", O);
++  out << "}";
++}
++
++void NumberFormatArrayToJson(const CPDF_Dictionary* measure_dict,
++                             const char* key,
++                             fxcrt::ostringstream& out) {
++  out << "[";
++  RetainPtr<const CPDF_Array> arr = measure_dict->GetArrayFor(key);
++  if (arr) {
++    for (size_t i = 0; i < arr->size(); ++i) {
++      if (i > 0) out << ",";
++      RetainPtr<const CPDF_Dictionary> nf = arr->GetDictAt(i);
++      if (nf) {
++        NumberFormatToJson(nf.Get(), out);
++      } else {
++        out << "null";
++      }
++    }
++  }
++  out << "]";
++}
++
++RetainPtr<CPDF_Dictionary> BuildRectilinearMeasure(
++    const char* scale_ratio_utf8,
++    const EPDFNumberFormat* x_arr,
++    int x_count,
++    const EPDFNumberFormat* y_arr,
++    int y_count,
++    const EPDFNumberFormat* d_arr,
++    int d_count,
++    const EPDFNumberFormat* a_arr,
++    int a_count,
++    float cyx) {
++  auto measure = pdfium::MakeRetain<CPDF_Dictionary>();
++  measure->SetNewFor<CPDF_Name>("Type", "Measure");
++  measure->SetNewFor<CPDF_Name>("Subtype", "RL");
++
++  if (scale_ratio_utf8 && *scale_ratio_utf8) {
++    WideString r = WideString::FromUTF8(ByteStringView(scale_ratio_utf8));
++    measure->SetNewFor<CPDF_String>("R", r.AsStringView());
++  }
++
++  AppendNumberFormatArray(measure.Get(), "X", x_arr, x_count);
++  if (y_count > 0) {
++    AppendNumberFormatArray(measure.Get(), "Y", y_arr, y_count);
++  }
++  AppendNumberFormatArray(measure.Get(), "D", d_arr, d_count);
++  AppendNumberFormatArray(measure.Get(), "A", a_arr, a_count);
++
++  if (cyx > 0 && std::isfinite(cyx) && (y_count > 0 || cyx != 1.0f)) {
++    measure->SetNewFor<CPDF_Number>("CYX", cyx);
++  }
++  return measure;
++}
++
++ByteString MeasureDictJson(const CPDF_Dictionary* measure) {
++  fxcrt::ostringstream out;
++  out << "{";
++  bool first = true;
++  auto next = [&]() {
++    if (!first) out << ",";
++    first = false;
++  };
++
++  RetainPtr<const CPDF_Object> r_obj = measure->GetDirectObjectFor("R");
++  if (r_obj && r_obj->IsString()) {
++    next();
++    out << "\"R\":" << JsonEscape(measure->GetUnicodeTextFor("R").ToUTF8());
++  }
++  RetainPtr<const CPDF_Object> cyx_obj = measure->GetDirectObjectFor("CYX");
++  if (cyx_obj && cyx_obj->IsNumber()) {
++    next();
++    const float cyx = cyx_obj->GetNumber();
++    out << "\"CYX\":" << (std::isfinite(cyx) ? cyx : 1.0f);
++  }
++  ByteString subtype = measure->GetNameFor("Subtype");
++  if (!subtype.IsEmpty()) {
++    next();
++    out << "\"Subtype\":" << JsonEscape(subtype);
++  }
++  RetainPtr<const CPDF_Array> origin = measure->GetArrayFor("O");
++  if (origin && origin->size() == 2) {
++    next();
++    const float ox = origin->GetFloatAt(0);
++    const float oy = origin->GetFloatAt(1);
++    out << "\"O\":[" << (std::isfinite(ox) ? ox : 0.0f) << ","
++        << (std::isfinite(oy) ? oy : 0.0f) << "]";
++  }
++  for (const char* key : {"X", "Y", "D", "A"}) {
++    if (!measure->GetArrayFor(key)) continue;
++    next();
++    out << "\"" << key << "\":";
++    NumberFormatArrayToJson(measure, key, out);
++  }
++  out << "}";
++  return ByteString(out);
++}
++
++RetainPtr<CPDF_Dictionary> ViewportPageDict(FPDF_DOCUMENT document,
++                                            int page_index) {
++  CPDF_Document* doc = CPDFDocumentFromFPDFDocument(document);
++  if (!doc || page_index < 0 || page_index >= doc->GetPageCount()) {
++    return nullptr;
++  }
++  return doc->GetMutablePageDictionary(page_index);
++}
++
++RetainPtr<CPDF_Array> OwnedViewports(CPDF_Dictionary* page) {
++  RetainPtr<CPDF_Array> vp = page->GetMutableArrayFor("VP");
++  if (!vp) {
++    return nullptr;
++  }
++  RetainPtr<const CPDF_Object> raw = page->GetObjectFor("VP");
++  if (raw && raw->IsReference()) {
++    RetainPtr<CPDF_Array> copy = ToArray(vp->Clone());
++    if (!copy) {
++      return nullptr;
++    }
++    page->SetFor("VP", copy);
++    vp = std::move(copy);
++  }
++  return vp;
++}
++
++void ViewportJson(const CPDF_Dictionary* vd,
++                  size_t index,
++                  fxcrt::ostringstream& out) {
++  out << "{\"i\":" << index;
++  if (vd) {
++    RetainPtr<const CPDF_Array> bbox = vd->GetArrayFor("BBox");
++    if (bbox && bbox->size() == 4) {
++      out << ",\"BBox\":[";
++      for (size_t k = 0; k < 4; ++k) {
++        const float v = bbox->GetFloatAt(k);
++        out << (k ? "," : "") << (std::isfinite(v) ? v : 0.0f);
++      }
++      out << "]";
++    }
++    if (vd->KeyExist("Name")) {
++      out << ",\"Name\":" << JsonEscape(vd->GetUnicodeTextFor("Name").ToUTF8());
++    }
++    if (vd->KeyExist("PtData")) {
++      out << ",\"PtData\":true";
++    }
++    RetainPtr<const CPDF_Dictionary> measure = vd->GetDictFor("Measure");
++    if (measure) {
++      out << ",\"Measure\":" << MeasureDictJson(measure.Get());
++    }
++  }
++  out << "}";
++}
++
++unsigned long CopyOutText(const ByteString& text,
++                          char* buffer,
++                          unsigned long buflen) {
++  const unsigned long need = static_cast<unsigned long>(text.GetLength()) + 1;
++  if (buffer && buflen >= need) {
++    memcpy(buffer, text.c_str(), need);
++  }
++  return need;
++}
++
++}
++
++FPDF_EXPORT FPDF_BOOL FPDF_CALLCONV
++EPDFAnnot_SetMeasureRectilinear(FPDF_ANNOTATION annot,
++                                const char* scale_ratio_utf8,
++                                const EPDFNumberFormat* x_arr,
++                                int x_count,
++                                const EPDFNumberFormat* y_arr,
++                                int y_count,
++                                const EPDFNumberFormat* d_arr,
++                                int d_count,
++                                const EPDFNumberFormat* a_arr,
++                                int a_count,
++                                float cyx) {
++  if (!annot) return false;
++
++  RetainPtr<CPDF_Dictionary> annot_dict =
++      GetMutableAnnotDictFromFPDFAnnotation(annot);
++  if (!annot_dict) return false;
++
++  RetainPtr<CPDF_Dictionary> measure =
++      BuildRectilinearMeasure(scale_ratio_utf8, x_arr, x_count, y_arr,
++                              y_count, d_arr, d_count, a_arr, a_count, cyx);
++
++  annot_dict->SetFor("Measure", std::move(measure));
++
++  if (FPDFAnnot_GetSubtype(annot) == FPDF_ANNOT_LINE) {
++    annot_dict->SetNewFor<CPDF_Boolean>("Cap", true);
++  }
++  return true;
++}
++
++FPDF_EXPORT FPDF_BOOL FPDF_CALLCONV
++EPDFAnnot_HasMeasure(FPDF_ANNOTATION annot) {
++  if (!annot) return false;
++  const CPDF_Dictionary* dict = GetAnnotDictFromFPDFAnnotation(annot);
++  if (!dict) return false;
++  RetainPtr<const CPDF_Object> obj = dict->GetObjectFor("Measure");
++  return obj && obj->IsDictionary();
++}
++
++FPDF_EXPORT unsigned long FPDF_CALLCONV
++EPDFAnnot_GetMeasureJson(FPDF_ANNOTATION annot,
++                        char* buffer,
++                        unsigned long buflen) {
++  if (!annot) return 0;
++  const CPDF_Dictionary* annot_dict = GetAnnotDictFromFPDFAnnotation(annot);
++  if (!annot_dict) return 0;
++  RetainPtr<const CPDF_Dictionary> measure = annot_dict->GetDictFor("Measure");
++  if (!measure) return 0;
++  return CopyOutText(MeasureDictJson(measure.Get()), buffer, buflen);
++}
++
++FPDF_EXPORT unsigned long FPDF_CALLCONV
++EPDFDoc_GetViewportsJson(FPDF_DOCUMENT document,
++                         char* buffer,
++                         unsigned long buflen) {
++  CPDF_Document* doc = CPDFDocumentFromFPDFDocument(document);
++  if (!doc) {
++    return 0;
++  }
++  fxcrt::ostringstream out;
++  out << "[";
++  bool first_page = true;
++  const int count = doc->GetPageCount();
++  for (int i = 0; i < count; ++i) {
++    RetainPtr<const CPDF_Dictionary> page = doc->GetPageDictionary(i);
++    if (!page) {
++      continue;
++    }
++    float uu = 1.0f;
++    RetainPtr<const CPDF_Object> uu_obj = page->GetDirectObjectFor("UserUnit");
++    if (uu_obj && uu_obj->IsNumber()) {
++      const float v = uu_obj->GetNumber();
++      if (std::isfinite(v) && v > 0) {
++        uu = v;
++      }
++    }
++    RetainPtr<const CPDF_Array> vp = page->GetArrayFor("VP");
++    const bool has_vp = vp && !vp->IsEmpty();
++    if (!has_vp && uu == 1.0f) {
++      continue;
++    }
++    out << (first_page ? "" : ",") << "{\"p\":" << i << ",\"uu\":" << uu
++        << ",\"vp\":[";
++    first_page = false;
++    if (has_vp) {
++      for (size_t k = 0; k < vp->size(); ++k) {
++        if (k) out << ",";
++        RetainPtr<const CPDF_Dictionary> vd = vp->GetDictAt(k);
++        ViewportJson(vd.Get(), k, out);
++      }
++    }
++    out << "]}";
++  }
++  out << "]";
++  return CopyOutText(ByteString(out), buffer, buflen);
++}
++
++FPDF_EXPORT int FPDF_CALLCONV
++EPDFDoc_SetPageViewport(FPDF_DOCUMENT document,
++                        int page_index,
++                        int index,
++                        float left,
++                        float bottom,
++                        float right,
++                        float top,
++                        FPDF_WIDESTRING name,
++                        const char* scale_ratio_utf8,
++                        const EPDFNumberFormat* x_arr,
++                        int x_count,
++                        const EPDFNumberFormat* y_arr,
++                        int y_count,
++                        const EPDFNumberFormat* d_arr,
++                        int d_count,
++                        const EPDFNumberFormat* a_arr,
++                        int a_count,
++                        float cyx) {
++  RetainPtr<CPDF_Dictionary> page = ViewportPageDict(document, page_index);
++  if (!page) {
++    return -1;
++  }
++  if (!std::isfinite(left) || !std::isfinite(bottom) ||
++      !std::isfinite(right) || !std::isfinite(top) || right <= left ||
++      top <= bottom) {
++    return -1;
++  }
++  RetainPtr<CPDF_Array> vp = OwnedViewports(page.Get());
++  const size_t size = vp ? vp->size() : 0;
++  if (index < -1 || (index >= 0 && static_cast<size_t>(index) >= size)) {
++    return -1;
++  }
++
++  RetainPtr<CPDF_Dictionary> vd;
++  if (index >= 0) {
++    RetainPtr<const CPDF_Dictionary> old = vp->GetDictAt(index);
++    if (old) {
++      vd = ToDictionary(old->Clone());
++    }
++  }
++  if (!vd) {
++    vd = pdfium::MakeRetain<CPDF_Dictionary>();
++  }
++  vd->SetNewFor<CPDF_Name>("Type", "Viewport");
++  auto bbox = vd->SetNewFor<CPDF_Array>("BBox");
++  bbox->AppendNew<CPDF_Number>(left);
++  bbox->AppendNew<CPDF_Number>(bottom);
++  bbox->AppendNew<CPDF_Number>(right);
++  bbox->AppendNew<CPDF_Number>(top);
++
++  WideString name_text =
++      name ? WideStringFromFPDFWideString(name) : WideString();
++  if (name_text.IsEmpty()) {
++    vd->RemoveFor("Name");
++  } else {
++    vd->SetNewFor<CPDF_String>("Name", name_text.AsStringView());
++  }
++
++  if (x_count > 0 && x_arr) {
++    vd->SetFor("Measure", BuildRectilinearMeasure(
++                              scale_ratio_utf8, x_arr, x_count, y_arr,
++                              y_count, d_arr, d_count, a_arr, a_count, cyx));
++  } else if (x_count == 0) {
++    vd->RemoveFor("Measure");
++  }
++
++  if (!vp) {
++    vp = page->SetNewFor<CPDF_Array>("VP");
++  }
++  if (index < 0) {
++    vp->Append(vd);
++    return static_cast<int>(vp->size() - 1);
++  }
++  vp->SetAt(index, vd);
++  return index;
++}
++
++FPDF_EXPORT FPDF_BOOL FPDF_CALLCONV
++EPDFDoc_RemovePageViewport(FPDF_DOCUMENT document, int page_index, int index) {
++  RetainPtr<CPDF_Dictionary> page = ViewportPageDict(document, page_index);
++  if (!page) {
++    return false;
++  }
++  RetainPtr<CPDF_Array> vp = OwnedViewports(page.Get());
++  if (!vp || index < 0 || static_cast<size_t>(index) >= vp->size()) {
++    return false;
++  }
++  vp->RemoveAt(index);
++  if (vp->IsEmpty()) {
++    page->RemoveFor("VP");
++  }
++  return true;
++}
++
++FPDF_EXPORT FPDF_BOOL FPDF_CALLCONV
++EPDFDoc_MovePageViewport(FPDF_DOCUMENT document,
++                         int page_index,
++                         int from,
++                         int to) {
++  RetainPtr<CPDF_Dictionary> page = ViewportPageDict(document, page_index);
++  if (!page) {
++    return false;
++  }
++  RetainPtr<CPDF_Array> vp = OwnedViewports(page.Get());
++  if (!vp || from < 0 || to < 0 || static_cast<size_t>(from) >= vp->size() ||
++      static_cast<size_t>(to) >= vp->size()) {
++    return false;
++  }
++  if (from == to) {
++    return true;
++  }
++  RetainPtr<CPDF_Object> entry = vp->GetMutableObjectAt(from);
++  if (!entry) {
++    return false;
++  }
++  vp->RemoveAt(from);
++  vp->InsertAt(to, std::move(entry));
++  return true;
++}
++
++FPDF_EXPORT int FPDF_CALLCONV
++EPDFDoc_CopyPageViewport(FPDF_DOCUMENT document,
++                         int from_page,
++                         int index,
++                         int to_page) {
++  RetainPtr<CPDF_Dictionary> src = ViewportPageDict(document, from_page);
++  RetainPtr<CPDF_Dictionary> dst = ViewportPageDict(document, to_page);
++  if (!src || !dst || index < 0) {
++    return -1;
++  }
++  RetainPtr<const CPDF_Array> svp = src->GetArrayFor("VP");
++  if (!svp || static_cast<size_t>(index) >= svp->size()) {
++    return -1;
++  }
++  RetainPtr<const CPDF_Dictionary> vd = svp->GetDictAt(index);
++  if (!vd) {
++    return -1;
++  }
++  RetainPtr<CPDF_Dictionary> copy = ToDictionary(vd->CloneDirectObject());
++  if (!copy) {
++    return -1;
++  }
++  RetainPtr<CPDF_Array> dvp = OwnedViewports(dst.Get());
++  if (!dvp) {
++    dvp = dst->SetNewFor<CPDF_Array>("VP");
++  }
++  dvp->Append(std::move(copy));
++  return static_cast<int>(dvp->size() - 1);
++}
++
++FPDF_EXPORT unsigned long FPDF_CALLCONV
++EPDFDoc_GetPageViewportsSyntax(FPDF_DOCUMENT document,
++                               int page_index,
++                               char* buffer,
++                               unsigned long buflen) {
++  RetainPtr<CPDF_Dictionary> page = ViewportPageDict(document, page_index);
++  if (!page) {
++    return 0;
++  }
++  ByteString text;
++  RetainPtr<const CPDF_Array> vp = page->GetArrayFor("VP");
++  if (vp) {
++    fxcrt::ostringstream out;
++    out << vp->CloneDirectObject().Get();
++    text = ByteString(out);
++  }
++  return CopyOutText(text, buffer, buflen);
++}
++
++FPDF_EXPORT FPDF_BOOL FPDF_CALLCONV
++EPDFDoc_SetPageViewportsSyntax(FPDF_DOCUMENT document,
++                               int page_index,
++                               const char* syntax) {
++  CPDF_Document* doc = CPDFDocumentFromFPDFDocument(document);
++  RetainPtr<CPDF_Dictionary> page = ViewportPageDict(document, page_index);
++  if (!doc || !page) {
++    return false;
++  }
++  if (!syntax || !*syntax) {
++    page->RemoveFor("VP");
++    return true;
++  }
++  const size_t len = strlen(syntax);
++  auto stream = pdfium::MakeRetain<CFX_MemoryStream>();
++  stream->WriteBlock(pdfium::span<const uint8_t>(
++      reinterpret_cast<const uint8_t*>(syntax), len));
++  CPDF_SyntaxParser parser(stream);
++  RetainPtr<CPDF_Object> parsed = parser.GetObjectBody(doc);
++  if (!parsed || !parsed->IsArray()) {
++    return false;
++  }
++  page->SetFor("VP", std::move(parsed));
++  return true;
++}
++
++FPDF_EXPORT FPDF_BOOL FPDF_CALLCONV
++EPDFAnnot_SetCaptionOffset(FPDF_ANNOTATION annot, float dx, float dy) {
++  if (!annot) return false;
++  RetainPtr<CPDF_Dictionary> dict =
++      GetMutableAnnotDictFromFPDFAnnotation(annot);
++  if (!dict) return false;
++
++  FPDF_ANNOTATION_SUBTYPE subtype = FPDFAnnot_GetSubtype(annot);
++  const char* key = (subtype == FPDF_ANNOT_LINE) ? "CO" : "BentoCO";
++  auto arr = pdfium::MakeRetain<CPDF_Array>();
++  arr->AppendNew<CPDF_Number>(dx);
++  arr->AppendNew<CPDF_Number>(dy);
++  dict->SetFor(key, std::move(arr));
++  return true;
++}
++
++FPDF_EXPORT FPDF_BOOL FPDF_CALLCONV
++EPDFAnnot_GetCaptionOffset(FPDF_ANNOTATION annot, float* dx, float* dy) {
++  if (!annot || !dx || !dy) return false;
++  const CPDF_Dictionary* dict = GetAnnotDictFromFPDFAnnotation(annot);
++  if (!dict) return false;
++
++  RetainPtr<const CPDF_Array> arr = dict->GetArrayFor("CO");
++  if (!arr) arr = dict->GetArrayFor("BentoCO");
++  if (!arr || arr->size() < 2) return false;
++  *dx = arr->GetFloatAt(0);
++  *dy = arr->GetFloatAt(1);
++  return true;
++}
++
++FPDF_EXPORT FPDF_BOOL FPDF_CALLCONV
++EPDFAnnot_GenerateMeasurementAppearance(FPDF_ANNOTATION annot,
++                                        const char* ,
++                                        float ) {
++  if (!annot) return false;
++  RetainPtr<CPDF_Dictionary> annot_dict =
++      GetMutableAnnotDictFromFPDFAnnotation(annot);
++  if (!annot_dict) return false;
++  annot_dict->RemoveFor("AP");
++  annot_dict->RemoveFor("AS");
++  annot_dict->RemoveFor("PDFiumHasGeneratedAP");
++  return true;
++}
 diff --git a/fpdfsdk/fpdf_edittext.cpp b/fpdfsdk/fpdf_edittext.cpp
 index 8831c257a..a57a25c12 100644
 --- a/fpdfsdk/fpdf_edittext.cpp
@@ -469,8 +1542,270 @@ index 8831c257a..a57a25c12 100644
  FPDF_EXPORT FPDF_FONT FPDF_CALLCONV FPDFText_LoadFont(FPDF_DOCUMENT document,
                                                        const uint8_t* data,
                                                        uint32_t size,
+diff --git a/fpdfsdk/fpdf_view.cpp b/fpdfsdk/fpdf_view.cpp
+index f9c822402..a67a1fff9 100644
+--- a/fpdfsdk/fpdf_view.cpp
++++ b/fpdfsdk/fpdf_view.cpp
+@@ -7,6 +7,7 @@
+ #include "public/fpdfview.h"
+ 
+ #include <algorithm>
++#include <cmath>
+ #include <memory>
+ #include <set>
+ #include <utility>
+@@ -17,10 +18,14 @@
+ #include "core/fpdfapi/page/cpdf_annotcontext.h"
+ #include "core/fpdfapi/page/cpdf_docpagedata.h"
+ #include "core/fpdfapi/page/cpdf_form.h"
++#include "core/fpdfapi/page/cpdf_formobject.h"
+ #include "core/fpdfapi/page/cpdf_occontext.h"
+ #include "core/fpdfapi/page/cpdf_page.h"
+ #include "core/fpdfapi/page/cpdf_pageimagecache.h"
+ #include "core/fpdfapi/page/cpdf_pagemodule.h"
++#include "core/fpdfapi/page/cpdf_pageobject.h"
++#include "core/fpdfapi/page/cpdf_pageobjectholder.h"
++#include "core/fpdfapi/page/cpdf_pathobject.h"
+ #include "core/fpdfapi/parser/cpdf_array.h"
+ #include "core/fpdfapi/parser/cpdf_boolean.h"
+ #include "core/fpdfapi/parser/cpdf_dictionary.h"
+@@ -60,6 +65,7 @@
+ #include "core/fxge/cfx_fontregistry.h"
+ #include "core/fxge/cfx_gemodule.h"
+ #include "core/fxge/cfx_glyphcache.h"
++#include "core/fxge/cfx_path.h"
+ #include "core/fxge/cfx_renderdevice.h"
+ #include "core/fxge/dib/cfx_dibitmap.h"
+ #include "fpdfsdk/cpdfsdk_customaccess.h"
+@@ -2326,3 +2332,226 @@ FPDF_GetTrailerEnds(FPDF_DOCUMENT document,
+ 
+   return trailer_ends_len;
+ }
++
++namespace {
++
++void FlattenBezier(const CFX_PointF& p0,
++                   const CFX_PointF& p1,
++                   const CFX_PointF& p2,
++                   const CFX_PointF& p3,
++                   std::vector<CFX_PointF>& out,
++                   int depth) {
++  if (depth >= 6) {
++    out.push_back(p3);
++    return;
++  }
++  const float dx = p3.x - p0.x;
++  const float dy = p3.y - p0.y;
++  const float chord_len_sq = dx * dx + dy * dy;
++  if (chord_len_sq < 0.25f) {
++    out.push_back(p3);
++    return;
++  }
++  const float chord_len = std::sqrt(chord_len_sq);
++  const float d1 = std::fabs((p1.x - p0.x) * dy - (p1.y - p0.y) * dx);
++  const float d2 = std::fabs((p2.x - p0.x) * dy - (p2.y - p0.y) * dx);
++  if (d1 + d2 <= 0.5f * chord_len) {
++    out.push_back(p3);
++    return;
++  }
++  const CFX_PointF p01{(p0.x + p1.x) * 0.5f, (p0.y + p1.y) * 0.5f};
++  const CFX_PointF p12{(p1.x + p2.x) * 0.5f, (p1.y + p2.y) * 0.5f};
++  const CFX_PointF p23{(p2.x + p3.x) * 0.5f, (p2.y + p3.y) * 0.5f};
++  const CFX_PointF p012{(p01.x + p12.x) * 0.5f, (p01.y + p12.y) * 0.5f};
++  const CFX_PointF p123{(p12.x + p23.x) * 0.5f, (p12.y + p23.y) * 0.5f};
++  const CFX_PointF p0123{(p012.x + p123.x) * 0.5f, (p012.y + p123.y) * 0.5f};
++  FlattenBezier(p0, p01, p012, p0123, out, depth + 1);
++  FlattenBezier(p0123, p123, p23, p3, out, depth + 1);
++}
++
++struct SnapEmitState {
++  std::vector<EPDF_PathSegment>* out;
++  size_t total_count;
++  int max_count;
++  float qx0, qy0, qx1, qy1;
++  int next_path_id;
++};
++
++bool SegmentIntersectsQuery(const SnapEmitState& s,
++                            float x0, float y0,
++                            float x1, float y1) {
++  const float lo_x = x0 < x1 ? x0 : x1;
++  const float hi_x = x0 < x1 ? x1 : x0;
++  const float lo_y = y0 < y1 ? y0 : y1;
++  const float hi_y = y0 < y1 ? y1 : y0;
++  if (hi_x < s.qx0 || lo_x > s.qx1) return false;
++  if (hi_y < s.qy0 || lo_y > s.qy1) return false;
++  return true;
++}
++
++void EmitSegment(SnapEmitState& s,
++                 float x0, float y0,
++                 float x1, float y1,
++                 int path_id,
++                 int subpath_id,
++                 unsigned int flags) {
++  if (x0 == x1 && y0 == y1) return;
++  if (!SegmentIntersectsQuery(s, x0, y0, x1, y1)) return;
++  s.total_count++;
++  if (!s.out) return;
++  if (static_cast<int>(s.out->size()) >= s.max_count) return;
++  s.out->push_back(EPDF_PathSegment{x0, y0, x1, y1, path_id, subpath_id,
++                                    flags});
++}
++
++void WalkPathObject(SnapEmitState& s,
++                    const CPDF_PathObject& path_obj,
++                    const CFX_Matrix& parent_ctm,
++                    int path_id) {
++  CFX_Matrix ctm = path_obj.matrix();
++  ctm.Concat(parent_ctm);
++
++  unsigned int paint_flags = 0;
++  if (path_obj.stroke()) paint_flags |= EPDF_PATHSEG_STROKED;
++  if (!path_obj.has_no_filltype()) paint_flags |= EPDF_PATHSEG_FILLED;
++
++  const std::vector<CFX_Path::Point>& points = path_obj.path().GetPoints();
++  if (points.empty()) return;
++
++  CFX_PointF subpath_start{};
++  CFX_PointF current{};
++  bool have_current = false;
++  int subpath_id = -1;
++
++  for (size_t i = 0; i < points.size(); ++i) {
++    const CFX_Path::Point& pt = points[i];
++    switch (pt.type_) {
++      case CFX_Path::Point::Type::kMove: {
++        current = ctm.Transform(pt.point_);
++        subpath_start = current;
++        subpath_id++;
++        have_current = true;
++        break;
++      }
++      case CFX_Path::Point::Type::kLine: {
++        if (have_current) {
++          const CFX_PointF end = ctm.Transform(pt.point_);
++          EmitSegment(s, current.x, current.y, end.x, end.y,
++                      path_id, subpath_id, paint_flags);
++          current = end;
++        }
++        if (pt.close_figure_ && have_current) {
++          EmitSegment(s, current.x, current.y,
++                      subpath_start.x, subpath_start.y,
++                      path_id, subpath_id,
++                      paint_flags | EPDF_PATHSEG_CLOSING);
++          current = subpath_start;
++        }
++        break;
++      }
++      case CFX_Path::Point::Type::kBezier: {
++        if (i + 2 >= points.size()) {
++          return;
++        }
++        const CFX_PointF p0 = current;
++        const CFX_PointF p1 = ctm.Transform(points[i].point_);
++        const CFX_PointF p2 = ctm.Transform(points[i + 1].point_);
++        const CFX_PointF p3 = ctm.Transform(points[i + 2].point_);
++        std::vector<CFX_PointF> flat;
++        flat.reserve(8);
++        FlattenBezier(p0, p1, p2, p3, flat, 0);
++        CFX_PointF prev = p0;
++        for (const CFX_PointF& q : flat) {
++          EmitSegment(s, prev.x, prev.y, q.x, q.y,
++                      path_id, subpath_id,
++                      paint_flags | EPDF_PATHSEG_CURVE);
++          prev = q;
++        }
++        current = p3;
++        if (points[i + 2].close_figure_) {
++          EmitSegment(s, current.x, current.y,
++                      subpath_start.x, subpath_start.y,
++                      path_id, subpath_id,
++                      paint_flags | EPDF_PATHSEG_CLOSING);
++          current = subpath_start;
++        }
++        i += 2;
++        break;
++      }
++    }
++  }
++}
++
++void WalkHolder(SnapEmitState& s,
++                const CPDF_PageObjectHolder& holder,
++                const CFX_Matrix& parent_ctm);
++
++void WalkFormObject(SnapEmitState& s,
++                    const CPDF_FormObject& form_obj,
++                    const CFX_Matrix& parent_ctm) {
++  CFX_Matrix ctm = form_obj.form_matrix();
++  ctm.Concat(parent_ctm);
++  const CPDF_Form* form = form_obj.form();
++  if (!form) return;
++  WalkHolder(s, *form, ctm);
++}
++
++void WalkHolder(SnapEmitState& s,
++                const CPDF_PageObjectHolder& holder,
++                const CFX_Matrix& parent_ctm) {
++  for (auto it = holder.begin(); it != holder.end(); ++it) {
++    const CPDF_PageObject* obj = it->get();
++    if (!obj) continue;
++    if (obj->IsPath()) {
++      const CPDF_PathObject* p = obj->AsPath();
++      if (p) {
++        const int id = s.next_path_id++;
++        WalkPathObject(s, *p, parent_ctm, id);
++      }
++    } else if (obj->IsForm()) {
++      const CPDF_FormObject* f = obj->AsForm();
++      if (f) {
++        WalkFormObject(s, *f, parent_ctm);
++      }
++    }
++  }
++}
++
++}
++
++FPDF_EXPORT int FPDF_CALLCONV
++EPDFPage_GetPathSegments(FPDF_PAGE page,
++                         float query_x_min,
++                         float query_y_min,
++                         float query_x_max,
++                         float query_y_max,
++                         EPDF_PathSegment* out_buffer,
++                         int max_count) {
++  CPDF_Page* p = CPDFPageFromFPDFPage(page);
++  if (!p) return -1;
++
++  std::vector<EPDF_PathSegment> buf;
++  if (out_buffer && max_count > 0) {
++    buf.reserve(static_cast<size_t>(max_count));
++  }
++  SnapEmitState s{
++      out_buffer ? &buf : nullptr,
++      0,
++      out_buffer ? max_count : 0,
++      std::min(query_x_min, query_x_max),
++      std::min(query_y_min, query_y_max),
++      std::max(query_x_min, query_x_max),
++      std::max(query_y_min, query_y_max),
++      0,
++  };
++  CFX_Matrix identity;
++  WalkHolder(s, *p, identity);
++
++  if (out_buffer && max_count > 0) {
++    const int copy_count = std::min(static_cast<int>(buf.size()), max_count);
++    for (int i = 0; i < copy_count; ++i) {
++      out_buffer[i] = buf[i];
++    }
++  }
++  return static_cast<int>(s.total_count);
++}
 diff --git a/public/fpdf_annot.h b/public/fpdf_annot.h
-index 76b0f73c8..f4b12bcf5 100644
+index 76b0f73c8..c1b622db5 100644
 --- a/public/fpdf_annot.h
 +++ b/public/fpdf_annot.h
 @@ -844,6 +844,25 @@ EPDFAnnot_GetEmbedMetadataJSON(FPDF_ANNOTATION annot,
@@ -499,6 +1834,109 @@ index 76b0f73c8..f4b12bcf5 100644
  // Experimental EmbedPDF Extension API.
  // Removes /EMBD_Metadata from every annotation in |document|. This does not
  // remove standard annotation fields or appearance streams.
+@@ -2208,6 +2227,102 @@ FPDF_EXPORT FPDF_BOOL FPDF_CALLCONV EPDFPage_MoveAnnots(FPDF_PAGE page,
+                                                         int from_indices_len,
+                                                         int to_index);
+ 
++typedef struct EPDFNumberFormat_ {
++  const char* unit_utf8;
++  double      conversion;
++  char        format;
++  int         precision;
++  int         force_exact;
++  const char* thousands_sep;
++  const char* decimal_sep;
++  const char* prefix;
++  const char* suffix;
++  char        order;
++} EPDFNumberFormat;
++
++FPDF_EXPORT FPDF_BOOL FPDF_CALLCONV
++EPDFAnnot_SetMeasureRectilinear(FPDF_ANNOTATION annot,
++                                const char* scale_ratio_utf8,
++                                const EPDFNumberFormat* x_arr,
++                                int x_count,
++                                const EPDFNumberFormat* y_arr,
++                                int y_count,
++                                const EPDFNumberFormat* d_arr,
++                                int d_count,
++                                const EPDFNumberFormat* a_arr,
++                                int a_count,
++                                float cyx);
++
++FPDF_EXPORT FPDF_BOOL FPDF_CALLCONV
++EPDFAnnot_HasMeasure(FPDF_ANNOTATION annot);
++
++FPDF_EXPORT unsigned long FPDF_CALLCONV
++EPDFAnnot_GetMeasureJson(FPDF_ANNOTATION annot,
++                         char* buffer,
++                         unsigned long buflen);
++
++FPDF_EXPORT unsigned long FPDF_CALLCONV
++EPDFDoc_GetViewportsJson(FPDF_DOCUMENT document,
++                         char* buffer,
++                         unsigned long buflen);
++
++FPDF_EXPORT int FPDF_CALLCONV
++EPDFDoc_SetPageViewport(FPDF_DOCUMENT document,
++                        int page_index,
++                        int index,
++                        float left,
++                        float bottom,
++                        float right,
++                        float top,
++                        FPDF_WIDESTRING name,
++                        const char* scale_ratio_utf8,
++                        const EPDFNumberFormat* x_arr,
++                        int x_count,
++                        const EPDFNumberFormat* y_arr,
++                        int y_count,
++                        const EPDFNumberFormat* d_arr,
++                        int d_count,
++                        const EPDFNumberFormat* a_arr,
++                        int a_count,
++                        float cyx);
++
++FPDF_EXPORT FPDF_BOOL FPDF_CALLCONV
++EPDFDoc_RemovePageViewport(FPDF_DOCUMENT document, int page_index, int index);
++
++FPDF_EXPORT FPDF_BOOL FPDF_CALLCONV
++EPDFDoc_MovePageViewport(FPDF_DOCUMENT document,
++                         int page_index,
++                         int from,
++                         int to);
++
++FPDF_EXPORT int FPDF_CALLCONV
++EPDFDoc_CopyPageViewport(FPDF_DOCUMENT document,
++                         int from_page,
++                         int index,
++                         int to_page);
++
++FPDF_EXPORT unsigned long FPDF_CALLCONV
++EPDFDoc_GetPageViewportsSyntax(FPDF_DOCUMENT document,
++                               int page_index,
++                               char* buffer,
++                               unsigned long buflen);
++
++FPDF_EXPORT FPDF_BOOL FPDF_CALLCONV
++EPDFDoc_SetPageViewportsSyntax(FPDF_DOCUMENT document,
++                               int page_index,
++                               const char* syntax);
++
++FPDF_EXPORT FPDF_BOOL FPDF_CALLCONV
++EPDFAnnot_SetCaptionOffset(FPDF_ANNOTATION annot, float dx, float dy);
++
++FPDF_EXPORT FPDF_BOOL FPDF_CALLCONV
++EPDFAnnot_GetCaptionOffset(FPDF_ANNOTATION annot, float* dx, float* dy);
++
++FPDF_EXPORT FPDF_BOOL FPDF_CALLCONV
++EPDFAnnot_GenerateMeasurementAppearance(FPDF_ANNOTATION annot,
++                                        const char* contents_utf8,
++                                        float font_size);
++
+ #ifdef __cplusplus
+ }  // extern "C"
+ #endif  // __cplusplus
 diff --git a/public/fpdf_edit.h b/public/fpdf_edit.h
 index 98df505d4..ab2b3a655 100644
 --- a/public/fpdf_edit.h
@@ -515,3 +1953,38 @@ index 98df505d4..ab2b3a655 100644
  // Returns a font object loaded from a stream of data. The font is loaded
  // into the document. Various font data structures, such as the ToUnicode data,
  // are auto-generated based on the inputs.
+diff --git a/public/fpdfview.h b/public/fpdfview.h
+index fb1816dff..e1b4b414f 100644
+--- a/public/fpdfview.h
++++ b/public/fpdfview.h
+@@ -1968,6 +1968,30 @@ EPDFDoc_SetPageRotationByObjectNumber(FPDF_DOCUMENT document,
+ FPDF_EXPORT unsigned int FPDF_CALLCONV
+ EPDFPage_GetObjectNumber(FPDF_PAGE page);
+ 
++typedef struct EPDF_PathSegment_ {
++  float x0;
++  float y0;
++  float x1;
++  float y1;
++  int   path_id;
++  int   subpath_id;
++  unsigned int flags;
++} EPDF_PathSegment;
++
++#define EPDF_PATHSEG_STROKED   (1u << 0)
++#define EPDF_PATHSEG_FILLED    (1u << 1)
++#define EPDF_PATHSEG_CLOSING   (1u << 2)
++#define EPDF_PATHSEG_CURVE     (1u << 3)
++
++FPDF_EXPORT int FPDF_CALLCONV
++EPDFPage_GetPathSegments(FPDF_PAGE page,
++                         float query_x_min,
++                         float query_y_min,
++                         float query_x_max,
++                         float query_y_max,
++                         EPDF_PathSegment* out_buffer,
++                         int max_count);
++
+ #ifdef __cplusplus
+ }
+ #endif

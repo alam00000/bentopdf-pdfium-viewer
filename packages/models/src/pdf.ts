@@ -1366,6 +1366,60 @@ export enum PdfPageObjectType {
  *
  * @public
  */
+export interface PdfNumberFormat {
+  U: string;
+  C: number;
+  F?: string;
+  D?: number;
+  FD?: boolean;
+  RT?: string;
+  RD?: string;
+  PS?: string;
+  SS?: string;
+  O?: string;
+}
+
+export interface PdfMeasureDictionary {
+  R?: string;
+  CYX?: number;
+  X?: PdfNumberFormat[];
+  Y?: PdfNumberFormat[];
+  D?: PdfNumberFormat[];
+  A?: PdfNumberFormat[];
+}
+
+export interface PdfCaptionOffset {
+  dx: number;
+  dy: number;
+}
+
+export interface PdfMeasurementProperties {
+  measure?: PdfMeasureDictionary;
+  measureJson?: string;
+  captionOffset?: PdfCaptionOffset;
+}
+
+export interface PdfScaleAreaBox {
+  left: number;
+  bottom: number;
+  right: number;
+  top: number;
+}
+
+export interface PdfPathSegmentQuery {
+  minX: number;
+  minY: number;
+  maxX: number;
+  maxY: number;
+}
+
+export interface PdfPathSegments {
+  count: number;
+  total: number;
+  coords: Float32Array;
+  meta: Int32Array;
+}
+
 export interface LinePoints {
   start: Position;
   end: Position;
@@ -1561,7 +1615,7 @@ export interface PdfInkAnnoObject extends PdfAnnotationObjectBase {
  *
  * @public
  */
-export interface PdfPolygonAnnoObject extends PdfAnnotationObjectBase {
+export interface PdfPolygonAnnoObject extends PdfAnnotationObjectBase, PdfMeasurementProperties {
   /** {@inheritDoc PdfAnnotationObjectBase.type} */
   type: PdfAnnotationSubtype.POLYGON;
 
@@ -1619,7 +1673,7 @@ export interface PdfPolygonAnnoObject extends PdfAnnotationObjectBase {
  *
  * @public
  */
-export interface PdfPolylineAnnoObject extends PdfAnnotationObjectBase {
+export interface PdfPolylineAnnoObject extends PdfAnnotationObjectBase, PdfMeasurementProperties {
   /** {@inheritDoc PdfAnnotationObjectBase.type} */
   type: PdfAnnotationSubtype.POLYLINE;
 
@@ -1674,9 +1728,11 @@ export interface PdfPolylineAnnoObject extends PdfAnnotationObjectBase {
  *
  * @public
  */
-export interface PdfLineAnnoObject extends PdfAnnotationObjectBase {
+export interface PdfLineAnnoObject extends PdfAnnotationObjectBase, PdfMeasurementProperties {
   /** {@inheritDoc PdfAnnotationObjectBase.type} */
   type: PdfAnnotationSubtype.LINE;
+
+  leaderLength?: number;
 
   /**
    * contents of line annotation
@@ -3604,6 +3660,40 @@ export interface PdfEngine<T = Blob> {
    * @returns task that resolves to true if owner permissions are unlocked
    */
   isOwnerUnlocked: (doc: PdfDocumentObject) => PdfTask<boolean>;
+  getPathSegments?: (
+    doc: PdfDocumentObject,
+    page: PdfPageObject,
+    query: PdfPathSegmentQuery,
+    maxCount: number,
+  ) => PdfTask<PdfPathSegments>;
+  getScaleAreas?: (doc: PdfDocumentObject) => PdfTask<string | null>;
+  setScaleArea?: (
+    doc: PdfDocumentObject,
+    pageIndex: number,
+    index: number,
+    box: PdfScaleAreaBox,
+    name: string | null,
+    measure: PdfMeasureDictionary | null | 'keep',
+  ) => PdfTask<number | null>;
+  removeScaleArea?: (doc: PdfDocumentObject, pageIndex: number, index: number) => PdfTask<boolean>;
+  moveScaleArea?: (
+    doc: PdfDocumentObject,
+    pageIndex: number,
+    from: number,
+    to: number,
+  ) => PdfTask<boolean>;
+  copyScaleArea?: (
+    doc: PdfDocumentObject,
+    fromPage: number,
+    index: number,
+    toPage: number,
+  ) => PdfTask<number | null>;
+  getScaleAreasSyntax?: (doc: PdfDocumentObject, pageIndex: number) => PdfTask<string | null>;
+  setScaleAreasSyntax?: (
+    doc: PdfDocumentObject,
+    pageIndex: number,
+    syntax: string,
+  ) => PdfTask<boolean>;
 }
 
 /**
@@ -3788,6 +3878,37 @@ export interface IPdfiumExecutor {
   unlockOwnerPermissions(doc: PdfDocumentObject, ownerPassword: string): PdfTask<boolean>;
   isEncrypted(doc: PdfDocumentObject): PdfTask<boolean>;
   isOwnerUnlocked(doc: PdfDocumentObject): PdfTask<boolean>;
+
+  getPathSegments(
+    doc: PdfDocumentObject,
+    page: PdfPageObject,
+    query: PdfPathSegmentQuery,
+    maxCount: number,
+  ): PdfTask<PdfPathSegments>;
+  getScaleAreas(doc: PdfDocumentObject): PdfTask<string | null>;
+  setScaleArea(
+    doc: PdfDocumentObject,
+    pageIndex: number,
+    index: number,
+    box: PdfScaleAreaBox,
+    name: string | null,
+    measure: PdfMeasureDictionary | null | 'keep',
+  ): PdfTask<number | null>;
+  removeScaleArea(doc: PdfDocumentObject, pageIndex: number, index: number): PdfTask<boolean>;
+  moveScaleArea(
+    doc: PdfDocumentObject,
+    pageIndex: number,
+    from: number,
+    to: number,
+  ): PdfTask<boolean>;
+  copyScaleArea(
+    doc: PdfDocumentObject,
+    fromPage: number,
+    index: number,
+    toPage: number,
+  ): PdfTask<number | null>;
+  getScaleAreasSyntax(doc: PdfDocumentObject, pageIndex: number): PdfTask<string | null>;
+  setScaleAreasSyntax(doc: PdfDocumentObject, pageIndex: number, syntax: string): PdfTask<boolean>;
 }
 
 /**

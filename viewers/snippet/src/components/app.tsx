@@ -5,7 +5,14 @@ import { EmbedPDF } from '@embedpdf/core/preact';
 import { createPluginRegistration, PluginRegistry, PermissionConfig } from '@embedpdf/core';
 import { usePdfiumEngine } from '@embedpdf/engines/preact';
 import type { FontFallbackConfig } from '@embedpdf/engines';
-import { AllLogger, ConsoleLogger, PerfLogger, Rotation } from '@embedpdf/models';
+import {
+  AllLogger,
+  ConsoleLogger,
+  PdfAnnotationLineEnding,
+  PdfAnnotationSubtype,
+  PerfLogger,
+  Rotation,
+} from '@embedpdf/models';
 import {
   Viewport,
   ViewportPluginPackage,
@@ -31,6 +38,7 @@ import {
   useSelectionMenu,
 } from '@embedpdf/plugin-ui/preact';
 import {
+  DocumentManagerPlugin,
   DocumentManagerPluginPackage,
   DocumentManagerPluginConfig,
   DocumentContent,
@@ -72,6 +80,8 @@ import {
   AnnotationLayer,
   AnnotationPluginPackage,
   AnnotationPluginConfig,
+  AnnotationTool,
+  AnnotationToolOverride,
 } from '@embedpdf/plugin-annotation/preact';
 import { PrintPluginPackage, PrintPluginConfig } from '@embedpdf/plugin-print/preact';
 import {
@@ -146,6 +156,20 @@ import { ProtectModal } from './protect-modal';
 import { UnlockOwnerOverlay } from './unlock-owner-overlay';
 import { ViewPermissionsModal } from './view-permissions-modal';
 import { getStoredAuthorName } from '../lib/author-name';
+import { MeasurementMounts } from '@/measurement/mounts';
+import { MeasurementSnapPageDriver } from '@/measurement/snap-driver';
+import { MeasurementSnapMarker } from '@/measurement/snap-marker';
+import { distanceTransform, perimeterTransform, areaTransform } from '@/measurement/transforms';
+import { ANNOTATION_DEFAULTS } from '@/measurement/colors';
+import { setMeasurementRegistry } from '@/measurement/engine-bridge';
+import { clearSnapSettingsForDoc } from '@/measurement/snap-settings';
+import { clearScaleStoresForDoc } from '@/measurement/scale-store';
+import { clearScaleAreasForDoc } from '@/measurement/scale-areas';
+import { clearScaleAreaToolForDoc } from '@/measurement/scale-area-tool';
+import { MeasurementHud } from './measurement-hud';
+import { MeasurementCalibratePageVisual } from './measurement-calibrate-overlay';
+import { ScaleAreaLayer } from './scale-area-layer';
+import { MeasurementLoupeToggle, MeasurementSnapToggles } from './measurement-snap-toggles';
 
 // ============================================================================
 // Main Configuration Interface - Uses actual plugin config types directly
@@ -282,6 +306,72 @@ export interface PDFViewerConfig {
   interactionManager?: Partial<InteractionManagerPluginConfig>;
 }
 
+const measurementInteraction = {
+  exclusive: false,
+  cursor: 'crosshair',
+  isDraggable: true,
+  isResizable: false,
+  lockAspectRatio: false,
+  isGroupResizable: true,
+};
+
+const MEASUREMENT_TOOLS: (AnnotationTool | AnnotationToolOverride)[] = [
+  { id: 'line', clickBehavior: { enabled: false, defaultLength: 100, defaultAngle: 0 } },
+  { id: 'lineArrow', clickBehavior: { enabled: false, defaultLength: 100, defaultAngle: 0 } },
+  {
+    id: 'distance',
+    name: 'Distance',
+    matchScore: (a) =>
+      a.type === PdfAnnotationSubtype.LINE && a.intent === 'LineDimension' ? 20 : 0,
+    interaction: measurementInteraction,
+    defaults: {
+      type: PdfAnnotationSubtype.LINE,
+      intent: 'LineDimension',
+      color: 'transparent',
+      opacity: 1,
+      strokeWidth: 1.5,
+      strokeColor: ANNOTATION_DEFAULTS.measure,
+      lineEndings: {
+        start: PdfAnnotationLineEnding.OpenArrow,
+        end: PdfAnnotationLineEnding.OpenArrow,
+      },
+    },
+    transform: distanceTransform,
+  },
+  {
+    id: 'perimeter',
+    name: 'Perimeter',
+    matchScore: (a) =>
+      a.type === PdfAnnotationSubtype.POLYLINE && a.intent === 'PolyLineDimension' ? 20 : 0,
+    interaction: measurementInteraction,
+    defaults: {
+      type: PdfAnnotationSubtype.POLYLINE,
+      intent: 'PolyLineDimension',
+      color: 'transparent',
+      opacity: 1,
+      strokeWidth: 1.5,
+      strokeColor: ANNOTATION_DEFAULTS.measure,
+    },
+    transform: perimeterTransform,
+  },
+  {
+    id: 'area',
+    name: 'Area',
+    matchScore: (a) =>
+      a.type === PdfAnnotationSubtype.POLYGON && a.intent === 'PolygonDimension' ? 20 : 0,
+    interaction: measurementInteraction,
+    defaults: {
+      type: PdfAnnotationSubtype.POLYGON,
+      intent: 'PolygonDimension',
+      color: 'transparent',
+      opacity: 1,
+      strokeWidth: 1.5,
+      strokeColor: ANNOTATION_DEFAULTS.measure,
+    },
+    transform: areaTransform,
+  },
+];
+
 // Default configurations for all plugins
 // Even plugins with no defaults get an empty object for future-proofing
 const DEFAULTS = {
@@ -401,7 +491,11 @@ function ViewerLayout({ documentId, tabBarVisibility = 'multiple' }: ViewerLayou
                 {isLoaded && (
                   <div className="relative h-full w-full">
                     <GlobalPointerProvider documentId={documentId}>
-                      <Viewport className="bg-bg-app" documentId={documentId}>
+                      <Viewport
+                        className="bg-bg-app"
+                        documentId={documentId}
+                        data-epdf-viewport-host=""
+                      >
                         <ZoomGestureWrapper documentId={documentId}>
                           <Scroller
                             documentId={documentId}
@@ -442,6 +536,19 @@ function ViewerLayout({ documentId, tabBarVisibility = 'multiple' }: ViewerLayou
                                     selectionMenu={annotationMenu}
                                     groupSelectionMenu={groupAnnotationMenu}
                                   />
+                                  <MeasurementCalibratePageVisual
+                                    documentId={documentId}
+                                    pageIndex={pageIndex}
+                                  />
+                                  <ScaleAreaLayer documentId={documentId} pageIndex={pageIndex} />
+                                  <MeasurementSnapPageDriver
+                                    documentId={documentId}
+                                    pageIndex={pageIndex}
+                                  />
+                                  <MeasurementSnapMarker
+                                    documentId={documentId}
+                                    pageIndex={pageIndex}
+                                  />
                                 </PagePointerProvider>
                               </Rotate>
                             )}
@@ -451,6 +558,8 @@ function ViewerLayout({ documentId, tabBarVisibility = 'multiple' }: ViewerLayou
                     </GlobalPointerProvider>
                     {/* Overlays (floating components like page controls) */}
                     {renderOverlays()}
+                    <MeasurementMounts documentId={documentId} />
+                    <MeasurementHud />
                   </div>
                 )}
               </>
@@ -495,6 +604,8 @@ export function PDFViewer({ config, onRegistryReady }: PDFViewerProps) {
       'mode-select-button': ModeSelectButton,
       'view-permissions-modal': ViewPermissionsModal,
       'redaction-sidebar': RedactionSidebar,
+      'measurement-snap-button': MeasurementSnapToggles,
+      'measurement-loupe-button': MeasurementLoupeToggle,
     }),
     [],
   );
@@ -530,6 +641,18 @@ export function PDFViewer({ config, onRegistryReady }: PDFViewerProps) {
           permissions: config.permissions,
         }}
         onInitialized={async (registry) => {
+          if (registry) {
+            setMeasurementRegistry(registry);
+            registry
+              .getPlugin<DocumentManagerPlugin>('document-manager')
+              ?.provides()
+              ?.onDocumentClosed((documentId) => {
+                clearSnapSettingsForDoc(documentId);
+                clearScaleStoresForDoc(documentId);
+                clearScaleAreasForDoc(documentId);
+                clearScaleAreaToolForDoc(documentId);
+              });
+          }
           // Call the callback if provided
           if (onRegistryReady && registry) {
             onRegistryReady(registry);
@@ -583,6 +706,7 @@ export function PDFViewer({ config, onRegistryReady }: PDFViewerProps) {
           createPluginRegistration(AnnotationPluginPackage, {
             ...DEFAULTS.annotations,
             ...config.annotations,
+            tools: [...MEASUREMENT_TOOLS, ...(config.annotations?.tools ?? [])],
             ...(config.annotations?.annotationAuthor || !getStoredAuthorName()
               ? {}
               : { annotationAuthor: getStoredAuthorName() }),

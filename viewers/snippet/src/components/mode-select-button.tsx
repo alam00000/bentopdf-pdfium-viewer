@@ -14,13 +14,14 @@ export function ModeSelectButton({ documentId, className }: ModeSelectButtonProp
   const commandAnnotate = useCommand('mode:annotate', documentId);
   const commandShapes = useCommand('mode:shapes', documentId);
   const commandRedact = useCommand('mode:redact', documentId);
+  const commandMeasure = useCommand('mode:measure', documentId);
   const commandOverflow = useCommand('tabs:overflow-menu', documentId);
 
   // Find the currently active mode
   const activeCommand = useMemo(() => {
-    const commands = [commandView, commandAnnotate, commandShapes, commandRedact];
+    const commands = [commandView, commandAnnotate, commandShapes, commandRedact, commandMeasure];
     return commands.find((cmd) => cmd?.active) || commandView;
-  }, [commandView, commandAnnotate, commandShapes, commandRedact]);
+  }, [commandView, commandAnnotate, commandShapes, commandRedact, commandMeasure]);
 
   const handleClick = useCallback(
     (e: MouseEvent) => {

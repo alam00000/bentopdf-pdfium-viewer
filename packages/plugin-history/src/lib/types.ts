@@ -65,6 +65,12 @@ export interface HistoryScope {
    */
   register: (command: Command, topic: string) => void;
 
+  amendLast: (command: Command, topic: string) => void;
+
+  beginTransaction: () => void;
+
+  endTransaction: (groupTopic?: string) => void;
+
   /**
    * Undoes the last command.
    * @param topic If provided, undoes the last command for that specific topic.
@@ -119,6 +125,12 @@ export interface HistoryCapability {
    * @param topic A string identifier for the history scope (e.g., 'annotations').
    */
   register: (command: Command, topic: string) => void;
+
+  amendLast: (command: Command, topic: string) => void;
+
+  beginTransaction: () => void;
+
+  endTransaction: (groupTopic?: string) => void;
 
   /**
    * Undoes the last command for the active document.

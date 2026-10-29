@@ -37,6 +37,7 @@ import {
   RenderAnnotationOptions,
   TrackedAnnotation,
   TransformOptions,
+  UpdateAnnotationOptions,
   AnnotationConstraintInfo,
   CombinedConstraints,
   GroupingAction,
@@ -414,7 +415,8 @@ export class AnnotationPlugin extends BasePlugin<
       deselectAnnotation: () => this.deselectAnnotation(),
       importAnnotations: (items) => this.importAnnotations(items),
       createAnnotation: (pageIndex, anno, ctx) => this.createAnnotation(pageIndex, anno, ctx),
-      updateAnnotation: (pageIndex, id, patch) => this.updateAnnotation(pageIndex, id, patch),
+      updateAnnotation: (pageIndex, id, patch, options) =>
+        this.updateAnnotation(pageIndex, id, patch, undefined, options),
       updateAnnotations: (patches) => this.updateAnnotationsMethod(patches),
       moveAnnotation: (pageIndex, id, position, mode, documentId) =>
         this.moveAnnotationMethod(pageIndex, id, position, mode, documentId),
@@ -490,8 +492,8 @@ export class AnnotationPlugin extends BasePlugin<
       importAnnotations: (items) => this.importAnnotations(items, documentId),
       createAnnotation: (pageIndex, anno, ctx) =>
         this.createAnnotation(pageIndex, anno, ctx, documentId),
-      updateAnnotation: (pageIndex, id, patch) =>
-        this.updateAnnotation(pageIndex, id, patch, documentId),
+      updateAnnotation: (pageIndex, id, patch, options) =>
+        this.updateAnnotation(pageIndex, id, patch, documentId, options),
       updateAnnotations: (patches) => this.updateAnnotationsMethod(patches, documentId),
       moveAnnotation: (pageIndex, id, position, mode) =>
         this.moveAnnotationMethod(pageIndex, id, position, mode, documentId),
@@ -586,6 +588,11 @@ export class AnnotationPlugin extends BasePlugin<
       changes: options.changes,
       metadata: options.metadata,
     };
+
+    const tool = this.findToolForAnnotation(annotation);
+    if (tool?.transform) {
+      return tool.transform(annotation, context) as Partial<T>;
+    }
 
     return this.patchRegistry.transform(annotation, context);
   }
@@ -944,6 +951,7 @@ export class AnnotationPlugin extends BasePlugin<
     id: string,
     patch: Partial<PdfAnnotationObject>,
     documentId?: string,
+    options?: UpdateAnnotationOptions,
   ) {
     const docId = documentId ?? this.getActiveDocumentId();
 
@@ -1002,7 +1010,11 @@ export class AnnotationPlugin extends BasePlugin<
       metadata: { annotationIds: [id] },
     };
     const historyScope = this.history.forDocument(docId);
-    historyScope.register(command, this.ANNOTATION_HISTORY_TOPIC);
+    if (options?.amendPrevious) {
+      historyScope.amendLast(command, this.ANNOTATION_HISTORY_TOPIC);
+    } else {
+      historyScope.register(command, this.ANNOTATION_HISTORY_TOPIC);
+    }
   }
 
   private deleteAnnotation(pageIndex: number, id: string, documentId?: string) {

@@ -7,9 +7,10 @@ interface Props {
   documentId: string;
   pageIndex: number;
   scale: number;
+  pageRotation?: number;
 }
 
-export function AnnotationPaintLayer({ documentId, pageIndex, scale }: Props) {
+export function AnnotationPaintLayer({ documentId, pageIndex, scale, pageRotation = 0 }: Props) {
   const { plugin: annotationPlugin } = useAnnotationPlugin();
   const [previews, setPreviews] = useState<Map<string, AnyPreviewState>>(new Map());
 
@@ -93,7 +94,13 @@ export function AnnotationPaintLayer({ documentId, pageIndex, scale }: Props) {
 
       {/* Render any active previews from any tool */}
       {Array.from(previews.entries()).map(([toolId, preview]) => (
-        <PreviewRenderer key={toolId} preview={preview} scale={scale} />
+        <PreviewRenderer
+          key={toolId}
+          preview={preview}
+          scale={scale}
+          pageRotation={pageRotation}
+          pageIndex={pageIndex}
+        />
       ))}
     </>
   );

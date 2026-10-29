@@ -39,6 +39,10 @@ import {
   IPdfiumExecutor,
   ImageDataLike,
   AnnotationAppearanceMap,
+  PdfPathSegmentQuery,
+  PdfPathSegments,
+  PdfScaleAreaBox,
+  PdfMeasureDictionary,
 } from '@embedpdf/models';
 import type { WorkerRequest, WorkerResponse } from './pdfium-native-runner';
 import type { FontFallbackConfig } from '../pdfium/font-fallback';
@@ -119,7 +123,15 @@ type MessageType =
   | 'removeEncryption'
   | 'unlockOwnerPermissions'
   | 'isEncrypted'
-  | 'isOwnerUnlocked';
+  | 'isOwnerUnlocked'
+  | 'getPathSegments'
+  | 'getScaleAreas'
+  | 'setScaleArea'
+  | 'removeScaleArea'
+  | 'moveScaleArea'
+  | 'copyScaleArea'
+  | 'getScaleAreasSyntax'
+  | 'setScaleAreasSyntax';
 
 /**
  * RemoteExecutor - Proxy for worker communication
@@ -581,5 +593,59 @@ export class RemoteExecutor implements IPdfiumExecutor {
 
   isOwnerUnlocked(doc: PdfDocumentObject): PdfTask<boolean> {
     return this.send<boolean>('isOwnerUnlocked', [doc]);
+  }
+
+  getPathSegments(
+    doc: PdfDocumentObject,
+    page: PdfPageObject,
+    query: PdfPathSegmentQuery,
+    maxCount: number,
+  ): PdfTask<PdfPathSegments> {
+    return this.send<PdfPathSegments>('getPathSegments', [doc, page, query, maxCount]);
+  }
+
+  getScaleAreas(doc: PdfDocumentObject): PdfTask<string | null> {
+    return this.send<string | null>('getScaleAreas', [doc]);
+  }
+
+  setScaleArea(
+    doc: PdfDocumentObject,
+    pageIndex: number,
+    index: number,
+    box: PdfScaleAreaBox,
+    name: string | null,
+    measure: PdfMeasureDictionary | null | 'keep',
+  ): PdfTask<number | null> {
+    return this.send<number | null>('setScaleArea', [doc, pageIndex, index, box, name, measure]);
+  }
+
+  removeScaleArea(doc: PdfDocumentObject, pageIndex: number, index: number): PdfTask<boolean> {
+    return this.send<boolean>('removeScaleArea', [doc, pageIndex, index]);
+  }
+
+  moveScaleArea(
+    doc: PdfDocumentObject,
+    pageIndex: number,
+    from: number,
+    to: number,
+  ): PdfTask<boolean> {
+    return this.send<boolean>('moveScaleArea', [doc, pageIndex, from, to]);
+  }
+
+  copyScaleArea(
+    doc: PdfDocumentObject,
+    fromPage: number,
+    index: number,
+    toPage: number,
+  ): PdfTask<number | null> {
+    return this.send<number | null>('copyScaleArea', [doc, fromPage, index, toPage]);
+  }
+
+  getScaleAreasSyntax(doc: PdfDocumentObject, pageIndex: number): PdfTask<string | null> {
+    return this.send<string | null>('getScaleAreasSyntax', [doc, pageIndex]);
+  }
+
+  setScaleAreasSyntax(doc: PdfDocumentObject, pageIndex: number, syntax: string): PdfTask<boolean> {
+    return this.send<boolean>('setScaleAreasSyntax', [doc, pageIndex, syntax]);
   }
 }

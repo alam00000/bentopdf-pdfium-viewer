@@ -125,6 +125,13 @@ import {
   PdfPageTextRuns,
   PdfAlphaColor,
   PdfBlendMode,
+  PdfCaptionOffset,
+  PdfMeasureDictionary,
+  PdfMeasurementProperties,
+  PdfNumberFormat,
+  PdfPathSegmentQuery,
+  PdfPathSegments,
+  PdfScaleAreaBox,
 } from '@embedpdf/models';
 import { computeFormDrawParams, isValidCustomKey, readArrayBuffer, readString } from './helper';
 import { WrappedPdfiumModule } from '@embedpdf/pdfium';
@@ -161,6 +168,9 @@ export enum RenderFlag {
 
 const LOG_SOURCE = 'PDFiumEngine';
 const LOG_CATEGORY = 'Engine';
+
+const PATH_SEGMENT_SIZE = 28;
+const NUMBER_FORMAT_SIZE = 48;
 
 /**
  * Error code of pdfium library
@@ -2435,6 +2445,372 @@ export class PdfiumNative implements IPdfiumExecutor {
     return PdfTaskHelper.resolve(result);
   }
 
+  getPathSegments(
+    doc: PdfDocumentObject,
+    page: PdfPageObject,
+    query: PdfPathSegmentQuery,
+    maxCount: number,
+  ): PdfTask<PdfPathSegments> {
+    const ctx = this.cache.getContext(doc.id);
+    if (!ctx) {
+      return PdfTaskHelper.reject({
+        code: PdfErrorCode.DocNotOpen,
+        message: 'document does not open',
+      });
+    }
+
+    const pageCtx = ctx.acquirePage(page.index);
+    const max = Math.max(0, Math.floor(maxCount));
+    const bufPtr = max > 0 ? this.memoryManager.malloc(max * PATH_SEGMENT_SIZE) : 0;
+    try {
+      const total = this.pdfiumModule.EPDFPage_GetPathSegments(
+        pageCtx.pagePtr,
+        query.minX,
+        query.minY,
+        query.maxX,
+        query.maxY,
+        bufPtr,
+        max,
+      );
+      if (total < 0) {
+        return PdfTaskHelper.resolve<PdfPathSegments>({
+          count: -1,
+          total: -1,
+          coords: new Float32Array(0),
+          meta: new Int32Array(0),
+        });
+      }
+      const count = Math.min(total, max);
+      const coords = new Float32Array(count * 4);
+      const meta = new Int32Array(count * 3);
+      const view = new DataView(this.pdfiumModule.pdfium.HEAPU8.buffer);
+      for (let i = 0; i < count; i++) {
+        const base = bufPtr + i * PATH_SEGMENT_SIZE;
+        coords[i * 4] = view.getFloat32(base, true);
+        coords[i * 4 + 1] = view.getFloat32(base + 4, true);
+        coords[i * 4 + 2] = view.getFloat32(base + 8, true);
+        coords[i * 4 + 3] = view.getFloat32(base + 12, true);
+        meta[i * 3] = view.getInt32(base + 16, true);
+        meta[i * 3 + 1] = view.getInt32(base + 20, true);
+        meta[i * 3 + 2] = view.getInt32(base + 24, true);
+      }
+      return PdfTaskHelper.resolve<PdfPathSegments>({ count, total, coords, meta });
+    } finally {
+      if (bufPtr) this.memoryManager.free(bufPtr);
+      pageCtx.release();
+    }
+  }
+
+  getScaleAreas(doc: PdfDocumentObject): PdfTask<string | null> {
+    const ctx = this.cache.getContext(doc.id);
+    if (!ctx) {
+      return PdfTaskHelper.reject({
+        code: PdfErrorCode.DocNotOpen,
+        message: 'document does not open',
+      });
+    }
+    return PdfTaskHelper.resolve(
+      this.readUtf8Out((buf, len) =>
+        this.pdfiumModule.EPDFDoc_GetViewportsJson(ctx.docPtr, buf, len),
+      ),
+    );
+  }
+
+  setScaleArea(
+    doc: PdfDocumentObject,
+    pageIndex: number,
+    index: number,
+    box: PdfScaleAreaBox,
+    name: string | null,
+    measure: PdfMeasureDictionary | null | 'keep',
+  ): PdfTask<number | null> {
+    const ctx = this.cache.getContext(doc.id);
+    if (!ctx) {
+      return PdfTaskHelper.reject({
+        code: PdfErrorCode.DocNotOpen,
+        message: 'document does not open',
+      });
+    }
+    const write = (namePtr: number) =>
+      this.withMeasureArgs(measure === 'keep' ? null : measure, (m) =>
+        this.pdfiumModule.EPDFDoc_SetPageViewport(
+          ctx.docPtr,
+          pageIndex,
+          index,
+          box.left,
+          box.bottom,
+          box.right,
+          box.top,
+          namePtr,
+          m.ratio,
+          m.x,
+          measure === 'keep' ? -1 : m.xCount,
+          m.y,
+          m.yCount,
+          m.d,
+          m.dCount,
+          m.a,
+          m.aCount,
+          m.cyx,
+        ),
+      );
+    const written = name ? this.withWString(name, write) : write(0);
+    return PdfTaskHelper.resolve(written < 0 ? null : written);
+  }
+
+  removeScaleArea(doc: PdfDocumentObject, pageIndex: number, index: number): PdfTask<boolean> {
+    const ctx = this.cache.getContext(doc.id);
+    if (!ctx) {
+      return PdfTaskHelper.reject({
+        code: PdfErrorCode.DocNotOpen,
+        message: 'document does not open',
+      });
+    }
+    return PdfTaskHelper.resolve(
+      !!this.pdfiumModule.EPDFDoc_RemovePageViewport(ctx.docPtr, pageIndex, index),
+    );
+  }
+
+  moveScaleArea(
+    doc: PdfDocumentObject,
+    pageIndex: number,
+    from: number,
+    to: number,
+  ): PdfTask<boolean> {
+    const ctx = this.cache.getContext(doc.id);
+    if (!ctx) {
+      return PdfTaskHelper.reject({
+        code: PdfErrorCode.DocNotOpen,
+        message: 'document does not open',
+      });
+    }
+    return PdfTaskHelper.resolve(
+      !!this.pdfiumModule.EPDFDoc_MovePageViewport(ctx.docPtr, pageIndex, from, to),
+    );
+  }
+
+  copyScaleArea(
+    doc: PdfDocumentObject,
+    fromPage: number,
+    index: number,
+    toPage: number,
+  ): PdfTask<number | null> {
+    const ctx = this.cache.getContext(doc.id);
+    if (!ctx) {
+      return PdfTaskHelper.reject({
+        code: PdfErrorCode.DocNotOpen,
+        message: 'document does not open',
+      });
+    }
+    const written = this.pdfiumModule.EPDFDoc_CopyPageViewport(ctx.docPtr, fromPage, index, toPage);
+    return PdfTaskHelper.resolve(written < 0 ? null : written);
+  }
+
+  getScaleAreasSyntax(doc: PdfDocumentObject, pageIndex: number): PdfTask<string | null> {
+    const ctx = this.cache.getContext(doc.id);
+    if (!ctx) {
+      return PdfTaskHelper.reject({
+        code: PdfErrorCode.DocNotOpen,
+        message: 'document does not open',
+      });
+    }
+    return PdfTaskHelper.resolve(
+      this.readUtf8Out((buf, len) =>
+        this.pdfiumModule.EPDFDoc_GetPageViewportsSyntax(ctx.docPtr, pageIndex, buf, len),
+      ),
+    );
+  }
+
+  setScaleAreasSyntax(doc: PdfDocumentObject, pageIndex: number, syntax: string): PdfTask<boolean> {
+    const ctx = this.cache.getContext(doc.id);
+    if (!ctx) {
+      return PdfTaskHelper.reject({
+        code: PdfErrorCode.DocNotOpen,
+        message: 'document does not open',
+      });
+    }
+    return PdfTaskHelper.resolve(
+      this.withUtf8(
+        syntax,
+        (ptr) => !!this.pdfiumModule.EPDFDoc_SetPageViewportsSyntax(ctx.docPtr, pageIndex, ptr),
+      ),
+    );
+  }
+
+  private readUtf8Out(read: (buffer: number, length: number) => number): string | null {
+    const need = read(0, 0);
+    if (need <= 0) return null;
+    const ptr = this.memoryManager.malloc(need);
+    try {
+      if (read(ptr, need) !== need) return null;
+      return this.pdfiumModule.pdfium.UTF8ToString(ptr, need - 1);
+    } finally {
+      this.memoryManager.free(ptr);
+    }
+  }
+
+  private withUtf8<T>(value: string, fn: (ptr: number) => T): T {
+    const size = this.pdfiumModule.pdfium.lengthBytesUTF8(value) + 1;
+    const ptr = this.memoryManager.malloc(size);
+    try {
+      this.pdfiumModule.pdfium.stringToUTF8(value, ptr, size);
+      return fn(ptr);
+    } finally {
+      this.memoryManager.free(ptr);
+    }
+  }
+
+  private withMeasureArgs<T>(
+    measure: PdfMeasureDictionary | null,
+    fn: (args: {
+      ratio: number;
+      x: number;
+      xCount: number;
+      y: number;
+      yCount: number;
+      d: number;
+      dCount: number;
+      a: number;
+      aCount: number;
+      cyx: number;
+    }) => T,
+  ): T {
+    const pdf = this.pdfiumModule.pdfium;
+    const owned: WasmPointer[] = [];
+    const own = (value: string): number => {
+      const size = pdf.lengthBytesUTF8(value) + 1;
+      const ptr = this.memoryManager.malloc(size);
+      owned.push(ptr);
+      pdf.stringToUTF8(value, ptr, size);
+      return ptr;
+    };
+    const str = (value: unknown): number => (typeof value === 'string' ? own(value) : 0);
+    const chain = (formats: PdfNumberFormat[] | undefined): { ptr: number; count: number } => {
+      const list = Array.isArray(formats)
+        ? formats.filter((f): f is PdfNumberFormat => !!f && typeof f === 'object')
+        : [];
+      if (list.length === 0) return { ptr: 0, count: 0 };
+      const ptr = this.memoryManager.malloc(list.length * NUMBER_FORMAT_SIZE);
+      owned.push(ptr);
+      pdf.HEAPU8.fill(0, ptr, ptr + list.length * NUMBER_FORMAT_SIZE);
+      list.forEach((f, i) => {
+        const base = ptr + i * NUMBER_FORMAT_SIZE;
+        pdf.setValue(base, str(f.U), 'i32');
+        pdf.setValue(base + 8, typeof f.C === 'number' ? f.C : 0, 'double');
+        pdf.setValue(base + 16, (typeof f.F === 'string' && f.F ? f.F : 'D').charCodeAt(0), 'i8');
+        pdf.setValue(base + 20, typeof f.D === 'number' ? f.D | 0 : 0, 'i32');
+        pdf.setValue(base + 24, f.FD ? 1 : 0, 'i32');
+        pdf.setValue(base + 28, str(f.RT), 'i32');
+        pdf.setValue(base + 32, str(f.RD), 'i32');
+        pdf.setValue(base + 36, str(f.PS), 'i32');
+        pdf.setValue(base + 40, str(f.SS), 'i32');
+        pdf.setValue(base + 44, (typeof f.O === 'string' && f.O ? f.O : 'S').charCodeAt(0), 'i8');
+      });
+      return { ptr, count: list.length };
+    };
+    try {
+      const x = chain(measure?.X);
+      const y = chain(measure?.Y);
+      const d = chain(measure?.D);
+      const a = chain(measure?.A);
+      return fn({
+        ratio: measure && typeof measure.R === 'string' && measure.R ? own(measure.R) : 0,
+        x: x.ptr,
+        xCount: x.count,
+        y: y.ptr,
+        yCount: y.count,
+        d: d.ptr,
+        dCount: d.count,
+        a: a.ptr,
+        aCount: a.count,
+        cyx: measure && typeof measure.CYX === 'number' ? measure.CYX : 1,
+      });
+    } finally {
+      for (const ptr of owned) this.memoryManager.free(ptr);
+    }
+  }
+
+  private writeMeasurementProperties(
+    annotationPtr: number,
+    annotation: PdfMeasurementProperties & { leaderLength?: number },
+  ): boolean {
+    if (annotation.measure && typeof annotation.measure === 'object') {
+      const measure = annotation.measure;
+      const ok = this.withMeasureArgs(measure, (m) =>
+        this.pdfiumModule.EPDFAnnot_SetMeasureRectilinear(
+          annotationPtr,
+          m.ratio,
+          m.x,
+          m.xCount,
+          m.y,
+          m.yCount,
+          m.d,
+          m.dCount,
+          m.a,
+          m.aCount,
+          m.cyx,
+        ),
+      );
+      if (!ok) return false;
+    }
+    if (typeof annotation.leaderLength === 'number' && Number.isFinite(annotation.leaderLength)) {
+      if (
+        !this.pdfiumModule.EPDFAnnot_SetNumberValue(annotationPtr, 'LL', annotation.leaderLength)
+      ) {
+        return false;
+      }
+    }
+    const co = annotation.captionOffset;
+    if (co && Number.isFinite(co.dx) && Number.isFinite(co.dy)) {
+      if (!this.pdfiumModule.EPDFAnnot_SetCaptionOffset(annotationPtr, co.dx, co.dy)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  private readMeasurementProperties(annotationPtr: number): {
+    intent?: string;
+    measureJson?: string;
+    captionOffset?: PdfCaptionOffset;
+  } {
+    const intent = this.getAnnotIntent(annotationPtr);
+    const measureJson = this.pdfiumModule.EPDFAnnot_HasMeasure(annotationPtr)
+      ? this.readUtf8Out((buf, len) =>
+          this.pdfiumModule.EPDFAnnot_GetMeasureJson(annotationPtr, buf, len),
+        )
+      : null;
+    const coPtr = this.memoryManager.malloc(8);
+    let captionOffset: PdfCaptionOffset | undefined;
+    try {
+      if (this.pdfiumModule.EPDFAnnot_GetCaptionOffset(annotationPtr, coPtr, coPtr + 4)) {
+        const pdf = this.pdfiumModule.pdfium;
+        captionOffset = {
+          dx: pdf.getValue(coPtr, 'float'),
+          dy: pdf.getValue(coPtr + 4, 'float'),
+        };
+      }
+    } finally {
+      this.memoryManager.free(coPtr);
+    }
+    return {
+      ...(intent && { intent }),
+      ...(measureJson && { measureJson }),
+      ...(captionOffset && { captionOffset }),
+    };
+  }
+
+  private readLeaderLength(annotationPtr: number): number | undefined {
+    const ptr = this.memoryManager.malloc(4);
+    try {
+      if (!this.pdfiumModule.FPDFAnnot_GetNumberValue(annotationPtr, 'LL', ptr)) return undefined;
+      const value = this.pdfiumModule.pdfium.getValue(ptr, 'float');
+      return Number.isFinite(value) ? value : undefined;
+    } finally {
+      this.memoryManager.free(ptr);
+    }
+  }
+
   /**
    * {@inheritDoc @embedpdf/models!PdfEngine.saveAsCopy}
    *
@@ -2749,6 +3125,9 @@ export class PdfiumNative implements IPdfiumExecutor {
     if (annotation.intent && !this.setAnnotIntent(annotationPtr, annotation.intent)) {
       return false;
     }
+    if (!this.writeMeasurementProperties(annotationPtr, annotation)) {
+      return false;
+    }
     if (!annotation.color || annotation.color === 'transparent') {
       if (
         !this.pdfiumModule.EPDFAnnot_ClearColor(annotationPtr, PdfAnnotationColorType.InteriorColor)
@@ -2819,6 +3198,9 @@ export class PdfiumNative implements IPdfiumExecutor {
       return false;
     }
     if (annotation.intent && !this.setAnnotIntent(annotationPtr, annotation.intent)) {
+      return false;
+    }
+    if (!this.writeMeasurementProperties(annotationPtr, annotation)) {
       return false;
     }
     if (!annotation.color || annotation.color === 'transparent') {
@@ -6443,6 +6825,7 @@ export class PdfiumNative implements IPdfiumExecutor {
           bottom: rd.bottom,
         },
       }),
+      ...this.readMeasurementProperties(annotationPtr),
       ...this.readBaseAnnotationProperties(doc, page, annotationPtr),
     };
   }
@@ -6497,6 +6880,7 @@ export class PdfiumNative implements IPdfiumExecutor {
       strokeDashArray,
       lineEndings,
       vertices,
+      ...this.readMeasurementProperties(annotationPtr),
       ...this.readBaseAnnotationProperties(doc, page, annotationPtr),
     };
   }
@@ -6522,6 +6906,7 @@ export class PdfiumNative implements IPdfiumExecutor {
     // Type-specific properties
     const linePoints = this.getLinePoints(doc, page, annotationPtr);
     const lineEndings = this.getLineEndings(annotationPtr);
+    const leaderLength = this.readLeaderLength(annotationPtr);
     const strokeColor = this.getAnnotationColor(annotationPtr);
     const interiorColor = this.getAnnotationColor(
       annotationPtr,
@@ -6554,6 +6939,8 @@ export class PdfiumNative implements IPdfiumExecutor {
         start: PdfAnnotationLineEnding.None,
         end: PdfAnnotationLineEnding.None,
       },
+      ...(leaderLength !== undefined && { leaderLength }),
+      ...this.readMeasurementProperties(annotationPtr),
       ...this.readBaseAnnotationProperties(doc, page, annotationPtr),
     };
   }

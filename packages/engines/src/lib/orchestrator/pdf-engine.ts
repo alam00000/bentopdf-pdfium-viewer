@@ -47,6 +47,10 @@ import {
   ImageDataLike,
   IPdfiumExecutor,
   AnnotationAppearanceMap,
+  PdfPathSegmentQuery,
+  PdfPathSegments,
+  PdfScaleAreaBox,
+  PdfMeasureDictionary,
 } from '@embedpdf/models';
 import { WorkerTaskQueue, Priority } from './task-queue';
 import type { ImageDataConverter } from '../converters/types';
@@ -1060,6 +1064,108 @@ export class PdfEngine<T = Blob> implements IPdfEngine<T> {
       {
         execute: () => this.executor.isOwnerUnlocked(doc),
         meta: { docId: doc.id, operation: 'isOwnerUnlocked' },
+      },
+      { priority: Priority.MEDIUM },
+    );
+  }
+
+  getPathSegments(
+    doc: PdfDocumentObject,
+    page: PdfPageObject,
+    query: PdfPathSegmentQuery,
+    maxCount: number,
+  ): PdfTask<PdfPathSegments> {
+    return this.workerQueue.enqueue(
+      {
+        execute: () => this.executor.getPathSegments(doc, page, query, maxCount),
+        meta: { docId: doc.id, pageIndex: page.index, operation: 'getPathSegments' },
+      },
+      { priority: Priority.HIGH },
+    );
+  }
+
+  getScaleAreas(doc: PdfDocumentObject): PdfTask<string | null> {
+    return this.workerQueue.enqueue(
+      {
+        execute: () => this.executor.getScaleAreas(doc),
+        meta: { docId: doc.id, operation: 'getScaleAreas' },
+      },
+      { priority: Priority.MEDIUM },
+    );
+  }
+
+  setScaleArea(
+    doc: PdfDocumentObject,
+    pageIndex: number,
+    index: number,
+    box: PdfScaleAreaBox,
+    name: string | null,
+    measure: PdfMeasureDictionary | null | 'keep',
+  ): PdfTask<number | null> {
+    return this.workerQueue.enqueue(
+      {
+        execute: () => this.executor.setScaleArea(doc, pageIndex, index, box, name, measure),
+        meta: { docId: doc.id, pageIndex, operation: 'setScaleArea' },
+      },
+      { priority: Priority.MEDIUM },
+    );
+  }
+
+  removeScaleArea(doc: PdfDocumentObject, pageIndex: number, index: number): PdfTask<boolean> {
+    return this.workerQueue.enqueue(
+      {
+        execute: () => this.executor.removeScaleArea(doc, pageIndex, index),
+        meta: { docId: doc.id, pageIndex, operation: 'removeScaleArea' },
+      },
+      { priority: Priority.MEDIUM },
+    );
+  }
+
+  moveScaleArea(
+    doc: PdfDocumentObject,
+    pageIndex: number,
+    from: number,
+    to: number,
+  ): PdfTask<boolean> {
+    return this.workerQueue.enqueue(
+      {
+        execute: () => this.executor.moveScaleArea(doc, pageIndex, from, to),
+        meta: { docId: doc.id, pageIndex, operation: 'moveScaleArea' },
+      },
+      { priority: Priority.MEDIUM },
+    );
+  }
+
+  copyScaleArea(
+    doc: PdfDocumentObject,
+    fromPage: number,
+    index: number,
+    toPage: number,
+  ): PdfTask<number | null> {
+    return this.workerQueue.enqueue(
+      {
+        execute: () => this.executor.copyScaleArea(doc, fromPage, index, toPage),
+        meta: { docId: doc.id, pageIndex: toPage, operation: 'copyScaleArea' },
+      },
+      { priority: Priority.MEDIUM },
+    );
+  }
+
+  getScaleAreasSyntax(doc: PdfDocumentObject, pageIndex: number): PdfTask<string | null> {
+    return this.workerQueue.enqueue(
+      {
+        execute: () => this.executor.getScaleAreasSyntax(doc, pageIndex),
+        meta: { docId: doc.id, pageIndex, operation: 'getScaleAreasSyntax' },
+      },
+      { priority: Priority.MEDIUM },
+    );
+  }
+
+  setScaleAreasSyntax(doc: PdfDocumentObject, pageIndex: number, syntax: string): PdfTask<boolean> {
+    return this.workerQueue.enqueue(
+      {
+        execute: () => this.executor.setScaleAreasSyntax(doc, pageIndex, syntax),
+        meta: { docId: doc.id, pageIndex, operation: 'setScaleAreasSyntax' },
       },
       { priority: Priority.MEDIUM },
     );

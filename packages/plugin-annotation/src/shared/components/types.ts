@@ -1,5 +1,5 @@
-import { PdfAnnotationObject, PdfBlendMode } from '@embedpdf/models';
-import { TrackedAnnotation } from '@embedpdf/plugin-annotation';
+import { PdfAnnotationObject, PdfBlendMode, Rect } from '@embedpdf/models';
+import { AnyPreviewState, TrackedAnnotation } from '@embedpdf/plugin-annotation';
 import {
   HandleElementProps,
   SelectionMenuPropsBase,
@@ -179,6 +179,10 @@ export interface AnnotationRendererEntry<T extends PdfAnnotationObject = PdfAnno
   /** The component to render the annotation */
   render: (props: AnnotationRendererProps<T>) => JSX.Element;
 
+  matchesPreview?: (preview: AnyPreviewState) => boolean;
+
+  renderPreview?: (props: PreviewRendererProps) => JSX.Element;
+
   /** Vertex configuration for annotations with draggable vertices (line, polyline, polygon) */
   vertexConfig?: VertexConfig<T>;
 
@@ -219,6 +223,14 @@ export interface AnnotationRendererEntry<T extends PdfAnnotationObject = PdfAnno
   hideSelectionMenu?: (annotation: T) => boolean;
 }
 
+export interface PreviewRendererProps {
+  data: AnyPreviewState['data'];
+  bounds: Rect;
+  scale: number;
+  pageRotation: number;
+  pageIndex: number;
+}
+
 /**
  * Boxed renderer that encapsulates type safety internally.
  * The generic is erased -- this is what the registry actually stores.
@@ -227,6 +239,8 @@ export interface BoxedAnnotationRenderer {
   id: string;
   matches: (annotation: PdfAnnotationObject) => boolean;
   render: (props: AnnotationRendererProps) => JSX.Element;
+  matchesPreview?: (preview: AnyPreviewState) => boolean;
+  renderPreview?: (props: PreviewRendererProps) => JSX.Element;
   vertexConfig?: VertexConfig<PdfAnnotationObject>;
   zIndex?: number;
   defaultBlendMode?: PdfBlendMode;
@@ -260,6 +274,8 @@ export function createRenderer<T extends PdfAnnotationObject>(
     id: entry.id,
     matches: (annotation) => entry.matches(annotation),
     render: (props) => entry.render(props as AnnotationRendererProps<T>),
+    matchesPreview: entry.matchesPreview,
+    renderPreview: entry.renderPreview,
     vertexConfig: entry.vertexConfig as VertexConfig<PdfAnnotationObject> | undefined,
     zIndex: entry.zIndex,
     defaultBlendMode: entry.defaultBlendMode,

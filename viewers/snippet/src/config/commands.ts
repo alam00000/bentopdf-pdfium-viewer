@@ -38,7 +38,15 @@ import {
   PdfLinkAnnoObject,
   uuidV4,
 } from '@embedpdf/models';
-import { getEffectivePermission } from '@embedpdf/core';
+import { getEffectivePermission, PluginRegistry } from '@embedpdf/core';
+import * as measurementStore from '@/measurement/scale-store';
+import {
+  armScaleAreaTool,
+  disarmScaleAreaTool,
+  isScaleAreaToolArmed,
+} from '@/measurement/scale-area-tool';
+import { scaleAreasSupported } from '@/measurement/scale-areas';
+import { MEASUREMENT_OPEN_SCALE_EVENT } from '@/components/measurement-scale-badge';
 
 /**
  * Helper to check if the document has a specific permission flag (after applying overrides).
@@ -55,6 +63,59 @@ const hasPermission = (state: State, documentId: string, flag: PdfPermissionFlag
 const lacksPermission = (state: State, documentId: string, flag: PdfPermissionFlag): boolean => {
   return !hasPermission(state, documentId, flag);
 };
+
+const leaveMeasureMode = (registry: PluginRegistry, documentId: string): void => {
+  const armed = measurementStore.getPendingMode(documentId) !== null;
+  measurementStore.setPendingMode(documentId, null);
+  measurementStore.resetCalibration(documentId);
+  disarmScaleAreaTool(documentId);
+  if (armed) {
+    registry
+      .getPlugin<AnnotationPlugin>(ANNOTATION_PLUGIN_ID)
+      ?.provides()
+      ?.forDocument(documentId)
+      ?.setActiveTool(null);
+  }
+};
+
+const measurementTool = (
+  id: string,
+  labelKey: string,
+  icon: string,
+  baseToolId: string,
+  mode: measurementStore.MeasurementMode,
+  category: string,
+): Command<State> => ({
+  id,
+  labelKey,
+  icon,
+  iconProps: ({ state }) => ({
+    primaryColor: getToolDefaultsById(state.plugins.annotation, mode)?.strokeColor,
+  }),
+  categories: ['annotation', 'annotation-measurement', category],
+  action: ({ registry, documentId }) => {
+    const annotation = registry.getPlugin<AnnotationPlugin>(ANNOTATION_PLUGIN_ID)?.provides();
+    const scope = annotation?.forDocument(documentId);
+    if (!scope) return;
+    const isOn =
+      scope.getActiveTool()?.id === baseToolId &&
+      measurementStore.getPendingMode(documentId) === mode;
+    if (isOn) {
+      measurementStore.setPendingMode(documentId, null);
+      scope.setActiveTool(null);
+    } else {
+      measurementStore.setPendingMode(documentId, mode);
+      scope.setActiveTool(baseToolId);
+    }
+  },
+  active: ({ state, documentId }) => {
+    const a = state.plugins[ANNOTATION_PLUGIN_ID]?.documents[documentId];
+    return a?.activeToolId === baseToolId && measurementStore.getPendingMode(documentId) === mode;
+  },
+  disabled: ({ state, documentId }) => {
+    return lacksPermission(state, documentId, PdfPermissionFlag.ModifyAnnotations);
+  },
+});
 
 export const commands: Record<string, Command<State>> = {
   // ─────────────────────────────────────────────────────────
@@ -807,6 +868,7 @@ export const commands: Record<string, Command<State>> = {
       const interactionScope = interactionManager.forDocument(documentId);
       if (!interactionScope) return;
 
+      leaveMeasureMode(registry, documentId);
       interactionScope.activateDefaultMode();
       ui.forDocument(documentId).closeToolbarSlot('top', 'secondary');
     },
@@ -823,6 +885,7 @@ export const commands: Record<string, Command<State>> = {
       const ui = registry.getPlugin<UIPlugin>('ui')?.provides();
       if (!ui) return;
 
+      leaveMeasureMode(registry, documentId);
       ui.setActiveToolbar('top', 'secondary', 'annotation-toolbar', documentId);
     },
     active: ({ state, documentId }) => {
@@ -838,6 +901,7 @@ export const commands: Record<string, Command<State>> = {
       const ui = registry.getPlugin<UIPlugin>('ui')?.provides();
       if (!ui) return;
 
+      leaveMeasureMode(registry, documentId);
       ui.setActiveToolbar('top', 'secondary', 'shapes-toolbar', documentId);
     },
     active: ({ state, documentId }) => {
@@ -853,10 +917,29 @@ export const commands: Record<string, Command<State>> = {
       const ui = registry.getPlugin<UIPlugin>('ui')?.provides();
       if (!ui) return;
 
+      leaveMeasureMode(registry, documentId);
       ui.setActiveToolbar('top', 'secondary', 'redaction-toolbar', documentId);
     },
     active: ({ state, documentId }) => {
       return isToolbarOpen(state.plugins, documentId, 'top', 'secondary', 'redaction-toolbar');
+    },
+  },
+
+  'mode:measure': {
+    id: 'mode:measure',
+    labelKey: 'mode.measure',
+    categories: ['mode', 'mode-measure', 'annotation-measurement'],
+    action: ({ registry, documentId }) => {
+      const ui = registry.getPlugin<UIPlugin>('ui')?.provides();
+      if (!ui) return;
+
+      ui.setActiveToolbar('top', 'secondary', 'measure-toolbar', documentId);
+    },
+    active: ({ state, documentId }) => {
+      return isToolbarOpen(state.plugins, documentId, 'top', 'secondary', 'measure-toolbar');
+    },
+    disabled: ({ state, documentId }) => {
+      return lacksPermission(state, documentId, PdfPermissionFlag.ModifyAnnotations);
     },
   },
 
@@ -1580,6 +1663,95 @@ export const commands: Record<string, Command<State>> = {
     },
     disabled: ({ state, documentId }) => {
       return lacksPermission(state, documentId, PdfPermissionFlag.ModifyAnnotations);
+    },
+  },
+
+  'annotation:add-distance': measurementTool(
+    'annotation:add-distance',
+    'annotation.distance',
+    'lineSegment',
+    'line',
+    'distance',
+    'annotation-distance',
+  ),
+
+  'annotation:add-perimeter': measurementTool(
+    'annotation:add-perimeter',
+    'annotation.perimeter',
+    'path',
+    'polyline',
+    'perimeter',
+    'annotation-perimeter',
+  ),
+
+  'annotation:add-area': measurementTool(
+    'annotation:add-area',
+    'annotation.area',
+    'polygon',
+    'polygon',
+    'area',
+    'annotation-area',
+  ),
+
+  'measurement:set-scale': {
+    id: 'measurement:set-scale',
+    labelKey: 'measurement.setScale',
+    icon: 'ruler',
+    categories: ['annotation', 'annotation-measurement'],
+    action: () => {
+      window.dispatchEvent(new CustomEvent(MEASUREMENT_OPEN_SCALE_EVENT));
+    },
+    disabled: ({ state, documentId }) => {
+      return lacksPermission(state, documentId, PdfPermissionFlag.ModifyAnnotations);
+    },
+  },
+
+  'measurement:calibrate': {
+    id: 'measurement:calibrate',
+    labelKey: 'measurement.calibrate',
+    icon: 'compass',
+    categories: ['annotation', 'annotation-measurement'],
+    action: ({ documentId }) => {
+      const phase = measurementStore.getCalibrationState(documentId).phase;
+      if (phase === 'idle') {
+        measurementStore.startCalibration(documentId);
+      } else {
+        measurementStore.resetCalibration(documentId);
+      }
+    },
+    active: ({ documentId }) => {
+      return measurementStore.getCalibrationState(documentId).phase !== 'idle';
+    },
+    disabled: ({ state, documentId }) => {
+      return lacksPermission(state, documentId, PdfPermissionFlag.ModifyAnnotations);
+    },
+  },
+
+  'measurement:scale-area': {
+    id: 'measurement:scale-area',
+    labelKey: 'measurement.scaleArea',
+    icon: 'frameCorners',
+    categories: ['annotation', 'annotation-measurement'],
+    action: ({ registry, documentId }) => {
+      if (isScaleAreaToolArmed(documentId)) {
+        disarmScaleAreaTool(documentId);
+        return;
+      }
+      registry
+        .getPlugin<AnnotationPlugin>(ANNOTATION_PLUGIN_ID)
+        ?.provides()
+        ?.forDocument(documentId)
+        ?.setActiveTool(null);
+      measurementStore.setPendingMode(documentId, null);
+      measurementStore.resetCalibration(documentId);
+      armScaleAreaTool(documentId);
+    },
+    active: ({ documentId }) => isScaleAreaToolArmed(documentId),
+    disabled: ({ state, documentId }) => {
+      return (
+        lacksPermission(state, documentId, PdfPermissionFlag.ModifyAnnotations) ||
+        scaleAreasSupported(documentId) === false
+      );
     },
   },
 

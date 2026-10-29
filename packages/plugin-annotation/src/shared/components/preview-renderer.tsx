@@ -7,14 +7,18 @@ import { Polyline } from './annotations/polyline';
 import { Line } from './annotations/line';
 import { Ink } from './annotations/ink';
 import { CalloutFreeTextPreview } from './annotations/callout-free-text-preview';
+import { useRegisteredRenderers } from '../context/renderer-registry';
 
 interface Props {
   preview: AnyPreviewState;
   scale: number;
+  pageRotation?: number;
+  pageIndex?: number;
 }
 
-export function PreviewRenderer({ preview, scale }: Props) {
+export function PreviewRenderer({ preview, scale, pageRotation = 0, pageIndex = 0 }: Props) {
   const { bounds } = preview;
+  const registeredRenderers = useRegisteredRenderers();
 
   const style = {
     position: 'absolute' as const,
@@ -25,6 +29,23 @@ export function PreviewRenderer({ preview, scale }: Props) {
     pointerEvents: 'none' as const,
     zIndex: 10,
   };
+
+  const registered = registeredRenderers.find(
+    (r) => r.renderPreview && r.matchesPreview?.(preview),
+  );
+  if (registered?.renderPreview) {
+    return (
+      <div style={style}>
+        {registered.renderPreview({
+          data: preview.data,
+          bounds: preview.bounds,
+          scale,
+          pageRotation,
+          pageIndex,
+        })}
+      </div>
+    );
+  }
 
   // Use type guards for proper type narrowing
   if (preview.type === PdfAnnotationSubtype.CIRCLE) {
