@@ -1,5 +1,7 @@
-import { useEffect, useRef, useState } from 'preact/hooks';
+import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
 import { useRegistry, useDocumentState } from '@embedpdf/core/preact';
+
+export const PAGE_LABELS_CHANGED_EVENT = 'bento:page-labels-changed';
 
 export function usePageLabels(documentId: string | null | undefined): {
   labels: string[];
@@ -10,6 +12,7 @@ export function usePageLabels(documentId: string | null | undefined): {
   const documentState = useDocumentState(documentId ?? null);
   const doc = documentState?.document;
   const pageCount = doc?.pageCount ?? 0;
+  const [invalidationTick, setInvalidationTick] = useState(0);
 
   const fetchedKeyRef = useRef<string | null>(null);
 
@@ -19,9 +22,8 @@ export function usePageLabels(documentId: string | null | undefined): {
       fetchedKeyRef.current = null;
       return;
     }
-    const key = `${documentId}:${pageCount}`;
+    const key = `${documentId}:${pageCount}:${invalidationTick}`;
     if (fetchedKeyRef.current === key) return;
-    fetchedKeyRef.current = key;
 
     let cancelled = false;
     const engine = registry.getEngine();
@@ -31,7 +33,9 @@ export function usePageLabels(documentId: string | null | undefined): {
     }
     engine.getPageLabels(doc).wait(
       (result) => {
-        if (!cancelled) setLabels(Array.isArray(result) ? result : []);
+        if (cancelled) return;
+        fetchedKeyRef.current = key;
+        setLabels(Array.isArray(result) ? result : []);
       },
       () => {
         if (!cancelled) setLabels([]);
@@ -40,12 +44,29 @@ export function usePageLabels(documentId: string | null | undefined): {
     return () => {
       cancelled = true;
     };
-  }, [registry, documentId, doc, pageCount]);
+  }, [registry, documentId, doc, pageCount, invalidationTick]);
 
-  const labelFor = (pageOneBased: number): string => {
-    const label = labels[pageOneBased - 1];
-    return label && label.length > 0 ? label : String(pageOneBased);
-  };
+  useEffect(() => {
+    if (!documentId) return;
+    const handler = (e: Event) => {
+      const detail = e instanceof CustomEvent ? e.detail : undefined;
+      const target =
+        detail && typeof detail === 'object' && 'documentId' in detail
+          ? detail.documentId
+          : undefined;
+      if (target == null || target === documentId) setInvalidationTick((n) => n + 1);
+    };
+    window.addEventListener(PAGE_LABELS_CHANGED_EVENT, handler);
+    return () => window.removeEventListener(PAGE_LABELS_CHANGED_EVENT, handler);
+  }, [documentId]);
+
+  const labelFor = useCallback(
+    (pageOneBased: number): string => {
+      const label = labels[pageOneBased - 1];
+      return label && label.length > 0 ? label : String(pageOneBased);
+    },
+    [labels],
+  );
 
   return { labels, labelFor };
 }

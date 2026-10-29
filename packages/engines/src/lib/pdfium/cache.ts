@@ -102,6 +102,8 @@ export class PdfCache {
 export class DocumentContext {
   private readonly pageCache: PageCache;
   public readonly normalizeRotation: boolean;
+  public pageUids: string[] = [];
+  private pageUidSeq = 0;
 
   constructor(
     public readonly filePtr: number,
@@ -127,6 +129,14 @@ export class DocumentContext {
   /** Update cache configuration */
   updateConfig(config: Required<CacheConfig>): void {
     this.pageCache.updateConfig(config);
+  }
+
+  clearPages(): void {
+    this.pageCache.forceReleaseAll();
+  }
+
+  newPageUids(count: number): string[] {
+    return Array.from({ length: count }, () => `p${++this.pageUidSeq}`);
   }
 
   /** Get number of pages currently in cache */

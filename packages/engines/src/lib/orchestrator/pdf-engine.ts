@@ -51,6 +51,8 @@ import {
   PdfPathSegments,
   PdfScaleAreaBox,
   PdfMeasureDictionary,
+  PdfPageMutation,
+  PdfPageMutationResult,
 } from '@embedpdf/models';
 import { WorkerTaskQueue, Priority } from './task-queue';
 import type { ImageDataConverter } from '../converters/types';
@@ -1166,6 +1168,39 @@ export class PdfEngine<T = Blob> implements IPdfEngine<T> {
       {
         execute: () => this.executor.setScaleAreasSyntax(doc, pageIndex, syntax),
         meta: { docId: doc.id, pageIndex, operation: 'setScaleAreasSyntax' },
+      },
+      { priority: Priority.MEDIUM },
+    );
+  }
+
+  mutatePages(
+    doc: PdfDocumentObject,
+    mutation: PdfPageMutation,
+  ): PdfTask<PdfPageMutationResult> {
+    return this.workerQueue.enqueue(
+      {
+        execute: () => this.executor.mutatePages(doc, mutation),
+        meta: { docId: doc.id, operation: 'mutatePages' },
+      },
+      { priority: Priority.HIGH },
+    );
+  }
+
+  getPageLabelRules(doc: PdfDocumentObject): PdfTask<string> {
+    return this.workerQueue.enqueue(
+      {
+        execute: () => this.executor.getPageLabelRules(doc),
+        meta: { docId: doc.id, operation: 'getPageLabelRules' },
+      },
+      { priority: Priority.MEDIUM },
+    );
+  }
+
+  setPageLabelRules(doc: PdfDocumentObject, json: string): PdfTask<boolean> {
+    return this.workerQueue.enqueue(
+      {
+        execute: () => this.executor.setPageLabelRules(doc, json),
+        meta: { docId: doc.id, operation: 'setPageLabelRules' },
       },
       { priority: Priority.MEDIUM },
     );

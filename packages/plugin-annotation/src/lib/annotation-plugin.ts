@@ -233,6 +233,17 @@ export class AnnotationPlugin extends BasePlugin<
     }
   }
 
+  protected override onDocumentRefreshed(documentId: string): void {
+    const docState = this.getCoreDocument(documentId);
+    if (!docState?.document) return;
+    this.appearanceCache.delete(documentId);
+    this.deselectAnnotation(documentId);
+    this.history
+      ?.forDocument(documentId)
+      .purgeByMetadata(() => true, this.ANNOTATION_HISTORY_TOPIC);
+    this.getAllAnnotations(documentId, docState.document);
+  }
+
   protected override onDocumentClosed(documentId: string): void {
     // Cleanup annotation state
     this.dispatch(cleanupAnnotationState(documentId));

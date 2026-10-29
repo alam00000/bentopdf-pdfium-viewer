@@ -6,6 +6,7 @@ import {
   CoreAction,
   CoreState,
   PluginStore,
+  REFRESH_DOCUMENT,
   SET_ACTIVE_DOCUMENT,
   SET_DOCUMENT_LOADED,
   SET_ROTATION,
@@ -45,6 +46,7 @@ export abstract class BasePlugin<
   private unsubscribeFromCloseDocument: (() => void) | null = null;
   private unsubscribeFromSetScale: (() => void) | null = null;
   private unsubscribeFromSetRotation: (() => void) | null = null;
+  private unsubscribeFromRefreshDocument: (() => void) | null = null;
 
   private _capability?: Readonly<TCapability>;
 
@@ -102,6 +104,9 @@ export abstract class BasePlugin<
       if (targetId) {
         this.onRotationChanged(targetId, action.payload.rotation);
       }
+    });
+    this.unsubscribeFromRefreshDocument = this.coreStore.onAction(REFRESH_DOCUMENT, (action) => {
+      this.onDocumentRefreshed(action.payload.documentId);
     });
 
     // Initialize ready state
@@ -310,6 +315,8 @@ export abstract class BasePlugin<
     // Default: no-op
   }
 
+  protected onDocumentRefreshed(documentId: string): void {}
+
   /**
    * Cleanup method to be called when plugin is being destroyed
    */
@@ -347,6 +354,10 @@ export abstract class BasePlugin<
     if (this.unsubscribeFromSetRotation) {
       this.unsubscribeFromSetRotation();
       this.unsubscribeFromSetRotation = null;
+    }
+    if (this.unsubscribeFromRefreshDocument) {
+      this.unsubscribeFromRefreshDocument();
+      this.unsubscribeFromRefreshDocument = null;
     }
   }
 

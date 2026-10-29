@@ -29,6 +29,7 @@ import { HorizontalIcon } from './horizontal';
 import { BookIcon } from './book';
 import { Book2Icon } from './book2';
 import { SquaresIcon } from './squares';
+import { SquaresFourIcon } from './squares-four';
 import { ListTreeIcon } from './list-tree';
 import { PaperclipIcon } from './paperclip';
 import { UnderlineIcon } from './underline';
@@ -126,6 +127,7 @@ export const icons: Icons = {
   book: BookIcon,
   book2: Book2Icon,
   squares: SquaresIcon,
+  squaresFour: SquaresFourIcon,
   listTree: ListTreeIcon,
   paperclip: PaperclipIcon,
   copy: CopyIcon,

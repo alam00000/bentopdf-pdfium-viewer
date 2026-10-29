@@ -76,6 +76,10 @@ export class TilingPlugin extends BasePlugin<TilingPluginConfig, TilingCapabilit
     this.recalculateTilesForDocument(documentId);
   }
 
+  protected override onDocumentRefreshed(documentId: string): void {
+    this.recalculateTilesForDocument(documentId);
+  }
+
   private recalculateTilesForDocument(documentId: string): void {
     const scrollScope = this.scrollCapability.forDocument(documentId);
     const viewportScope = this.viewportCapability.forDocument(documentId);

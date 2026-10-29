@@ -15,6 +15,8 @@
     "build": "rollup --config rollup.config.js"
   },
   "dependencies": {
+    "@dnd-kit/core": "6.3.1",
+    "@tanstack/react-virtual": "3.14.3",
     "@embedpdf/core": "workspace:*",
     "@embedpdf/engines": "workspace:*",
     "@embedpdf/models": "workspace:*",

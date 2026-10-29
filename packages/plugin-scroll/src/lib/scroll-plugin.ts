@@ -226,6 +226,15 @@ export class ScrollPlugin extends BasePlugin<
     this.refreshDocumentLayout(documentId);
   }
 
+  protected override onDocumentRefreshed(documentId: string): void {
+    const coreDoc = this.getCoreDocument(documentId);
+    if (!coreDoc) return;
+    this.dispatch(
+      updateDocumentScrollState(documentId, { totalPages: coreDoc.document?.pageCount ?? 0 }),
+    );
+    this.refreshDocumentLayout(documentId);
+  }
+
   // ─────────────────────────────────────────────────────────
   // Public API for Components (Scroller Layout)
   // ─────────────────────────────────────────────────────────

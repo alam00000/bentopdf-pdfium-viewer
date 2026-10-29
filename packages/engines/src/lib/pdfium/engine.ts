@@ -132,6 +132,8 @@ import {
   PdfPathSegmentQuery,
   PdfPathSegments,
   PdfScaleAreaBox,
+  PdfPageMutation,
+  PdfPageMutationResult,
 } from '@embedpdf/models';
 import { computeFormDrawParams, isValidCustomKey, readArrayBuffer, readString } from './helper';
 import { WrappedPdfiumModule } from '@embedpdf/pdfium';
@@ -416,6 +418,11 @@ export class PdfiumNative implements IPdfiumExecutor {
     };
 
     this.cache.setDocument(file.id, filePtr, docPtr, normalizeRotation);
+    const openedCtx = this.cache.getContext(file.id);
+    if (openedCtx) {
+      openedCtx.pageUids = openedCtx.newPageUids(pageCount);
+      pages.forEach((page, i) => (page.uid = openedCtx.pageUids[i]));
+    }
 
     this.logger.perf(LOG_SOURCE, LOG_CATEGORY, `OpenDocumentBuffer`, 'End', file.id);
 
@@ -2635,6 +2642,368 @@ export class PdfiumNative implements IPdfiumExecutor {
         (ptr) => !!this.pdfiumModule.EPDFDoc_SetPageViewportsSyntax(ctx.docPtr, pageIndex, ptr),
       ),
     );
+  }
+
+  mutatePages(
+    doc: PdfDocumentObject,
+    mutation: PdfPageMutation,
+  ): PdfTask<PdfPageMutationResult> {
+    const ctx = this.cache.getContext(doc.id);
+    if (!ctx) {
+      return PdfTaskHelper.reject({
+        code: PdfErrorCode.DocNotOpen,
+        message: 'document does not open',
+      });
+    }
+    ctx.clearPages();
+    const pdf = this.pdfiumModule;
+    const docPtr = ctx.docPtr;
+    const count = pdf.FPDF_GetPageCount(docPtr);
+    const valid = (indices: number[]) =>
+      [...new Set(indices)].filter((i) => Number.isInteger(i) && i >= 0 && i < count);
+    const withInts = <T>(values: number[], fn: (ptr: number) => T): T => {
+      const ptr = this.memoryManager.malloc(Math.max(1, values.length) * 4);
+      try {
+        values.forEach((v, i) => pdf.pdfium.setValue(ptr + i * 4, v, 'i32'));
+        return fn(ptr);
+      } finally {
+        this.memoryManager.free(ptr);
+      }
+    };
+    let inserted = 0;
+    let ok = true;
+    switch (mutation.kind) {
+      case 'rotate': {
+        mutation.indices.forEach((index, k) => {
+          if (index < 0 || index >= count) return;
+          const pagePtr = pdf.FPDF_LoadPage(docPtr, index);
+          if (!pagePtr) return;
+          pdf.FPDFPage_SetRotation(pagePtr, ((mutation.rotations[k] ?? 0) & 3) as number);
+          pdf.FPDF_ClosePage(pagePtr);
+        });
+        break;
+      }
+      case 'delete': {
+        for (const index of valid(mutation.indices).sort((a, b) => b - a)) {
+          pdf.FPDFPage_Delete(docPtr, index);
+        }
+        break;
+      }
+      case 'reorder': {
+        const order = mutation.order;
+        const isPermutation =
+          order.length === count && new Set(order).size === count && valid(order).length === count;
+        if (isPermutation) {
+          withInts(order, (ptr) => pdf.EPDFDoc_PushDownInheritedAttrs(docPtr, ptr, count));
+        }
+        ok = isPermutation && withInts(order, (ptr) => pdf.FPDF_MovePages(docPtr, ptr, count, 0));
+        break;
+      }
+      case 'insertBlank': {
+        const n = Math.max(1, Math.floor(mutation.count ?? 1));
+        const at = Math.max(0, Math.min(mutation.at, count));
+        for (let i = 0; i < n; i++) {
+          const pagePtr = pdf.FPDFPage_New(docPtr, at + i, mutation.width, mutation.height);
+          if (!pagePtr) {
+            ok = false;
+            break;
+          }
+          pdf.FPDF_ClosePage(pagePtr);
+          inserted++;
+        }
+        break;
+      }
+      case 'import': {
+        const bytes = new Uint8Array(mutation.source);
+        const filePtr = this.memoryManager.malloc(Math.max(1, bytes.length));
+        pdf.pdfium.HEAPU8.set(bytes, filePtr);
+        const srcPtr = pdf.FPDF_LoadMemDocument(filePtr, bytes.length, mutation.password ?? '');
+        if (!srcPtr) {
+          const code = pdf.FPDF_GetLastError();
+          this.memoryManager.free(filePtr);
+          return PdfTaskHelper.reject({ code, message: 'FPDF_LoadMemDocument failed' });
+        }
+        const srcCount = pdf.FPDF_GetPageCount(srcPtr);
+        const indices = (mutation.pageIndices ?? Array.from({ length: srcCount }, (_, i) => i)).filter(
+          (i) => Number.isInteger(i) && i >= 0 && i < srcCount,
+        );
+        const at = Math.max(0, Math.min(mutation.at, count));
+        ok =
+          indices.length > 0 &&
+          withInts(indices, (ptr) =>
+            pdf.FPDF_ImportPagesByIndex(docPtr, srcPtr, ptr, indices.length, at),
+          );
+        if (ok) inserted = indices.length;
+        pdf.FPDF_CloseDocument(srcPtr);
+        this.memoryManager.free(filePtr);
+        break;
+      }
+      case 'duplicate': {
+        const indices = mutation.indices.filter((i) => Number.isInteger(i) && i >= 0 && i < count);
+        if (indices.length === 0) break;
+        const scratch = pdf.FPDF_CreateNewDocument();
+        if (!scratch) {
+          ok = false;
+          break;
+        }
+        const at = Math.max(0, Math.min(mutation.at, count));
+        ok =
+          withInts(indices, (ptr) =>
+            pdf.FPDF_ImportPagesByIndex(scratch, docPtr, ptr, indices.length, 0),
+          ) &&
+          withInts(
+            indices.map((_, i) => i),
+            (ptr) => pdf.FPDF_ImportPagesByIndex(docPtr, scratch, ptr, indices.length, at),
+          );
+        if (ok) inserted = indices.length;
+        pdf.FPDF_CloseDocument(scratch);
+        break;
+      }
+      case 'split': {
+        ok = this.splitPagesInPlace(docPtr, count, valid(mutation.indices), mutation);
+        if (ok) inserted = valid(mutation.indices).length;
+        break;
+      }
+      case 'resize': {
+        for (const index of valid(mutation.indices)) {
+          this.resizePageInPlace(docPtr, index, mutation.width, mutation.height);
+        }
+        break;
+      }
+    }
+    if (!ok) {
+      return PdfTaskHelper.reject({
+        code: PdfErrorCode.Unknown,
+        message: `page mutation ${mutation.kind} failed`,
+      });
+    }
+    const pages = this.readDocumentPages(docPtr, ctx.normalizeRotation);
+    const remapped = this.remapPageUids(ctx, mutation, count, inserted);
+    ctx.pageUids = remapped.length === pages.length ? remapped : ctx.newPageUids(pages.length);
+    pages.forEach((page, i) => (page.uid = ctx.pageUids[i]));
+    return PdfTaskHelper.resolve<PdfPageMutationResult>({
+      document: { ...doc, pageCount: pages.length, pages },
+      inserted,
+    });
+  }
+
+  private remapPageUids(
+    ctx: DocumentContext,
+    mutation: PdfPageMutation,
+    count: number,
+    inserted: number,
+  ): string[] {
+    const uids = ctx.pageUids.length === count ? ctx.pageUids : ctx.newPageUids(count);
+    const valid = (indices: number[]) =>
+      new Set(indices.filter((i) => Number.isInteger(i) && i >= 0 && i < count));
+    switch (mutation.kind) {
+      case 'delete': {
+        const gone = valid(mutation.indices);
+        return uids.filter((_, i) => !gone.has(i));
+      }
+      case 'reorder':
+        return mutation.order.map((i) => uids[i] ?? '');
+      case 'insertBlank':
+      case 'import':
+      case 'duplicate': {
+        const at = Math.max(0, Math.min(mutation.at, count));
+        return [...uids.slice(0, at), ...ctx.newPageUids(inserted), ...uids.slice(at)];
+      }
+      case 'split': {
+        const split = valid(mutation.indices);
+        return uids.flatMap((uid, i) => (split.has(i) ? ctx.newPageUids(2) : [uid]));
+      }
+      default:
+        return uids;
+    }
+  }
+
+  getPageLabelRules(doc: PdfDocumentObject): PdfTask<string> {
+    const ctx = this.cache.getContext(doc.id);
+    if (!ctx) {
+      return PdfTaskHelper.reject({
+        code: PdfErrorCode.DocNotOpen,
+        message: 'document does not open',
+      });
+    }
+    const ptr = this.pdfiumModule.EPDFPageLabel_GetRulesJSON(ctx.docPtr);
+    return PdfTaskHelper.resolve(ptr ? this.pdfiumModule.pdfium.UTF8ToString(ptr) : '[]');
+  }
+
+  setPageLabelRules(doc: PdfDocumentObject, json: string): PdfTask<boolean> {
+    const ctx = this.cache.getContext(doc.id);
+    if (!ctx) {
+      return PdfTaskHelper.reject({
+        code: PdfErrorCode.DocNotOpen,
+        message: 'document does not open',
+      });
+    }
+    return PdfTaskHelper.resolve(
+      this.withUtf8(json, (ptr) => !!this.pdfiumModule.EPDFPageLabel_SetRulesJSON(ctx.docPtr, ptr)),
+    );
+  }
+
+  private readDocumentPages(docPtr: number, normalizeRotation: boolean): PdfPageObject[] {
+    const pdf = this.pdfiumModule;
+    const pageCount = pdf.FPDF_GetPageCount(docPtr);
+    const pages: PdfPageObject[] = [];
+    const sizePtr = this.memoryManager.malloc(8);
+    try {
+      for (let index = 0; index < pageCount; index++) {
+        const ok = normalizeRotation
+          ? pdf.EPDF_GetPageSizeByIndexNormalized(docPtr, index, sizePtr)
+          : pdf.FPDF_GetPageSizeByIndexF(docPtr, index, sizePtr);
+        pages.push({
+          index,
+          size: {
+            width: ok ? pdf.pdfium.getValue(sizePtr, 'float') : 0,
+            height: ok ? pdf.pdfium.getValue(sizePtr + 4, 'float') : 0,
+          },
+          rotation: pdf.EPDF_GetPageRotationByIndex(docPtr, index) as Rotation,
+        });
+      }
+    } finally {
+      this.memoryManager.free(sizePtr);
+    }
+    return pages;
+  }
+
+  private readPageBox(
+    pagePtr: number,
+    read: (page: number, l: number, b: number, r: number, t: number) => boolean,
+  ): { l: number; b: number; r: number; t: number } | null {
+    const pdf = this.pdfiumModule.pdfium;
+    const ptr = this.memoryManager.malloc(16);
+    try {
+      if (!read(pagePtr, ptr, ptr + 4, ptr + 8, ptr + 12)) return null;
+      return {
+        l: pdf.getValue(ptr, 'float'),
+        b: pdf.getValue(ptr + 4, 'float'),
+        r: pdf.getValue(ptr + 8, 'float'),
+        t: pdf.getValue(ptr + 12, 'float'),
+      };
+    } finally {
+      this.memoryManager.free(ptr);
+    }
+  }
+
+  private splitPagesInPlace(
+    docPtr: number,
+    count: number,
+    indices: number[],
+    opts: { axis: 0 | 1; fraction: number; rightFirst: boolean },
+  ): boolean {
+    const pdf = this.pdfiumModule;
+    if (indices.length === 0) return true;
+    const fraction = opts.fraction > 0 && opts.fraction < 1 ? opts.fraction : 0.5;
+    const isSplit = new Set(indices);
+    const boxes = new Map<number, { l: number; b: number; r: number; t: number; rot: number }>();
+    for (const p of indices) {
+      const pagePtr = pdf.FPDF_LoadPage(docPtr, p);
+      if (!pagePtr) {
+        isSplit.delete(p);
+        continue;
+      }
+      const box = this.readPageBox(pagePtr, (pg, l, b, r, t) =>
+        pdf.FPDFPage_GetMediaBox(pg, l, b, r, t),
+      ) ?? { l: 0, b: 0, r: 612, t: 792 };
+      boxes.set(p, { ...box, rot: pdf.FPDFPage_GetRotation(pagePtr) });
+      pdf.FPDF_ClosePage(pagePtr);
+    }
+    if (isSplit.size === 0) return true;
+    const scratch = pdf.FPDF_CreateNewDocument();
+    if (!scratch) return false;
+    const all = Array.from({ length: count }, (_, i) => i);
+    const allPtr = this.memoryManager.malloc(count * 4);
+    all.forEach((v, i) => pdf.pdfium.setValue(allPtr + i * 4, v, 'i32'));
+    const cloned = pdf.FPDF_ImportPagesByIndex(scratch, docPtr, allPtr, count, 0);
+    this.memoryManager.free(allPtr);
+    if (!cloned) {
+      pdf.FPDF_CloseDocument(scratch);
+      return false;
+    }
+    const onePtr = this.memoryManager.malloc(4);
+    for (let p = count - 1; p >= 0; p--) {
+      if (!isSplit.has(p)) continue;
+      pdf.pdfium.setValue(onePtr, p, 'i32');
+      pdf.FPDF_ImportPagesByIndex(docPtr, scratch, onePtr, 1, p + 1);
+    }
+    this.memoryManager.free(onePtr);
+    pdf.FPDF_CloseDocument(scratch);
+    const setBox = (index: number, l: number, b: number, r: number, t: number) => {
+      const pagePtr = pdf.FPDF_LoadPage(docPtr, index);
+      if (!pagePtr) return;
+      pdf.FPDFPage_SetMediaBox(pagePtr, l, b, r, t);
+      pdf.FPDFPage_SetCropBox(pagePtr, l, b, r, t);
+      pdf.FPDF_ClosePage(pagePtr);
+    };
+    let j = 0;
+    for (let p = 0; p < count; p++) {
+      const box = boxes.get(p);
+      if (!isSplit.has(p) || !box) {
+        j += 1;
+        continue;
+      }
+      const { l, b, r, t } = box;
+      const w = r - l;
+      const h = t - b;
+      const quarter = ((box.rot % 4) + 4) % 4;
+      const splitX = opts.axis === 0 ? quarter === 0 || quarter === 2 : quarter === 1 || quarter === 3;
+      let first = { l, b, r, t };
+      let second = { l, b, r, t };
+      if (splitX) {
+        const cut = l + fraction * w;
+        first = { l, b, r: cut, t };
+        second = { l: cut, b, r, t };
+      } else {
+        const cut = t - fraction * h;
+        first = { l, b: cut, r, t };
+        second = { l, b, r, t: cut };
+      }
+      const [a, c] = opts.rightFirst ? [second, first] : [first, second];
+      setBox(j, a.l, a.b, a.r, a.t);
+      setBox(j + 1, c.l, c.b, c.r, c.t);
+      j += 2;
+    }
+    return true;
+  }
+
+  private resizePageInPlace(docPtr: number, index: number, newW: number, newH: number): void {
+    const pdf = this.pdfiumModule;
+    if (!(newW > 0) || !(newH > 0)) return;
+    const pagePtr = pdf.FPDF_LoadPage(docPtr, index);
+    if (!pagePtr) return;
+    try {
+      const box = this.readPageBox(pagePtr, (pg, l, b, r, t) =>
+        pdf.FPDFPage_GetMediaBox(pg, l, b, r, t),
+      );
+      if (!box) return;
+      const oldW = box.r - box.l;
+      const oldH = box.t - box.b;
+      if (!(oldW > 0) || !(oldH > 0)) return;
+      const rot = ((pdf.FPDFPage_GetRotation(pagePtr) % 4) + 4) % 4;
+      const rotated = rot === 1 || rot === 3;
+      const targetW = rotated ? newH : newW;
+      const targetH = rotated ? newW : newH;
+      const s = Math.min(targetW / oldW, targetH / oldH);
+      const tx = (targetW - oldW * s) * 0.5 - box.l * s;
+      const ty = (targetH - oldH * s) * 0.5 - box.b * s;
+      const mPtr = this.memoryManager.malloc(24);
+      const cPtr = this.memoryManager.malloc(16);
+      try {
+        [s, 0, 0, s, tx, ty].forEach((v, i) => pdf.pdfium.setValue(mPtr + i * 4, v, 'float'));
+        [0, targetH, targetW, 0].forEach((v, i) => pdf.pdfium.setValue(cPtr + i * 4, v, 'float'));
+        pdf.FPDFPage_TransFormWithClip(pagePtr, mPtr, cPtr);
+      } finally {
+        this.memoryManager.free(mPtr);
+        this.memoryManager.free(cPtr);
+      }
+      pdf.FPDFPage_TransformAnnots(pagePtr, s, 0, 0, s, tx, ty);
+      pdf.FPDFPage_SetMediaBox(pagePtr, 0, 0, targetW, targetH);
+      pdf.FPDFPage_SetCropBox(pagePtr, 0, 0, targetW, targetH);
+    } finally {
+      pdf.FPDF_ClosePage(pagePtr);
+    }
   }
 
   private readUtf8Out(read: (buffer: number, length: number) => number): string | null {

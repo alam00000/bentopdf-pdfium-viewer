@@ -1,7 +1,7 @@
 import { h, Fragment } from 'preact';
 import { useMemo } from 'preact/hooks';
 import styles from '../styles/index.css';
-import { EmbedPDF } from '@embedpdf/core/preact';
+import { EmbedPDF, useDocumentState } from '@embedpdf/core/preact';
 import { createPluginRegistration, PluginRegistry, PermissionConfig } from '@embedpdf/core';
 import { usePdfiumEngine } from '@embedpdf/engines/preact';
 import type { FontFallbackConfig } from '@embedpdf/engines';
@@ -171,6 +171,9 @@ import { MeasurementCalibratePageVisual } from './measurement-calibrate-overlay'
 import { ScaleAreaLayer } from './scale-area-layer';
 import { MeasurementLoupeToggle, MeasurementSnapToggles } from './measurement-snap-toggles';
 import { AnnotationSectionLabel } from './annotation-section-label';
+import { OrganizeProvider } from './organize/OrganizeContext';
+import { OrganizePanelGate } from './organize/OrganizePanelGate';
+import { ViewerWorkspaceGate } from './organize/ViewerWorkspaceGate';
 
 // ============================================================================
 // Main Configuration Interface - Uses actual plugin config types directly
@@ -217,6 +220,7 @@ export interface PDFViewerConfig {
    * - 'never': Never show the tab bar
    */
   tabBar?: TabBarVisibility;
+  organize?: { standalone?: boolean };
 
   // === Global Feature Control ===
   /**
@@ -442,9 +446,14 @@ interface PDFViewerProps {
 interface ViewerLayoutProps {
   documentId: string;
   tabBarVisibility?: TabBarVisibility;
+  organizeStandalone?: boolean;
 }
 
-function ViewerLayout({ documentId, tabBarVisibility = 'multiple' }: ViewerLayoutProps) {
+function ViewerLayout({
+  documentId,
+  tabBarVisibility = 'multiple',
+  organizeStandalone = false,
+}: ViewerLayoutProps) {
   const { renderToolbar, renderSidebar, renderModal, renderOverlays } =
     useSchemaRenderer(documentId);
   const { translate } = useTranslations(documentId);
@@ -457,6 +466,7 @@ function ViewerLayout({ documentId, tabBarVisibility = 'multiple' }: ViewerLayou
   // Get document states for tab bar
   const documentStates = useOpenDocuments();
   const { activeDocumentId } = useActiveDocument();
+  const documentStatus = useDocumentState(documentId)?.status;
 
   return (
     <>
@@ -467,110 +477,132 @@ function ViewerLayout({ documentId, tabBarVisibility = 'multiple' }: ViewerLayou
         visibility={tabBarVisibility}
       />
 
-      {/* Main Toolbar */}
-      {renderToolbar('top', 'main')}
+      <OrganizeProvider
+        key={documentId}
+        documentId={documentId}
+        standalone={organizeStandalone && documentStatus === 'loaded'}
+      >
+        <ViewerWorkspaceGate>
+          {/* Main Toolbar */}
+          {!organizeStandalone && renderToolbar('top', 'main')}
 
-      {/* Secondary Toolbar (annotation/redaction/shapes) */}
-      {renderToolbar('top', 'secondary')}
+          {/* Secondary Toolbar (annotation/redaction/shapes) */}
+          {!organizeStandalone && renderToolbar('top', 'secondary')}
 
-      {/* Document Content Area */}
-      <div id="document-content" className="bg-bg-surface flex flex-1 overflow-hidden">
-        {/* Left Sidebars */}
-        {renderSidebar('left', 'main')}
+          {/* Document Content Area */}
+          <div
+            id="document-content"
+            data-viewer-surface=""
+            className="bg-bg-surface flex flex-1 overflow-hidden"
+          >
+            {/* Left Sidebars */}
+            {renderSidebar('left', 'main')}
 
-        {/* Main Viewer */}
-        <div className="flex-1 overflow-hidden">
-          <DocumentContent documentId={documentId}>
-            {({ documentState, isLoading, isError, isLoaded }) => (
-              <>
-                {isLoading && (
-                  <div className="flex h-full items-center justify-center">
-                    <LoadingIndicator size="lg" text={translate('document.loading')} />
-                  </div>
-                )}
-                {isError && <DocumentPasswordPrompt documentState={documentState} />}
-                {isLoaded && (
-                  <div className="relative h-full w-full">
-                    <GlobalPointerProvider documentId={documentId}>
-                      <Viewport
-                        className="bg-bg-app"
-                        documentId={documentId}
-                        data-epdf-viewport-host=""
-                      >
-                        <ZoomGestureWrapper documentId={documentId}>
-                          <Scroller
+            {/* Main Viewer */}
+            <div className="flex-1 overflow-hidden">
+              <DocumentContent documentId={documentId}>
+                {({ documentState, isLoading, isError, isLoaded }) => (
+                  <>
+                    {isLoading && (
+                      <div className="flex h-full items-center justify-center">
+                        <LoadingIndicator size="lg" text={translate('document.loading')} />
+                      </div>
+                    )}
+                    {isError && <DocumentPasswordPrompt documentState={documentState} />}
+                    {isLoaded && (
+                      <div className="relative h-full w-full">
+                        <GlobalPointerProvider documentId={documentId}>
+                          <Viewport
+                            className="bg-bg-app"
                             documentId={documentId}
-                            renderPage={({ pageIndex }) => (
-                              <Rotate
+                            data-epdf-viewport-host=""
+                          >
+                            <ZoomGestureWrapper documentId={documentId}>
+                              <Scroller
                                 documentId={documentId}
-                                pageIndex={pageIndex}
-                                style={{ backgroundColor: '#fff' }}
-                              >
-                                <PagePointerProvider documentId={documentId} pageIndex={pageIndex}>
-                                  <RenderLayer
+                                renderPage={({ pageIndex }) => (
+                                  <Rotate
                                     documentId={documentId}
                                     pageIndex={pageIndex}
-                                    scale={0.5}
-                                    style={{ pointerEvents: 'none' }}
-                                  />
-                                  <TilingLayer
-                                    documentId={documentId}
-                                    pageIndex={pageIndex}
-                                    style={{ pointerEvents: 'none' }}
-                                  />
-                                  <SearchLayer documentId={documentId} pageIndex={pageIndex} />
-                                  <MarqueeZoom documentId={documentId} pageIndex={pageIndex} />
-                                  <MarqueeCapture documentId={documentId} pageIndex={pageIndex} />
-                                  <SelectionLayer
-                                    documentId={documentId}
-                                    pageIndex={pageIndex}
-                                    selectionMenu={selectionMenu}
-                                  />
-                                  <RedactionLayer
-                                    documentId={documentId}
-                                    pageIndex={pageIndex}
-                                    selectionMenu={redactionMenu}
-                                  />
-                                  <AnnotationLayer
-                                    documentId={documentId}
-                                    pageIndex={pageIndex}
-                                    selectionMenu={annotationMenu}
-                                    groupSelectionMenu={groupAnnotationMenu}
-                                  />
-                                  <MeasurementCalibratePageVisual
-                                    documentId={documentId}
-                                    pageIndex={pageIndex}
-                                  />
-                                  <ScaleAreaLayer documentId={documentId} pageIndex={pageIndex} />
-                                  <MeasurementSnapPageDriver
-                                    documentId={documentId}
-                                    pageIndex={pageIndex}
-                                  />
-                                  <MeasurementSnapMarker
-                                    documentId={documentId}
-                                    pageIndex={pageIndex}
-                                  />
-                                </PagePointerProvider>
-                              </Rotate>
-                            )}
-                          />
-                        </ZoomGestureWrapper>
-                      </Viewport>
-                    </GlobalPointerProvider>
-                    {/* Overlays (floating components like page controls) */}
-                    {renderOverlays()}
-                    <MeasurementMounts documentId={documentId} />
-                    <MeasurementHud />
-                  </div>
+                                    style={{ backgroundColor: '#fff' }}
+                                  >
+                                    <PagePointerProvider
+                                      documentId={documentId}
+                                      pageIndex={pageIndex}
+                                    >
+                                      <RenderLayer
+                                        documentId={documentId}
+                                        pageIndex={pageIndex}
+                                        scale={0.5}
+                                        style={{ pointerEvents: 'none' }}
+                                      />
+                                      <TilingLayer
+                                        documentId={documentId}
+                                        pageIndex={pageIndex}
+                                        style={{ pointerEvents: 'none' }}
+                                      />
+                                      <SearchLayer documentId={documentId} pageIndex={pageIndex} />
+                                      <MarqueeZoom documentId={documentId} pageIndex={pageIndex} />
+                                      <MarqueeCapture
+                                        documentId={documentId}
+                                        pageIndex={pageIndex}
+                                      />
+                                      <SelectionLayer
+                                        documentId={documentId}
+                                        pageIndex={pageIndex}
+                                        selectionMenu={selectionMenu}
+                                      />
+                                      <RedactionLayer
+                                        documentId={documentId}
+                                        pageIndex={pageIndex}
+                                        selectionMenu={redactionMenu}
+                                      />
+                                      <AnnotationLayer
+                                        documentId={documentId}
+                                        pageIndex={pageIndex}
+                                        selectionMenu={annotationMenu}
+                                        groupSelectionMenu={groupAnnotationMenu}
+                                      />
+                                      <MeasurementCalibratePageVisual
+                                        documentId={documentId}
+                                        pageIndex={pageIndex}
+                                      />
+                                      <ScaleAreaLayer
+                                        documentId={documentId}
+                                        pageIndex={pageIndex}
+                                      />
+                                      <MeasurementSnapPageDriver
+                                        documentId={documentId}
+                                        pageIndex={pageIndex}
+                                      />
+                                      <MeasurementSnapMarker
+                                        documentId={documentId}
+                                        pageIndex={pageIndex}
+                                      />
+                                    </PagePointerProvider>
+                                  </Rotate>
+                                )}
+                              />
+                            </ZoomGestureWrapper>
+                          </Viewport>
+                        </GlobalPointerProvider>
+                        {/* Overlays (floating components like page controls) */}
+                        {renderOverlays()}
+                        <MeasurementMounts documentId={documentId} />
+                        <MeasurementHud />
+                      </div>
+                    )}
+                  </>
                 )}
-              </>
-            )}
-          </DocumentContent>
-        </div>
+              </DocumentContent>
+            </div>
 
-        {/* Right Sidebars */}
-        {renderSidebar('right', 'main')}
-      </div>
+            {/* Right Sidebars */}
+            {renderSidebar('right', 'main')}
+          </div>
+        </ViewerWorkspaceGate>
+        <OrganizePanelGate documentId={documentId} />
+      </OrganizeProvider>
 
       {/* Modals */}
       {renderModal()}
@@ -765,7 +797,11 @@ export function PDFViewer({ config, onRegistryReady }: PDFViewerProps) {
                     renderers={uiRenderers}
                     className="relative flex h-full w-full select-none flex-col"
                   >
-                    <ViewerLayout documentId={activeDocumentId} tabBarVisibility={config.tabBar} />
+                    <ViewerLayout
+                      documentId={activeDocumentId}
+                      tabBarVisibility={config.tabBar}
+                      organizeStandalone={config.organize?.standalone}
+                    />
                     <Capture documentId={activeDocumentId} />
                     <HintLayer documentId={activeDocumentId} />
                   </UIProvider>

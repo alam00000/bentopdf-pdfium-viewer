@@ -68,6 +68,17 @@ export class SpreadPlugin extends BasePlugin<
     this.viewport?.releaseGate('spread', documentId);
   }
 
+  protected override onDocumentRefreshed(documentId: string): void {
+    const coreDoc = this.coreState.core.documents[documentId];
+    if (!coreDoc?.document) return;
+    const grouping = this.calculatePageGrouping(documentId, coreDoc.document.pages.length);
+    this.dispatch(setPageGrouping(documentId, grouping));
+    this.spreadEmitter$.emit({
+      documentId,
+      spreadMode: this.getSpreadModeForDocument(documentId),
+    });
+  }
+
   protected override onDocumentClosed(documentId: string): void {
     this.dispatch(cleanupSpreadState(documentId));
 

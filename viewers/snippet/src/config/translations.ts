@@ -29,6 +29,9 @@ export const englishTranslations: Locale = {
     pointer: {
       toggle: 'Toggle Pointer Mode',
     },
+    organize: {
+      toggle: 'Organize Pages',
+    },
     capture: {
       screenshot: 'Screenshot',
       dragTip: 'Drag to select area to capture',
@@ -390,6 +393,9 @@ export const germanTranslations: Locale = {
     },
     pointer: {
       toggle: 'Zeiger-Modus umschalten',
+    },
+    organize: {
+      toggle: 'Seiten organisieren',
     },
     capture: {
       screenshot: 'Screenshot',
@@ -754,6 +760,9 @@ export const dutchTranslations: Locale = {
     pointer: {
       toggle: 'Aanwijzermodus wisselen',
     },
+    organize: {
+      toggle: "Pagina's organiseren",
+    },
     capture: {
       screenshot: 'Schermafbeelding',
       dragTip: 'Sleep om een gebied te selecteren om vast te leggen',
@@ -1116,6 +1125,9 @@ export const frenchTranslations: Locale = {
     },
     pointer: {
       toggle: 'Basculer le mode pointeur',
+    },
+    organize: {
+      toggle: 'Organiser les pages',
     },
     capture: {
       screenshot: "Capture d'écran",
@@ -1480,6 +1492,9 @@ export const spanishTranslations: Locale = {
     pointer: {
       toggle: 'Alternar modo puntero',
     },
+    organize: {
+      toggle: 'Organizar páginas',
+    },
     capture: {
       screenshot: 'Captura de pantalla',
       dragTip: 'Arrastre para seleccionar el área a capturar',
@@ -1843,6 +1858,9 @@ export const simplifiedChineseTranslations: Locale = {
     pointer: {
       toggle: '光标模式',
     },
+    organize: {
+      toggle: '整理页面',
+    },
     capture: {
       screenshot: '截图',
       dragTip: '拖动鼠标选择要截取的区域',
@@ -2199,6 +2217,9 @@ export const swedishTranslations: Locale = {
     },
     pointer: {
       toggle: 'Välj',
+    },
+    organize: {
+      toggle: 'Organisera sidor',
     },
     capture: {
       screenshot: 'Skärmdumpa',
@@ -2558,6 +2579,9 @@ export const japaneseTranslations: Locale = {
     },
     pointer: {
       toggle: 'ポインターモードの切り替え',
+    },
+    organize: {
+      toggle: 'ページを整理',
     },
     capture: {
       screenshot: 'スクリーンショット',

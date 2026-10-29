@@ -21,6 +21,7 @@ export interface PdfPageObject {
    * Rotation of this page
    */
   rotation: Rotation;
+  uid?: string;
 }
 
 /**
@@ -1397,6 +1398,27 @@ export interface PdfMeasurementProperties {
   measure?: PdfMeasureDictionary;
   measureJson?: string;
   captionOffset?: PdfCaptionOffset;
+}
+
+export type PdfPageMutation =
+  | { kind: 'rotate'; indices: number[]; rotations: Rotation[] }
+  | { kind: 'delete'; indices: number[] }
+  | { kind: 'reorder'; order: number[] }
+  | { kind: 'insertBlank'; at: number; width: number; height: number; count?: number }
+  | {
+      kind: 'import';
+      source: ArrayBuffer;
+      password?: string;
+      pageIndices?: number[];
+      at: number;
+    }
+  | { kind: 'duplicate'; indices: number[]; at: number }
+  | { kind: 'split'; indices: number[]; axis: 0 | 1; fraction: number; rightFirst: boolean }
+  | { kind: 'resize'; indices: number[]; width: number; height: number };
+
+export interface PdfPageMutationResult {
+  document: PdfDocumentObject;
+  inserted: number;
 }
 
 export interface PdfScaleAreaBox {
@@ -3694,6 +3716,12 @@ export interface PdfEngine<T = Blob> {
     pageIndex: number,
     syntax: string,
   ) => PdfTask<boolean>;
+  mutatePages?: (
+    doc: PdfDocumentObject,
+    mutation: PdfPageMutation,
+  ) => PdfTask<PdfPageMutationResult>;
+  getPageLabelRules?: (doc: PdfDocumentObject) => PdfTask<string>;
+  setPageLabelRules?: (doc: PdfDocumentObject, json: string) => PdfTask<boolean>;
 }
 
 /**
@@ -3909,6 +3937,9 @@ export interface IPdfiumExecutor {
   ): PdfTask<number | null>;
   getScaleAreasSyntax(doc: PdfDocumentObject, pageIndex: number): PdfTask<string | null>;
   setScaleAreasSyntax(doc: PdfDocumentObject, pageIndex: number, syntax: string): PdfTask<boolean>;
+  mutatePages(doc: PdfDocumentObject, mutation: PdfPageMutation): PdfTask<PdfPageMutationResult>;
+  getPageLabelRules(doc: PdfDocumentObject): PdfTask<string>;
+  setPageLabelRules(doc: PdfDocumentObject, json: string): PdfTask<boolean>;
 }
 
 /**

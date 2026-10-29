@@ -32,6 +32,7 @@ function versionReplacer() {
     preventAssignment: true,
     values: {
       __EMBEDPDF_VERSION__: version,
+      'process.env.NODE_ENV': JSON.stringify(isDev ? 'development' : 'production'),
     },
   });
 }
@@ -65,6 +66,14 @@ export default [
         include: ['**/*.svg'],
         limit: 8192,
       }),
+      alias({
+        entries: [
+          { find: 'react', replacement: 'preact/compat' },
+          { find: 'react-dom/test-utils', replacement: 'preact/test-utils' },
+          { find: 'react-dom', replacement: 'preact/compat' },
+          { find: 'react/jsx-runtime', replacement: 'preact/jsx-runtime' },
+        ],
+      }),
       resolve({
         browser: true,
         dedupe: [
@@ -76,14 +85,6 @@ export default [
         ],
       }),
       commonjs(),
-      alias({
-        entries: [
-          { find: 'react', replacement: 'preact/compat' },
-          { find: 'react-dom/test-utils', replacement: 'preact/test-utils' },
-          { find: 'react-dom', replacement: 'preact/compat' },
-          { find: 'react/jsx-runtime', replacement: 'preact/jsx-runtime' },
-        ],
-      }),
       postcss({
         extract: false,
         modules: false,

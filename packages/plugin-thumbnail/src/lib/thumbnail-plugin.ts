@@ -161,6 +161,10 @@ export class ThumbnailPlugin extends BasePlugin<
     this.calculateWindowState(documentId);
   }
 
+  protected override onDocumentRefreshed(documentId: string): void {
+    this.calculateWindowState(documentId);
+  }
+
   // ─────────────────────────────────────────────────────────
   // Capability
   // ─────────────────────────────────────────────────────────

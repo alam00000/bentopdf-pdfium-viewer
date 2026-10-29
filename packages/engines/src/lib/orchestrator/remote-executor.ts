@@ -43,6 +43,8 @@ import {
   PdfPathSegments,
   PdfScaleAreaBox,
   PdfMeasureDictionary,
+  PdfPageMutation,
+  PdfPageMutationResult,
 } from '@embedpdf/models';
 import type { WorkerRequest, WorkerResponse } from './pdfium-native-runner';
 import type { FontFallbackConfig } from '../pdfium/font-fallback';
@@ -131,7 +133,10 @@ type MessageType =
   | 'moveScaleArea'
   | 'copyScaleArea'
   | 'getScaleAreasSyntax'
-  | 'setScaleAreasSyntax';
+  | 'setScaleAreasSyntax'
+  | 'mutatePages'
+  | 'getPageLabelRules'
+  | 'setPageLabelRules';
 
 /**
  * RemoteExecutor - Proxy for worker communication
@@ -647,5 +652,20 @@ export class RemoteExecutor implements IPdfiumExecutor {
 
   setScaleAreasSyntax(doc: PdfDocumentObject, pageIndex: number, syntax: string): PdfTask<boolean> {
     return this.send<boolean>('setScaleAreasSyntax', [doc, pageIndex, syntax]);
+  }
+
+  mutatePages(
+    doc: PdfDocumentObject,
+    mutation: PdfPageMutation,
+  ): PdfTask<PdfPageMutationResult> {
+    return this.send<PdfPageMutationResult>('mutatePages', [doc, mutation]);
+  }
+
+  getPageLabelRules(doc: PdfDocumentObject): PdfTask<string> {
+    return this.send<string>('getPageLabelRules', [doc]);
+  }
+
+  setPageLabelRules(doc: PdfDocumentObject, json: string): PdfTask<boolean> {
+    return this.send<boolean>('setPageLabelRules', [doc, json]);
   }
 }

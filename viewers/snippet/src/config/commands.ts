@@ -398,6 +398,24 @@ export const commands: Record<string, Command<State>> = {
   // ─────────────────────────────────────────────────────────
   // Pointer Command
   // ─────────────────────────────────────────────────────────
+  'organize:toggle': {
+    id: 'organize:toggle',
+    labelKey: 'organize.toggle',
+    icon: 'squaresFour',
+    shortcuts: ['o'],
+    categories: ['tools', 'organize'],
+    action: ({ documentId }) => {
+      window.dispatchEvent(
+        new CustomEvent('bentopdf:organize:toggle', {
+          detail: { documentId },
+        }),
+      );
+    },
+    disabled: ({ state, documentId }) => {
+      return lacksPermission(state, documentId, PdfPermissionFlag.AssembleDocument);
+    },
+  },
+
   'pointer:toggle': {
     id: 'pointer:toggle',
     labelKey: 'pointer.toggle',

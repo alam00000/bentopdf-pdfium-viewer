@@ -12,6 +12,7 @@ import {
   SET_ROTATION,
   SET_SCALE,
   REFRESH_PAGES,
+  REFRESH_DOCUMENT,
   REORDER_DOCUMENTS,
   MOVE_DOCUMENT,
   UPDATE_DOCUMENT_SECURITY,
@@ -222,6 +223,22 @@ export const coreReducer: Reducer<CoreState, CoreAction> = (state, action): Core
           [targetId]: {
             ...docState,
             rotation,
+          },
+        },
+      };
+    }
+
+    case REFRESH_DOCUMENT: {
+      const { documentId, document } = action.payload;
+      const docState = state.documents[documentId];
+      if (!docState) return state;
+      return {
+        ...state,
+        documents: {
+          ...state.documents,
+          [documentId]: {
+            ...docState,
+            document,
           },
         },
       };
