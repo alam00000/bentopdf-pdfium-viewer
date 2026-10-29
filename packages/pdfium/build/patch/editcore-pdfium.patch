@@ -1509,6 +1509,469 @@ index dde86d33b..c74e57e49 100644
 +  annot_dict->RemoveFor("PDFiumHasGeneratedAP");
 +  return true;
 +}
+diff --git a/fpdfsdk/fpdf_doc.cpp b/fpdfsdk/fpdf_doc.cpp
+index e8d5ed90e..c32ff98f4 100644
+--- a/fpdfsdk/fpdf_doc.cpp
++++ b/fpdfsdk/fpdf_doc.cpp
+@@ -6,13 +6,18 @@
+ 
+ #include "public/fpdf_doc.h"
+ 
++#include <algorithm>
++#include <cstdio>
++#include <cstdlib>
+ #include <memory>
+ #include <set>
++#include <string>
+ #include <utility>
+ #include <vector>
+ 
+ #include "constants/form_fields.h"
+ #include "constants/metadata.h"
++#include "constants/page_object.h"
+ #include "core/fpdfapi/page/cpdf_annotcontext.h"
+ #include "core/fpdfapi/page/cpdf_page.h"
+ #include "core/fpdfapi/parser/cpdf_array.h"
+@@ -20,6 +25,7 @@
+ #include "core/fpdfapi/parser/cpdf_document.h"
+ #include "core/fpdfapi/parser/cpdf_name.h"
+ #include "core/fpdfapi/parser/cpdf_number.h"
++#include "core/fpdfapi/parser/cpdf_reference.h"
+ #include "core/fpdfapi/parser/cpdf_string.h"
+ #include "core/fpdfapi/parser/fpdf_parser_decode.h"
+ #include "core/fpdfdoc/cpdf_aaction.h"
+@@ -837,3 +843,431 @@ EPDF_GetMetaKeyName(FPDF_DOCUMENT document,
+   }
+   return 0;
+ }
++
++namespace {
++
++void CollectPageLabelEntries(
++    const CPDF_Dictionary* node,
++    std::vector<std::pair<int, RetainPtr<const CPDF_Dictionary>>>& out) {
++  if (!node) return;
++  RetainPtr<const CPDF_Array> nums = node->GetArrayFor("Nums");
++  if (nums) {
++    for (size_t i = 0; i + 1 < nums->size(); i += 2) {
++      RetainPtr<const CPDF_Object> key_obj = nums->GetDirectObjectAt(i);
++      if (!key_obj || !key_obj->IsNumber()) continue;
++      int key = key_obj->GetInteger();
++      RetainPtr<const CPDF_Dictionary> rule_dict =
++          ToDictionary(nums->GetDirectObjectAt(i + 1));
++      if (!rule_dict) continue;
++      out.emplace_back(key, std::move(rule_dict));
++    }
++    return;
++  }
++  RetainPtr<const CPDF_Array> kids = node->GetArrayFor("Kids");
++  if (kids) {
++    for (size_t i = 0; i < kids->size(); i++) {
++      RetainPtr<const CPDF_Dictionary> child =
++          ToDictionary(kids->GetDirectObjectAt(i));
++      if (child) CollectPageLabelEntries(child.Get(), out);
++    }
++  }
++}
++
++std::string EscapeJsonString(const ByteString& s) {
++  std::string out;
++  out.reserve(s.GetLength() + 2);
++  out.push_back('"');
++  ByteStringView v = s.AsStringView();
++  for (size_t i = 0; i < v.GetLength(); i++) {
++    char c = static_cast<char>(v[i]);
++    switch (c) {
++      case '"':  out.append("\\\""); break;
++      case '\\': out.append("\\\\"); break;
++      case '\b': out.append("\\b");  break;
++      case '\f': out.append("\\f");  break;
++      case '\n': out.append("\\n");  break;
++      case '\r': out.append("\\r");  break;
++      case '\t': out.append("\\t");  break;
++      default:
++        if (static_cast<unsigned char>(c) < 0x20) {
++          char buf[8];
++          snprintf(buf, sizeof(buf), "\\u%04x",
++                   static_cast<unsigned>(static_cast<unsigned char>(c)));
++          out.append(buf);
++        } else {
++          out.push_back(c);
++        }
++    }
++  }
++  out.push_back('"');
++  return out;
++}
++
++struct PageLabelRule {
++  int page_index = 0;
++  ByteString style;
++  int start = 1;
++  ByteString prefix;
++  bool has_style = false;
++  bool has_start = false;
++  bool has_prefix = false;
++};
++
++class JsonParser {
++ public:
++  explicit JsonParser(const char* s) : p_(s) {}
++
++  bool ParseRules(std::vector<PageLabelRule>* out) {
++    SkipWs();
++    if (!Eat('[')) return false;
++    SkipWs();
++    if (Peek() == ']') { p_++; return true; }
++    while (true) {
++      PageLabelRule r;
++      if (!ParseRule(&r)) return false;
++      out->push_back(std::move(r));
++      SkipWs();
++      if (Eat(',')) { SkipWs(); continue; }
++      if (Eat(']')) return true;
++      return false;
++    }
++  }
++
++ private:
++  bool ParseRule(PageLabelRule* r) {
++    SkipWs();
++    if (!Eat('{')) return false;
++    SkipWs();
++    if (Eat('}')) return true;
++    while (true) {
++      SkipWs();
++      ByteString key;
++      if (!ParseString(&key)) return false;
++      SkipWs();
++      if (!Eat(':')) return false;
++      SkipWs();
++      if (key == "pageIndex") {
++        if (!ParseInt(&r->page_index)) return false;
++      } else if (key == "style") {
++        if (!ParseString(&r->style)) return false;
++        r->has_style = !r->style.IsEmpty();
++      } else if (key == "start") {
++        if (!ParseInt(&r->start)) return false;
++        r->has_start = true;
++      } else if (key == "prefix") {
++        if (!ParseString(&r->prefix)) return false;
++        r->has_prefix = !r->prefix.IsEmpty();
++      } else {
++        if (!SkipValue()) return false;
++      }
++      SkipWs();
++      if (Eat(',')) continue;
++      if (Eat('}')) return true;
++      return false;
++    }
++  }
++
++  bool ParseString(ByteString* out) {
++    if (!Eat('"')) return false;
++    std::string buf;
++    while (Peek() != '\0') {
++      char c = *p_++;
++      if (c == '"') { *out = ByteString(buf.c_str()); return true; }
++      if (c == '\\') {
++        char esc = *p_++;
++        switch (esc) {
++          case '"': buf.push_back('"'); break;
++          case '\\': buf.push_back('\\'); break;
++          case '/': buf.push_back('/'); break;
++          case 'b': buf.push_back('\b'); break;
++          case 'f': buf.push_back('\f'); break;
++          case 'n': buf.push_back('\n'); break;
++          case 'r': buf.push_back('\r'); break;
++          case 't': buf.push_back('\t'); break;
++          case 'u': {
++            char hex[5] = {p_[0], p_[1], p_[2], p_[3], '\0'};
++            p_ += 4;
++            unsigned v = 0;
++            sscanf(hex, "%x", &v);
++            if (v < 0x80) buf.push_back(static_cast<char>(v));
++            break;
++          }
++          default: return false;
++        }
++      } else {
++        buf.push_back(c);
++      }
++    }
++    return false;
++  }
++
++  bool ParseInt(int* out) {
++    char* end = nullptr;
++    long v = strtol(p_, &end, 10);
++    if (end == p_) return false;
++    *out = static_cast<int>(v);
++    p_ = end;
++    return true;
++  }
++
++  bool SkipValue() {
++    SkipWs();
++    char c = Peek();
++    if (c == '"') { ByteString tmp; return ParseString(&tmp); }
++    if (c == '-' || (c >= '0' && c <= '9')) {
++      int tmp; return ParseInt(&tmp);
++    }
++    if (c == '{') {
++      int depth = 0;
++      do {
++        c = *p_++;
++        if (c == '{') depth++;
++        else if (c == '}') depth--;
++        else if (c == '\0') return false;
++      } while (depth > 0);
++      return true;
++    }
++    if (c == '[') {
++      int depth = 0;
++      do {
++        c = *p_++;
++        if (c == '[') depth++;
++        else if (c == ']') depth--;
++        else if (c == '\0') return false;
++      } while (depth > 0);
++      return true;
++    }
++    if (strncmp(p_, "true", 4) == 0)  { p_ += 4; return true; }
++    if (strncmp(p_, "false", 5) == 0) { p_ += 5; return true; }
++    if (strncmp(p_, "null", 4) == 0)  { p_ += 4; return true; }
++    return false;
++  }
++
++  void SkipWs() {
++    while (*p_ == ' ' || *p_ == '\t' || *p_ == '\n' || *p_ == '\r') p_++;
++  }
++  char Peek() const { return *p_; }
++  bool Eat(char c) { if (*p_ == c) { p_++; return true; } return false; }
++
++  const char* p_;
++};
++
++}
++
++FPDF_EXPORT const char* FPDF_CALLCONV
++EPDFPageLabel_GetRulesJSON(FPDF_DOCUMENT document) {
++  static thread_local std::string buffer;
++  buffer = "[]";
++
++  CPDF_Document* doc = CPDFDocumentFromFPDFDocument(document);
++  if (!doc) return buffer.c_str();
++  const CPDF_Dictionary* root = doc->GetRoot();
++  if (!root) return buffer.c_str();
++  RetainPtr<const CPDF_Dictionary> labels = root->GetDictFor("PageLabels");
++  if (!labels) return buffer.c_str();
++
++  std::vector<std::pair<int, RetainPtr<const CPDF_Dictionary>>> entries;
++  CollectPageLabelEntries(labels.Get(), entries);
++  if (entries.empty()) return buffer.c_str();
++
++  std::sort(entries.begin(), entries.end(),
++            [](const auto& a, const auto& b) { return a.first < b.first; });
++
++  buffer.clear();
++  buffer.push_back('[');
++  for (size_t i = 0; i < entries.size(); i++) {
++    if (i > 0) buffer.push_back(',');
++    buffer.push_back('{');
++    buffer.append("\"pageIndex\":");
++    buffer.append(std::to_string(entries[i].first));
++
++    const CPDF_Dictionary* rule = entries[i].second.Get();
++    ByteString style = rule->GetByteStringFor("S");
++    if (!style.IsEmpty()) {
++      buffer.append(",\"style\":");
++      buffer.append(EscapeJsonString(style));
++    }
++    if (rule->KeyExist("St")) {
++      int st = rule->GetIntegerFor("St", 1);
++      buffer.append(",\"start\":");
++      buffer.append(std::to_string(st));
++    }
++    ByteString prefix = rule->GetByteStringFor("P");
++    if (!prefix.IsEmpty()) {
++      buffer.append(",\"prefix\":");
++      buffer.append(EscapeJsonString(prefix));
++    }
++    buffer.push_back('}');
++  }
++  buffer.push_back(']');
++  return buffer.c_str();
++}
++
++FPDF_EXPORT FPDF_BOOL FPDF_CALLCONV
++EPDFPageLabel_SetRulesJSON(FPDF_DOCUMENT document, const char* json) {
++  CPDF_Document* doc = CPDFDocumentFromFPDFDocument(document);
++  if (!doc) return false;
++  CPDF_Dictionary* root = doc->GetMutableRoot();
++  if (!root) return false;
++
++  if (!json || !*json) {
++    root->RemoveFor("PageLabels");
++    return true;
++  }
++  std::string trimmed = json;
++  while (!trimmed.empty() &&
++         (trimmed[0] == ' ' || trimmed[0] == '\t' ||
++          trimmed[0] == '\n' || trimmed[0] == '\r')) {
++    trimmed.erase(0, 1);
++  }
++  if (trimmed == "[]") {
++    root->RemoveFor("PageLabels");
++    return true;
++  }
++
++  std::vector<PageLabelRule> rules;
++  JsonParser parser(json);
++  if (!parser.ParseRules(&rules)) return false;
++  if (rules.empty()) {
++    root->RemoveFor("PageLabels");
++    return true;
++  }
++
++  std::sort(rules.begin(), rules.end(),
++            [](const PageLabelRule& a, const PageLabelRule& b) {
++              return a.page_index < b.page_index;
++            });
++
++  RetainPtr<CPDF_Dictionary> labels =
++      root->SetNewFor<CPDF_Dictionary>("PageLabels");
++  RetainPtr<CPDF_Array> nums = labels->SetNewFor<CPDF_Array>("Nums");
++
++  for (const auto& r : rules) {
++    nums->AppendNew<CPDF_Number>(r.page_index);
++    RetainPtr<CPDF_Dictionary> rule_dict = nums->AppendNew<CPDF_Dictionary>();
++    if (r.has_style) {
++      rule_dict->SetNewFor<CPDF_Name>("S", r.style);
++    }
++    if (r.has_start && r.start != 1) {
++      rule_dict->SetNewFor<CPDF_Number>("St", r.start);
++    }
++    if (r.has_prefix && !r.prefix.IsEmpty()) {
++      rule_dict->SetNewFor<CPDF_String>("P", r.prefix);
++    }
++  }
++  return true;
++}
++
++namespace {
++
++RetainPtr<const CPDF_Object> ResolveInherited(const CPDF_Dictionary* page_dict,
++                                              ByteStringView key,
++                                              bool* defined_locally) {
++  *defined_locally = false;
++  std::set<const CPDF_Dictionary*> visited;
++  const CPDF_Dictionary* node = page_dict;
++  bool first = true;
++  while (node && visited.insert(node).second) {
++    RetainPtr<const CPDF_Object> v = node->GetDirectObjectFor(key);
++    if (v) {
++      if (first) {
++        *defined_locally = true;
++      }
++      return v;
++    }
++    first = false;
++    node = node->GetDictFor(pdfium::page_object::kParent).Get();
++  }
++  return nullptr;
++}
++
++bool PushDownRect(CPDF_Dictionary* page_dict, ByteStringView key) {
++  bool defined_locally = false;
++  RetainPtr<const CPDF_Object> inherited =
++      ResolveInherited(page_dict, key, &defined_locally);
++  if (defined_locally || !inherited) {
++    return false;
++  }
++  RetainPtr<const CPDF_Array> arr_obj = ToArray(inherited);
++  if (!arr_obj || arr_obj->size() < 4) {
++    return false;
++  }
++  CFX_FloatRect rect = arr_obj->GetRect();
++  rect.Normalize();
++  page_dict->SetRectFor(ByteString(key), rect);
++  return true;
++}
++
++bool PushDownRotate(CPDF_Dictionary* page_dict) {
++  bool defined_locally = false;
++  RetainPtr<const CPDF_Object> inherited = ResolveInherited(
++      page_dict, pdfium::page_object::kRotate, &defined_locally);
++  if (defined_locally || !inherited) {
++    return false;
++  }
++  int rotate = inherited->GetInteger();
++  rotate = rotate % 360;
++  if (rotate < 0) {
++    rotate += 360;
++  }
++  page_dict->SetNewFor<CPDF_Number>(
++      ByteString(pdfium::page_object::kRotate), rotate);
++  return true;
++}
++
++bool PushDownResources(CPDF_Document* doc, CPDF_Dictionary* page_dict) {
++  bool defined_locally = false;
++  RetainPtr<const CPDF_Object> inherited = ResolveInherited(
++      page_dict, pdfium::page_object::kResources, &defined_locally);
++  if (defined_locally || !inherited) {
++    return false;
++  }
++  const CPDF_Object* raw = inherited.Get();
++  if (!raw->IsInline()) {
++    page_dict->SetNewFor<CPDF_Reference>(
++        ByteString(pdfium::page_object::kResources), doc, raw->GetObjNum());
++    return true;
++  }
++  RetainPtr<CPDF_Object> cloned = raw->Clone();
++  if (!cloned) {
++    return false;
++  }
++  page_dict->SetFor(ByteString(pdfium::page_object::kResources),
++                    std::move(cloned));
++  return true;
++}
++
++}
++
++FPDF_EXPORT int FPDF_CALLCONV
++EPDFDoc_PushDownInheritedAttrs(FPDF_DOCUMENT document,
++                               const int* page_indices,
++                               int page_count) {
++  if (!document || !page_indices || page_count < 0) {
++    return 0;
++  }
++  CPDF_Document* doc = CPDFDocumentFromFPDFDocument(document);
++  if (!doc) {
++    return 0;
++  }
++  const int total = doc->GetPageCount();
++
++  for (int i = 0; i < page_count; ++i) {
++    int idx = page_indices[i];
++    if (idx < 0 || idx >= total) {
++      continue;
++    }
++    RetainPtr<CPDF_Dictionary> page = doc->GetMutablePageDictionary(idx);
++    if (!page) {
++      continue;
++    }
++    PushDownRect(page.Get(), pdfium::page_object::kMediaBox);
++    PushDownRect(page.Get(), pdfium::page_object::kCropBox);
++    PushDownRect(page.Get(), pdfium::page_object::kBleedBox);
++    PushDownRect(page.Get(), pdfium::page_object::kTrimBox);
++    PushDownRect(page.Get(), pdfium::page_object::kArtBox);
++    PushDownRotate(page.Get());
++    PushDownResources(doc, page.Get());
++  }
++  return 1;
++}
 diff --git a/fpdfsdk/fpdf_edittext.cpp b/fpdfsdk/fpdf_edittext.cpp
 index 8831c257a..a57a25c12 100644
 --- a/fpdfsdk/fpdf_edittext.cpp
@@ -1933,6 +2396,28 @@ index 76b0f73c8..c1b622db5 100644
 +EPDFAnnot_GenerateMeasurementAppearance(FPDF_ANNOTATION annot,
 +                                        const char* contents_utf8,
 +                                        float font_size);
++
+ #ifdef __cplusplus
+ }  // extern "C"
+ #endif  // __cplusplus
+diff --git a/public/fpdf_doc.h b/public/fpdf_doc.h
+index 78632566a..126d1c7e9 100644
+--- a/public/fpdf_doc.h
++++ b/public/fpdf_doc.h
+@@ -892,6 +892,17 @@ EPDFBookmark_ClearTarget(FPDF_BOOKMARK bookmark);
+ // Returns true on success.
+ FPDF_EXPORT FPDF_BOOL FPDF_CALLCONV EPDFBookmark_Clear(FPDF_DOCUMENT document);
+ 
++FPDF_EXPORT const char* FPDF_CALLCONV
++EPDFPageLabel_GetRulesJSON(FPDF_DOCUMENT document);
++
++FPDF_EXPORT FPDF_BOOL FPDF_CALLCONV
++EPDFPageLabel_SetRulesJSON(FPDF_DOCUMENT document, const char* json);
++
++FPDF_EXPORT int FPDF_CALLCONV
++EPDFDoc_PushDownInheritedAttrs(FPDF_DOCUMENT document,
++                               const int* page_indices,
++                               int page_count);
 +
  #ifdef __cplusplus
  }  // extern "C"
