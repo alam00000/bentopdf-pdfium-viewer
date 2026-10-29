@@ -2218,9 +2218,6 @@ importers:
 
   viewers/snippet:
     dependencies:
-      '@dnd-kit/core':
-        specifier: 6.3.1
-        version: 6.3.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@embedpdf/core':
         specifier: workspace:*
         version: link:../../packages/core
@@ -2308,9 +2305,6 @@ importers:
       '@embedpdf/plugin-zoom':
         specifier: workspace:*
         version: link:../../packages/plugin-zoom
-      '@tanstack/react-virtual':
-        specifier: 3.14.3
-        version: 3.14.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       preact:
         specifier: ^10.17.0
         version: 10.28.3
@@ -2330,6 +2324,9 @@ importers:
       '@babel/preset-typescript':
         specifier: ^7.22.5
         version: 7.28.5(@babel/core@7.29.0)
+      '@dnd-kit/core':
+        specifier: 6.3.1
+        version: 6.3.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@floating-ui/dom':
         specifier: ^1.6.13
         version: 1.7.5
@@ -2360,6 +2357,9 @@ importers:
       '@tailwindcss/postcss':
         specifier: ^4.1.17
         version: 4.1.18
+      '@tanstack/react-virtual':
+        specifier: 3.14.3
+        version: 3.14.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@types/node':
         specifier: ^22.0.0
         version: 22.19.11
