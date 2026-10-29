@@ -27,7 +27,7 @@
     "@embedpdf/snippet": "workspace:*"
   },
   "devDependencies": {
-    "@sveltejs/package": "^2.3.0",
+    "@sveltejs/package": "^2.5.8",
     "rimraf": "^6.1.2",
     "svelte": "^5.0.0",
     "typescript": "^5.1.6"
