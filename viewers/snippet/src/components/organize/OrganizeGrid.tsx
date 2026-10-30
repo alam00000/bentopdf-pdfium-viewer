@@ -195,7 +195,7 @@ export function OrganizeGrid({
       const viewportH = el.clientHeight;
       const desired = targetRow * rowH + rowH / 2 - viewportH / 2;
       const maxScroll = Math.max(0, el.scrollHeight - viewportH);
-      el.scrollTop = Math.max(0, Math.min(maxScroll, desired));
+      el.scrollTop = Math.max(0, Math.min(maxScroll, desired, targetRow * rowH));
     });
     return () => cancelAnimationFrame(raf);
   }, [initialPageIndex, layout.cellHeight, rowCount, columnCount]);
@@ -222,7 +222,8 @@ export function OrganizeGrid({
       const maxScroll = Math.max(0, node.scrollHeight - node.clientHeight);
       let nextTop = viewTop;
       if (rowTop < viewTop) nextTop = rowTop - GRID_PADDING_Y;
-      else if (rowBottom > viewBottom) nextTop = rowBottom - node.clientHeight + GRID_PADDING_Y;
+      else if (rowBottom > viewBottom)
+        nextTop = Math.min(rowTop - GRID_PADDING_Y, rowBottom - node.clientHeight + GRID_PADDING_Y);
       nextTop = Math.max(0, Math.min(maxScroll, nextTop));
       if (nextTop !== viewTop) node.scrollTop = nextTop;
     });
