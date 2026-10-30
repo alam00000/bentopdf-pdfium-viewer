@@ -876,7 +876,7 @@ const OrganizeThumb = memo(function OrganizeThumb({
       rect: { origin: { x: 0, y: 0 }, size: page.size },
       options: {
         scaleFactor: width / visibleW,
-        dpr: Math.min(window.devicePixelRatio || 1, 2),
+        dpr: window.devicePixelRatio || 1,
         rotation: page.rotation,
         withAnnotations: true,
       },
