@@ -43,6 +43,8 @@ interface OrganizeToolbarProps {
   onPasteFromClipboard?: () => void;
   onDelete: () => void;
   columns?: number;
+  minColumns?: number;
+  maxColumns?: number;
   onColumnsChange?: (next: number) => void;
   canUndo?: boolean;
   canRedo?: boolean;
@@ -73,6 +75,8 @@ export function OrganizeToolbar({
   onPasteFromClipboard,
   onDelete,
   columns,
+  minColumns = 2,
+  maxColumns = 6,
   onColumnsChange,
   canUndo = false,
   canRedo = false,
@@ -217,7 +221,7 @@ export function OrganizeToolbar({
         )}
         {typeof columns === 'number' && onColumnsChange && (
           <div
-            class="bg-bg-surface-alt hidden items-center gap-0.5 rounded-lg p-0.5 @md:inline-flex"
+            class="bg-bg-surface-alt inline-flex shrink-0 items-center gap-0.5 rounded-lg p-0.5"
             role="group"
             aria-label="Thumbnail size"
           >
@@ -226,8 +230,8 @@ export function OrganizeToolbar({
               aria-label="Smaller thumbnails"
               tooltip="Smaller thumbnails"
               tooltipPosition="bottom"
-              onClick={() => onColumnsChange(Math.min(6, columns + 1))}
-              disabled={columns >= 6}
+              onClick={() => onColumnsChange(Math.min(maxColumns, columns + 1))}
+              disabled={columns >= maxColumns}
             >
               <GridNineIcon size={18} />
             </IconButton>
@@ -236,8 +240,8 @@ export function OrganizeToolbar({
               aria-label="Larger thumbnails"
               tooltip="Larger thumbnails"
               tooltipPosition="bottom"
-              onClick={() => onColumnsChange(Math.max(2, columns - 1))}
-              disabled={columns <= 2}
+              onClick={() => onColumnsChange(Math.max(minColumns, columns - 1))}
+              disabled={columns <= minColumns}
             >
               <GridFourIcon size={18} />
             </IconButton>

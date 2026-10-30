@@ -51,10 +51,11 @@ interface OrganizeGridProps {
   canModifyContents: boolean;
   columns?: number;
   initialPageIndex?: number;
-  onColumnsResolved?: (columns: number) => void;
+  onColumnsResolved?: (columns: number, range: { min: number; max: number }) => void;
 }
 
 const GRID_PADDING_X = 48;
+const NARROW_GRID_PADDING_X = 16;
 const GRID_PADDING_Y = 32;
 const COL_GAP = 24;
 const ROW_GAP = 32;
@@ -65,6 +66,7 @@ const SIZE_LABEL_HEIGHT = 16;
 const LABEL_STACK_GAP = 2;
 const LABEL_STACK_HEIGHT = LABEL_HEIGHT + LABEL_STACK_GAP + SIZE_LABEL_HEIGHT;
 const MIN_CELL_WIDTH = 120;
+const NARROW_GRID_WIDTH = 640;
 const IMG_ASPECT_RATIO = 4 / 3;
 const DEFAULT_PAGE_RATIO = 1.294;
 
@@ -98,7 +100,7 @@ export function OrganizeGrid({
   initialPageIndex,
   onColumnsResolved,
 }: OrganizeGridProps) {
-  const requestedColumns = Math.max(2, Math.min(6, Math.floor(columns ?? 4)));
+  const requestedColumns = Math.max(1, Math.min(6, Math.floor(columns ?? 4)));
   const { provides: scrollProvides } = useScroll(documentId);
   const documentState = useDocumentState(documentId);
   const totalPages = documentState?.document?.pageCount ?? 0;
@@ -141,18 +143,18 @@ export function OrganizeGrid({
     return max;
   }, [docPages]);
 
+  const narrow = containerWidth > 0 && containerWidth < NARROW_GRID_WIDTH;
+  const paddingX = narrow ? NARROW_GRID_PADDING_X : GRID_PADDING_X;
   const available =
-    containerWidth > 0
-      ? Math.max(0, containerWidth - 2 * GRID_PADDING_X)
-      : 1280 - 2 * GRID_PADDING_X;
-  const columnCount = Math.max(
-    1,
-    Math.min(requestedColumns, Math.floor((available + COL_GAP) / (MIN_CELL_WIDTH + COL_GAP))),
-  );
+    containerWidth > 0 ? Math.max(0, containerWidth - 2 * paddingX) : 1280 - 2 * GRID_PADDING_X;
+  const fitColumns = Math.max(1, Math.floor((available + COL_GAP) / (MIN_CELL_WIDTH + COL_GAP)));
+  const maxColumns = Math.min(narrow ? 2 : 6, fitColumns);
+  const minColumns = Math.min(narrow ? 1 : 2, maxColumns);
+  const columnCount = Math.max(minColumns, Math.min(requestedColumns, maxColumns));
 
   useEffect(() => {
-    onColumnsResolved?.(columnCount);
-  }, [columnCount, onColumnsResolved]);
+    onColumnsResolved?.(columnCount, { min: minColumns, max: maxColumns });
+  }, [columnCount, minColumns, maxColumns, onColumnsResolved]);
 
   const layout = useMemo(() => {
     const derived = (available - (columnCount - 1) * COL_GAP) / columnCount;
@@ -575,7 +577,8 @@ export function OrganizeGrid({
       <div ref={containerRef} class="relative min-h-0 flex-auto overflow-hidden">
         <div
           ref={setScrollParentEl}
-          class="box-border h-full w-full overflow-y-auto px-12 pt-8 pb-12 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          class="box-border h-full w-full overflow-y-auto pt-8 pb-12 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          style={{ paddingLeft: paddingX, paddingRight: paddingX }}
           onPointerDownCapture={(e) => {
             lastPointerTypeRef.current = e.pointerType;
           }}

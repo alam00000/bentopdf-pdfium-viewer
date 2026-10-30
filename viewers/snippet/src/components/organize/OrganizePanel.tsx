@@ -63,7 +63,7 @@ function dragHasFiles(e: DragEvent): boolean {
 function readColumns(): number {
   try {
     const n = parseInt(localStorage.getItem(COLUMNS_KEY) ?? '', 10);
-    if (Number.isFinite(n)) return Math.max(2, Math.min(6, n));
+    if (Number.isFinite(n)) return Math.max(1, Math.min(6, n));
   } catch {}
   return 4;
 }
@@ -120,6 +120,14 @@ export function OrganizePanel({
 
   const [gridColumns, setGridColumns] = useState<number>(readColumns);
   const [navColumns, setNavColumns] = useState<number>(gridColumns);
+  const [columnRange, setColumnRange] = useState({ min: 2, max: 6 });
+  const handleColumnsResolved = useCallback(
+    (resolved: number, range: { min: number; max: number }) => {
+      setNavColumns(resolved);
+      setColumnRange((prev) => (prev.min === range.min && prev.max === range.max ? prev : range));
+    },
+    [],
+  );
   useEffect(() => {
     try {
       localStorage.setItem(COLUMNS_KEY, String(gridColumns));
@@ -559,7 +567,9 @@ export function OrganizePanel({
         onInterleave={runInterleave}
         onPasteFromClipboard={() => void runPasteFromClipboard()}
         onDelete={runDelete}
-        columns={gridColumns}
+        columns={navColumns}
+        minColumns={columnRange.min}
+        maxColumns={columnRange.max}
         onColumnsChange={setGridColumns}
         canUndo={ops.canUndo}
         canRedo={ops.canRedo}
@@ -584,7 +594,7 @@ export function OrganizePanel({
         canModifyContents={canModifyContents}
         columns={gridColumns}
         initialPageIndex={initialPageIndex}
-        onColumnsResolved={setNavColumns}
+        onColumnsResolved={handleColumnsResolved}
       />
 
       {contextMenu && (
