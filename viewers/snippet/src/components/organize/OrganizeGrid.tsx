@@ -10,7 +10,8 @@ import {
   DndContext,
   DragOverlay,
   KeyboardSensor,
-  PointerSensor,
+  MouseSensor,
+  TouchSensor,
   useDraggable,
   useDroppable,
   useSensor,
@@ -31,6 +32,7 @@ import {
 } from '@/hooks/use-reorder-side-effects';
 import { pageSizeLabel } from '@/lib/page-size-label';
 import { FadingScrollThumb } from '../ds/fading-scroll-thumb';
+import { DotsThreeIcon } from '../ds/icons';
 import { dispatchOrganizeSet, useOrganizeContext } from './OrganizeContext';
 import {
   carryThumbCacheForDelta,
@@ -283,13 +285,34 @@ export function OrganizeGrid({
     [documentId, standalone],
   );
 
-  const handleCellContextMenu = useCallback((e: MouseEvent) => {
+  const lastPointerTypeRef = useRef('mouse');
+
+  const openPageMenu = useCallback((e: MouseEvent) => {
     if (!(e.currentTarget instanceof HTMLElement)) return;
     const pageIndex = Number(e.currentTarget.dataset.pageIndex);
     if (!Number.isFinite(pageIndex)) return;
     e.preventDefault();
     onContextMenuRef.current(e, pageIndex);
   }, []);
+
+  const handleCellContextMenu = useCallback(
+    (e: MouseEvent) => {
+      if (lastPointerTypeRef.current === 'touch') {
+        e.preventDefault();
+        return;
+      }
+      openPageMenu(e);
+    },
+    [openPageMenu],
+  );
+
+  const handleMoreClick = useCallback(
+    (e: MouseEvent) => {
+      e.stopPropagation();
+      openPageMenu(e);
+    },
+    [openPageMenu],
+  );
 
   const [activeDragSet, setActiveDragSet] = useState<number[] | null>(null);
   const dropIndexRef = useRef<number | null>(null);
@@ -348,7 +371,8 @@ export function OrganizeGrid({
   );
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(MouseSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 8 } }),
     useSensor(KeyboardSensor),
   );
 
@@ -552,6 +576,9 @@ export function OrganizeGrid({
         <div
           ref={setScrollParentEl}
           class="box-border h-full w-full overflow-y-auto px-12 pt-8 pb-12 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          onPointerDownCapture={(e) => {
+            lastPointerTypeRef.current = e.pointerType;
+          }}
           onClick={(e) => {
             if (e.target instanceof Element && !e.target.closest('[data-page-index]')) {
               clearSelection();
@@ -597,6 +624,7 @@ export function OrganizeGrid({
                         onClick={handleClick}
                         onDblClick={handleDoubleClick}
                         onContextMenu={handleCellContextMenu}
+                        onMore={handleMoreClick}
                       />
                     );
                   })}
@@ -698,6 +726,7 @@ interface OrganizeCellProps {
   onClick: (e: MouseEvent) => void;
   onDblClick: (e: MouseEvent) => void;
   onContextMenu: (e: MouseEvent) => void;
+  onMore: (e: MouseEvent) => void;
 }
 
 const OrganizeCell = memo(function OrganizeCell({
@@ -720,6 +749,7 @@ const OrganizeCell = memo(function OrganizeCell({
   onClick,
   onDblClick,
   onContextMenu,
+  onMore,
 }: OrganizeCellProps) {
   const { setNodeRef, attributes, listeners } = useDraggable({
     id: `page-${pageIndex}`,
@@ -740,46 +770,63 @@ const OrganizeCell = memo(function OrganizeCell({
       : 'focus-visible:outline-accent focus-visible:outline-2 focus-visible:outline-offset-2';
 
   return (
-    <button
-      ref={setNodeRef}
-      type="button"
-      data-page-index={pageIndex}
-      class={`hover:bg-interactive-hover box-border flex shrink-0 cursor-pointer flex-col items-center justify-center rounded-2xl border-none select-none ${
-        isSelected ? 'bg-interactive-selected' : 'bg-transparent'
-      } ${motion} ${ring}`}
-      style={{
-        width: cellWidth,
-        height: cellHeight,
-        padding: `${THUMB_PADDING}px`,
-        gap: `${INNER_GAP}px`,
-        transform:
-          offset.x !== 0 || offset.y !== 0 ? `translate(${offset.x}px, ${offset.y}px)` : undefined,
-      }}
-      {...(attributes as unknown as Record<string, unknown>)}
-      {...(listeners as unknown as Record<string, unknown>)}
-      onClick={onClick}
-      onDblClick={onDblClick}
-      onContextMenu={onContextMenu}
-      aria-pressed={isSelected}
-      aria-label={`Page ${pageIndex + 1}`}
-    >
-      <div
-        class="flex shrink-0 items-center justify-center overflow-hidden rounded-md bg-white shadow-sm"
-        style={{ width: innerW, height: visibleHeightFor(cellPage, innerW) }}
+    <div class="group relative shrink-0" style={{ width: cellWidth, height: cellHeight }}>
+      <button
+        ref={setNodeRef}
+        type="button"
+        data-page-index={pageIndex}
+        class={`hover:bg-interactive-hover box-border flex shrink-0 cursor-pointer touch-manipulation flex-col items-center justify-center rounded-2xl border-none select-none [-webkit-touch-callout:none] ${
+          isSelected ? 'bg-interactive-selected' : 'bg-transparent'
+        } ${motion} ${ring}`}
+        style={{
+          width: cellWidth,
+          height: cellHeight,
+          padding: `${THUMB_PADDING}px`,
+          gap: `${INNER_GAP}px`,
+          transform:
+            offset.x !== 0 || offset.y !== 0
+              ? `translate(${offset.x}px, ${offset.y}px)`
+              : undefined,
+        }}
+        {...(attributes as unknown as Record<string, unknown>)}
+        {...(listeners as unknown as Record<string, unknown>)}
+        onClick={onClick}
+        onDblClick={onDblClick}
+        onContextMenu={onContextMenu}
+        aria-pressed={isSelected}
+        aria-label={`Page ${pageIndex + 1}`}
       >
-        <OrganizeThumb
-          documentId={documentId}
-          pageIndex={sourceIdx}
-          width={innerW}
-          entry={bitmapEntry}
-          setBitmap={setBitmap}
+        <div
+          class="flex shrink-0 items-center justify-center overflow-hidden rounded-md bg-white shadow-sm"
+          style={{ width: innerW, height: visibleHeightFor(cellPage, innerW) }}
+        >
+          <OrganizeThumb
+            documentId={documentId}
+            pageIndex={sourceIdx}
+            width={innerW}
+            entry={bitmapEntry}
+            setBitmap={setBitmap}
+          />
+        </div>
+        <CellLabels
+          label={labelFor(sourceIdx + 1)}
+          sizeLabel={cellPage ? pageSizeLabel(cellPage) : null}
         />
-      </div>
-      <CellLabels
-        label={labelFor(sourceIdx + 1)}
-        sizeLabel={cellPage ? pageSizeLabel(cellPage) : null}
-      />
-    </button>
+      </button>
+      {!anyDragActive && (
+        <button
+          type="button"
+          data-page-index={pageIndex}
+          tabIndex={-1}
+          aria-label={`Page ${pageIndex + 1} actions`}
+          aria-haspopup="menu"
+          onClick={onMore}
+          class="absolute top-2 right-2 flex h-7 w-7 cursor-pointer items-center justify-center rounded-full border-none bg-black/60 text-white opacity-0 backdrop-blur-md transition-opacity duration-150 group-hover:opacity-100 pointer-coarse:opacity-100"
+        >
+          <DotsThreeIcon size={16} weight="bold" />
+        </button>
+      )}
+    </div>
   );
 });
 

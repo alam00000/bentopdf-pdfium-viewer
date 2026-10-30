@@ -62,7 +62,7 @@ function usePlaced(
       void computePosition(ref, panel, {
         strategy: 'fixed',
         placement,
-        middleware: [offset(gap), flip(), shift({ padding: 8 })],
+        middleware: [offset(gap), flip(), shift({ padding: 8, crossAxis: true })],
       }).then(({ x, y }) => {
         panel.style.left = `${x}px`;
         panel.style.top = `${y}px`;
@@ -316,6 +316,66 @@ function AnchoredBar({
 
 const MenuClose = createContext<() => void>(() => undefined);
 
+const SUBMENU_OPEN_DELAY = 150;
+const SUBMENU_CLOSE_GRACE = 120;
+
+type SubmenuHow = 'pointer' | 'keyboard';
+
+interface SubmenuState {
+  openId: string | null;
+  how: SubmenuHow;
+  enter: (id: string) => void;
+  leave: (id: string) => void;
+  openNow: (id: string, how: SubmenuHow) => void;
+  close: () => void;
+}
+
+const Submenus = createContext<SubmenuState>({
+  openId: null,
+  how: 'pointer',
+  enter: () => undefined,
+  leave: () => undefined,
+  openNow: () => undefined,
+  close: () => undefined,
+});
+
+let submenuSeq = 0;
+
+function useSubmenuState(): SubmenuState {
+  const [openId, setOpenId] = useState<string | null>(null);
+  const [how, setHow] = useState<SubmenuHow>('pointer');
+  const timer = useRef<number | undefined>(undefined);
+  const hovered = useRef<string | null>(null);
+  useEffect(() => () => window.clearTimeout(timer.current), []);
+  const openNow = (id: string, next: SubmenuHow) => {
+    window.clearTimeout(timer.current);
+    setHow(next);
+    setOpenId(id);
+  };
+  return {
+    openId,
+    how,
+    openNow,
+    enter: (id) => {
+      hovered.current = id;
+      window.clearTimeout(timer.current);
+      timer.current = window.setTimeout(() => openNow(id, 'pointer'), SUBMENU_OPEN_DELAY);
+    },
+    leave: (id) => {
+      if (hovered.current === id) hovered.current = null;
+      window.clearTimeout(timer.current);
+      timer.current = window.setTimeout(
+        () => setOpenId((prev) => (prev !== null && prev === hovered.current ? prev : null)),
+        SUBMENU_CLOSE_GRACE,
+      );
+    },
+    close: () => {
+      window.clearTimeout(timer.current);
+      setOpenId(null);
+    },
+  };
+}
+
 const MENU_ITEMS = '[role="menuitem"], [role="menuitemcheckbox"], [role="menuitemradio"]';
 
 function ownItems(panel: HTMLElement | null): HTMLButtonElement[] {
@@ -355,6 +415,7 @@ function MenuPanel({
   const panelRef = useRef<HTMLDivElement>(null);
   const close = useRef(onClose);
   close.current = onClose;
+  const submenus = useSubmenuState();
   usePlaced(panelRef, reference, placement, gap, referenceKey);
 
   useEffect(() => {
@@ -399,19 +460,21 @@ function MenuPanel({
 
   return (
     <MenuClose.Provider value={closeItems ?? onClose}>
-      <div
-        ref={panelRef}
-        role="menu"
-        aria-label={ariaLabel}
-        tabIndex={-1}
-        data-floating=""
-        class={`border-border-default bg-bg-elevated z-[600] min-w-[180px] rounded-lg border py-1 shadow-lg select-none focus:outline-none ${panelClass ?? ''}`}
-        style={UNPLACED}
-        onKeyDown={onKeyDown}
-        onMouseDown={(e) => e.stopPropagation()}
-      >
-        {children}
-      </div>
+      <Submenus.Provider value={submenus}>
+        <div
+          ref={panelRef}
+          role="menu"
+          aria-label={ariaLabel}
+          tabIndex={-1}
+          data-floating=""
+          class={`border-border-default bg-bg-elevated z-[600] flex min-w-[220px] flex-col gap-1 rounded-lg border p-1 shadow-lg select-none focus:outline-none ${panelClass ?? ''}`}
+          style={UNPLACED}
+          onKeyDown={onKeyDown}
+          onMouseDown={(e) => e.stopPropagation()}
+        >
+          {children}
+        </div>
+      </Submenus.Provider>
     </MenuClose.Provider>
   );
 }
@@ -499,7 +562,7 @@ export function PopupMenu({
 }
 
 const MENU_ITEM =
-  'hover:bg-interactive-hover focus:bg-interactive-hover flex w-full cursor-pointer items-center gap-2 px-3 py-1.5 text-left text-sm focus:outline-none disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent';
+  'hover:bg-interactive-hover focus:bg-interactive-hover flex w-full shrink-0 cursor-pointer items-center gap-2 rounded-[5px] px-2.5 py-1.5 text-left text-sm focus:outline-none disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent pointer-coarse:py-2.5';
 
 export function PopupMenuItem({
   icon,
@@ -540,7 +603,9 @@ export function PopupMenuItem({
     >
       <span class="flex w-4 shrink-0 justify-center">{icon}</span>
       <span class="min-w-0 flex-1 truncate">{label}</span>
-      {shortcut ? <span class="text-fg-muted text-xs">{formatShortcut(shortcut)}</span> : null}
+      {shortcut ? (
+        <span class="text-fg-muted text-xs pointer-coarse:hidden">{formatShortcut(shortcut)}</span>
+      ) : null}
       {selected ? <CheckIcon size={12} weight="bold" class="text-accent shrink-0" /> : null}
     </button>
   );
@@ -558,38 +623,35 @@ export function PopupMenuSubmenu({
   children: ComponentChildren;
 }) {
   const closeAll = useContext(MenuClose);
+  const submenus = useContext(Submenus);
+  const id = useRef(`submenu-${++submenuSeq}`).current;
+  const open = submenus.openId === id;
   const rowRef = useRef<HTMLButtonElement>(null);
-  const [open, setOpen] = useState<'pointer' | 'keyboard' | null>(null);
-  const timer = useRef<number | undefined>(undefined);
-  useEffect(() => () => window.clearTimeout(timer.current), []);
-  const show = (how: 'pointer' | 'keyboard') => {
-    window.clearTimeout(timer.current);
-    if (!disabled) setOpen(how);
-  };
-  const hide = () => {
-    window.clearTimeout(timer.current);
-    timer.current = window.setTimeout(() => setOpen(null), 200);
-  };
   return (
-    <div onMouseEnter={() => show('pointer')} onMouseLeave={hide}>
+    <div
+      onPointerEnter={(e) => e.pointerType !== 'touch' && !disabled && submenus.enter(id)}
+      onPointerLeave={(e) => e.pointerType !== 'touch' && submenus.leave(id)}
+    >
       <button
         ref={rowRef}
         type="button"
         tabIndex={-1}
         role="menuitem"
         aria-haspopup="menu"
-        aria-expanded={open !== null}
+        aria-expanded={open}
         disabled={disabled}
         class={`${MENU_ITEM} text-fg-primary ${open ? 'bg-interactive-hover' : ''}`}
         onClick={() => {
-          if (open) setOpen(null);
-          else show('pointer');
+          if (disabled) return;
+          if (open) submenus.close();
+          else submenus.openNow(id, 'pointer');
         }}
         onKeyDown={(e) => {
+          if (disabled) return;
           if (e.key !== 'ArrowRight' && e.key !== 'Enter' && e.key !== ' ') return;
           e.preventDefault();
           e.stopPropagation();
-          show('keyboard');
+          submenus.openNow(id, 'keyboard');
         }}
       >
         <span class="flex w-4 shrink-0 justify-center">{icon}</span>
@@ -602,10 +664,10 @@ export function PopupMenuSubmenu({
           referenceKey={rowRef}
           placement="right-start"
           gap={2}
-          onClose={() => setOpen(null)}
+          onClose={submenus.close}
           closeItems={closeAll}
           dismissOutside={rowRef}
-          initialFocus={open === 'keyboard' ? 'first' : 'none'}
+          initialFocus={submenus.how === 'keyboard' ? 'first' : 'none'}
           back
         >
           {children}

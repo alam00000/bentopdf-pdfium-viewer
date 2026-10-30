@@ -1,4 +1,4 @@
-import { h } from 'preact';
+import { h, Fragment } from 'preact';
 
 import { PopupMenu, PopupMenuDivider, PopupMenuItem, PopupMenuSubmenu } from './ds/floating';
 import {
@@ -64,63 +64,72 @@ export function ThumbnailContextMenu({
   const rotateDisabled = !caps.canModifyContents || selSize === 0;
   const insertDisabled = !caps.canModifyContents || !isSingle;
   const extractDisabled = !caps.canExtract || selSize === 0;
+  const touch = window.matchMedia('(pointer: coarse)').matches;
 
   return (
     <PopupMenu position={{ x: state.x, y: state.y }} onClose={onClose} aria-label="Page actions">
-      <PopupMenuItem
-        icon={<ArrowCounterClockwiseIcon size={14} />}
-        label="Rotate Left"
-        shortcut={['Shift', 'R']}
-        disabled={rotateDisabled}
-        onClick={actions.rotateCounterClockwise}
-      />
-      <PopupMenuItem
-        icon={<ArrowClockwiseIcon size={14} />}
-        label="Rotate Right"
-        shortcut={['R']}
-        disabled={rotateDisabled}
-        onClick={actions.rotateClockwise}
-      />
+      {!touch && (
+        <Fragment>
+          <PopupMenuItem
+            icon={<ArrowCounterClockwiseIcon size={14} />}
+            label="Rotate Left"
+            shortcut={['Shift', 'R']}
+            disabled={rotateDisabled}
+            onClick={actions.rotateCounterClockwise}
+          />
+          <PopupMenuItem
+            icon={<ArrowClockwiseIcon size={14} />}
+            label="Rotate Right"
+            shortcut={['R']}
+            disabled={rotateDisabled}
+            onClick={actions.rotateClockwise}
+          />
 
-      <PopupMenuDivider />
+          <PopupMenuDivider />
 
-      <PopupMenuSubmenu icon={<PlusIcon size={14} />} label="Insert" disabled={insertDisabled}>
-        <PopupMenuItem
-          icon={<PlusIcon size={14} />}
-          label="Blank Page After"
-          disabled={insertDisabled}
-          onClick={actions.insertBlankAfter}
-        />
-        <PopupMenuItem
-          icon={<FilePlusIcon size={14} />}
-          label="From File After…"
-          disabled={insertDisabled}
-          onClick={actions.insertFromFileAfter}
-        />
-        <PopupMenuItem
-          icon={<ArrowsClockwiseIcon size={14} />}
-          label="Replace…"
-          disabled={insertDisabled}
-          onClick={actions.replace}
-        />
-      </PopupMenuSubmenu>
+          <PopupMenuSubmenu icon={<PlusIcon size={14} />} label="Insert" disabled={insertDisabled}>
+            <PopupMenuItem
+              icon={<PlusIcon size={14} />}
+              label="Blank Page After"
+              disabled={insertDisabled}
+              onClick={actions.insertBlankAfter}
+            />
+            <PopupMenuItem
+              icon={<FilePlusIcon size={14} />}
+              label="From File After…"
+              disabled={insertDisabled}
+              onClick={actions.insertFromFileAfter}
+            />
+            <PopupMenuItem
+              icon={<ArrowsClockwiseIcon size={14} />}
+              label="Replace…"
+              disabled={insertDisabled}
+              onClick={actions.replace}
+            />
+          </PopupMenuSubmenu>
 
-      <PopupMenuSubmenu icon={<FilePdfIcon size={14} />} label="Extract" disabled={extractDisabled}>
-        <PopupMenuItem
-          icon={<FilePdfIcon size={14} />}
-          label="As PDF…"
-          disabled={extractDisabled}
-          onClick={actions.extractAsPdf}
-        />
-        <PopupMenuItem
-          icon={<ImageIcon size={14} />}
-          label="As Image…"
-          disabled={extractDisabled}
-          onClick={actions.extractAsImage}
-        />
-      </PopupMenuSubmenu>
+          <PopupMenuSubmenu
+            icon={<FilePdfIcon size={14} />}
+            label="Extract"
+            disabled={extractDisabled}
+          >
+            <PopupMenuItem
+              icon={<FilePdfIcon size={14} />}
+              label="As PDF…"
+              disabled={extractDisabled}
+              onClick={actions.extractAsPdf}
+            />
+            <PopupMenuItem
+              icon={<ImageIcon size={14} />}
+              label="As Image…"
+              disabled={extractDisabled}
+              onClick={actions.extractAsImage}
+            />
+          </PopupMenuSubmenu>
 
-      <PopupMenuDivider />
+          <PopupMenuDivider />
+        </Fragment>
+      )}
 
       <PopupMenuItem
         icon={<ScissorsIcon size={14} />}
