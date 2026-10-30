@@ -52,7 +52,7 @@ interface OrganizeToolbarProps {
 }
 
 function ToolLabel({ children }: { children: ComponentChildren }) {
-  return <span class="hidden @5xl:inline">{children}</span>;
+  return <span class="@3xl:hidden @5xl:inline">{children}</span>;
 }
 
 export function OrganizeToolbar({
@@ -122,7 +122,7 @@ export function OrganizeToolbar({
         </IconButton>
       </div>
 
-      <div class="flex items-center gap-1 justify-self-center">
+      <div class="order-last flex w-full flex-wrap items-center justify-center gap-1 justify-self-center @3xl:order-none @3xl:w-auto @3xl:flex-nowrap">
         <Button
           variant="toolbar"
           aria-label="Extract"
@@ -190,7 +190,7 @@ export function OrganizeToolbar({
         )}
       </div>
 
-      <div class="flex items-center gap-4 justify-self-end">
+      <div class="flex min-w-0 flex-1 items-center justify-end gap-2 justify-self-end @3xl:gap-4">
         {onUndo && onRedo && (
           <div class="flex items-center gap-1">
             <IconButton
@@ -217,7 +217,7 @@ export function OrganizeToolbar({
         )}
         {typeof columns === 'number' && onColumnsChange && (
           <div
-            class="bg-bg-surface-alt inline-flex items-center gap-0.5 rounded-lg p-0.5"
+            class="bg-bg-surface-alt hidden items-center gap-0.5 rounded-lg p-0.5 @md:inline-flex"
             role="group"
             aria-label="Thumbnail size"
           >
@@ -244,7 +244,7 @@ export function OrganizeToolbar({
           </div>
         )}
 
-        <span class="text-fg-secondary text-sm whitespace-nowrap tabular-nums">
+        <span class="text-fg-secondary truncate text-sm tabular-nums">
           {selectionCount > 0
             ? `${selectionCount} of ${pageCount} selected`
             : `${pageCount} ${pageCount === 1 ? 'page' : 'pages'}`}
