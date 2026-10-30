@@ -127,7 +127,7 @@ export function PageControls({ documentId }: PageControlsProps) {
   // Button styles matching toolbar buttons
   const buttonBaseClass =
     'flex h-[32px] w-[32px] items-center justify-center rounded-md transition-colors cursor-pointer';
-  const buttonHoverClass = 'hover:bg-interactive-hover hover:ring hover:ring-accent';
+  const buttonHoverClass = 'hover:bg-interactive-hover';
   const buttonDisabledClass =
     'disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent disabled:hover:ring-0';
 

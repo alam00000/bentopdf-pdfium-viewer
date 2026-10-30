@@ -8,6 +8,8 @@ import { Tooltip } from './ui/tooltip';
 import { Icon } from './ui/icon';
 import { subscribeCommandRefresh } from '@/lib/command-refresh';
 
+const TOOLBAR_ICON_COLOR = 'var(--ep-foreground-primary)';
+
 function useReactiveCommand(commandId: string, documentId: string) {
   const { provides } = useCommandsCapability();
   const [command, setCommand] = useState(() =>
@@ -89,8 +91,8 @@ export function CommandButton({
               <Icon
                 icon={command.icon}
                 className="mr-1.5 h-5 w-5 flex-shrink-0"
-                primaryColor={iconProps.primaryColor}
-                secondaryColor={iconProps.secondaryColor}
+                primaryColor={iconProps.primaryColor ?? TOOLBAR_ICON_COLOR}
+                secondaryColor={iconProps.secondaryColor ?? TOOLBAR_ICON_COLOR}
               />
             )}
             <span>{command.label}</span>
@@ -101,8 +103,8 @@ export function CommandButton({
           <Icon
             icon={command.icon}
             className={twMerge('h-5 w-5', iconProps.className)}
-            primaryColor={iconProps.primaryColor}
-            secondaryColor={iconProps.secondaryColor}
+            primaryColor={iconProps.primaryColor ?? TOOLBAR_ICON_COLOR}
+            secondaryColor={iconProps.secondaryColor ?? TOOLBAR_ICON_COLOR}
           />
         ) : (
           <span>{command.label}</span>

@@ -45,7 +45,7 @@ const BUTTON_VARIANT: Record<ButtonVariant, string> = {
     'border border-border-default bg-bg-surface text-state-error hover:bg-interactive-hover',
   link: 'text-accent hover:underline',
   toolbar:
-    'border border-transparent text-fg-primary hover:bg-interactive-hover hover:ring hover:ring-accent disabled:hover:bg-transparent disabled:hover:ring-0',
+    'border border-transparent text-fg-primary hover:bg-interactive-hover disabled:hover:bg-transparent disabled:hover:ring-0',
   ghost:
     'border border-transparent text-fg-secondary hover:bg-interactive-hover hover:text-fg-primary disabled:hover:bg-transparent',
 };
@@ -146,8 +146,8 @@ export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(
       variant === 'toolbar'
         ? `h-[32px] min-w-[32px] p-[5px] ${
             active
-              ? 'bg-interactive-selected text-accent ring-accent border-none shadow ring'
-              : 'hover:bg-interactive-hover hover:ring-accent hover:ring disabled:hover:bg-transparent disabled:hover:ring-0'
+              ? 'ring-accent border-none ring-[1.5px] ring-inset'
+              : 'hover:bg-interactive-hover disabled:hover:bg-transparent disabled:hover:ring-0'
           }`
         : `${size === 'sm' ? 'h-7 w-7' : 'h-8 w-8'} ${ICON_BUTTON_VARIANT[variant]}`;
     return withTooltip(

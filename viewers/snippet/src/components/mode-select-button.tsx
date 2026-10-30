@@ -44,8 +44,8 @@ export function ModeSelectButton({ documentId, className }: ModeSelectButtonProp
       <Button
         className={`bg-bg-surface col-start-1 row-start-1 !w-full appearance-none rounded-md py-1.5 pl-3 pr-2 text-[13px] ${
           isActive
-            ? 'bg-interactive-selected ring-accent border-none shadow ring'
-            : 'border-border-default outline-border-default hover:bg-interactive-hover hover:ring-accent outline outline-1 -outline-offset-1 hover:ring'
+            ? 'ring-accent border-none ring-[1.5px] ring-inset'
+            : 'border-border-default outline-border-default hover:bg-interactive-hover outline outline-1 -outline-offset-1'
         } flex flex-row items-center justify-between gap-2`}
         onClick={handleClick}
         disabled={commandOverflow.disabled}

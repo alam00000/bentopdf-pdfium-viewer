@@ -28,9 +28,7 @@ export function Button({
       ref={elementRef}
       onClick={onClick}
       className={`flex h-[32px] w-auto min-w-[32px] items-center justify-center rounded-md p-[5px] transition-colors ${
-        active
-          ? 'bg-interactive-selected text-accent ring-accent border-none shadow ring'
-          : 'hover:bg-interactive-hover hover:ring-accent hover:ring'
+        active ? 'ring-accent border-none ring-[1.5px] ring-inset' : 'hover:bg-interactive-hover'
       } ${disabled ? 'cursor-not-allowed opacity-50 hover:bg-transparent hover:ring-0' : 'cursor-pointer'} ${className}`}
       title={tooltip}
       {...props}

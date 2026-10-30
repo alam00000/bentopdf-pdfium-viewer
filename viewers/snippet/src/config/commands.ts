@@ -78,6 +78,38 @@ const leaveMeasureMode = (registry: PluginRegistry, documentId: string): void =>
   }
 };
 
+const isNoColor = (c: string): boolean => {
+  const v = c.trim().toLowerCase();
+  if (v === 'transparent') return true;
+  if (/^rgba\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*,\s*0\s*\)$/.test(v)) return true;
+  if (/^#[0-9a-f]{8}$/.test(v)) return v.endsWith('00');
+  if (/^#[0-9a-f]{4}$/.test(v)) return v.endsWith('0');
+  return false;
+};
+
+function toolIconColor(toolId: string, slot: 'primary' | 'secondary' = 'primary') {
+  return ({
+    state,
+    documentId,
+  }: {
+    state: State;
+    documentId: string;
+  }): { primaryColor?: string; secondaryColor?: string } => {
+    const annotationState = state.plugins[ANNOTATION_PLUGIN_ID];
+    if (!annotationState) return {};
+    if (annotationState.documents[documentId]?.activeToolId !== toolId) return {};
+    const tool = (
+      annotationState.tools as { id: string; defaults: Record<string, unknown> }[]
+    ).find((t) => t.id === toolId);
+    if (!tool) return {};
+    const d = tool.defaults;
+    const color = (d.strokeColor ?? d.color ?? d.fillColor) as string | undefined;
+    if (!color) return {};
+    if (isNoColor(color)) return {};
+    return slot === 'secondary' ? { secondaryColor: color } : { primaryColor: color };
+  };
+}
+
 const measurementTool = (
   id: string,
   labelKey: string,
@@ -89,9 +121,14 @@ const measurementTool = (
   id,
   labelKey,
   icon,
-  iconProps: ({ state }) => ({
-    primaryColor: getToolDefaultsById(state.plugins.annotation, mode)?.strokeColor,
-  }),
+  iconProps: ({ state, documentId }) => {
+    if (measurementStore.getPendingMode(documentId) !== mode) return {};
+    if (state.plugins[ANNOTATION_PLUGIN_ID]?.documents[documentId]?.activeToolId !== baseToolId) {
+      return {};
+    }
+    const color = getToolDefaultsById(state.plugins.annotation, mode)?.strokeColor;
+    return color && !isNoColor(color) ? { primaryColor: color } : {};
+  },
   categories: ['annotation', 'annotation-measurement', category],
   action: ({ registry, documentId }) => {
     const annotation = registry.getPlugin<AnnotationPlugin>(ANNOTATION_PLUGIN_ID)?.provides();
@@ -993,9 +1030,7 @@ export const commands: Record<string, Command<State>> = {
     id: 'annotation:add-highlight',
     labelKey: 'annotation.highlight',
     icon: 'highlight',
-    iconProps: ({ state }) => ({
-      primaryColor: getToolDefaultsById(state.plugins.annotation, 'highlight')?.strokeColor,
-    }),
+    iconProps: toolIconColor('highlight', 'secondary'),
     categories: ['annotation', 'annotation-markup', 'annotation-highlight'],
     action: ({ registry, documentId }) => {
       const annotation = registry.getPlugin<AnnotationPlugin>(ANNOTATION_PLUGIN_ID)?.provides();
@@ -1069,9 +1104,7 @@ export const commands: Record<string, Command<State>> = {
     id: 'annotation:add-underline',
     labelKey: 'annotation.underline',
     icon: 'underline',
-    iconProps: ({ state }) => ({
-      primaryColor: getToolDefaultsById(state.plugins.annotation, 'underline')?.strokeColor,
-    }),
+    iconProps: toolIconColor('underline', 'secondary'),
     categories: ['annotation', 'annotation-markup', 'annotation-underline'],
     action: ({ registry, documentId }) => {
       const annotation = registry.getPlugin<AnnotationPlugin>(ANNOTATION_PLUGIN_ID)?.provides();
@@ -1144,9 +1177,7 @@ export const commands: Record<string, Command<State>> = {
     id: 'annotation:add-strikeout',
     labelKey: 'annotation.strikeout',
     icon: 'strikethrough',
-    iconProps: ({ state }) => ({
-      primaryColor: getToolDefaultsById(state.plugins.annotation, 'strikeout')?.strokeColor,
-    }),
+    iconProps: toolIconColor('strikeout', 'secondary'),
     categories: ['annotation', 'annotation-markup', 'annotation-strikeout'],
     action: ({ registry, documentId }) => {
       const annotation = registry.getPlugin<AnnotationPlugin>(ANNOTATION_PLUGIN_ID)?.provides();
@@ -1219,9 +1250,7 @@ export const commands: Record<string, Command<State>> = {
     id: 'annotation:add-squiggly',
     labelKey: 'annotation.squiggly',
     icon: 'squiggly',
-    iconProps: ({ state }) => ({
-      primaryColor: getToolDefaultsById(state.plugins.annotation, 'squiggly')?.strokeColor,
-    }),
+    iconProps: toolIconColor('squiggly'),
     categories: ['annotation', 'annotation-markup', 'annotation-squiggly'],
     action: ({ registry, documentId }) => {
       const annotation = registry.getPlugin<AnnotationPlugin>(ANNOTATION_PLUGIN_ID)?.provides();
@@ -1294,9 +1323,7 @@ export const commands: Record<string, Command<State>> = {
     id: 'annotation:add-insert-text',
     labelKey: 'annotation.insertText',
     icon: 'insertText',
-    iconProps: ({ state }) => ({
-      primaryColor: getToolDefaultsById(state.plugins.annotation, 'insertText')?.strokeColor,
-    }),
+    iconProps: toolIconColor('insertText', 'secondary'),
     categories: ['annotation', 'annotation-markup', 'annotation-insert-text'],
     action: ({ registry, documentId }) => {
       const annotation = registry.getPlugin<AnnotationPlugin>(ANNOTATION_PLUGIN_ID)?.provides();
@@ -1322,9 +1349,7 @@ export const commands: Record<string, Command<State>> = {
     id: 'annotation:add-replace-text',
     labelKey: 'annotation.replaceText',
     icon: 'replaceText',
-    iconProps: ({ state }) => ({
-      primaryColor: getToolDefaultsById(state.plugins.annotation, 'replaceText')?.strokeColor,
-    }),
+    iconProps: toolIconColor('replaceText', 'secondary'),
     categories: ['annotation', 'annotation-markup', 'annotation-replace-text'],
     action: ({ registry, documentId }) => {
       const annotation = registry.getPlugin<AnnotationPlugin>(ANNOTATION_PLUGIN_ID)?.provides();
@@ -1350,9 +1375,7 @@ export const commands: Record<string, Command<State>> = {
     id: 'annotation:add-ink',
     labelKey: 'annotation.ink',
     icon: 'pencilMarker',
-    iconProps: ({ state }) => ({
-      primaryColor: getToolDefaultsById(state.plugins.annotation, 'ink')?.color,
-    }),
+    iconProps: toolIconColor('ink', 'secondary'),
     categories: ['annotation', 'annotation-ink'],
     action: ({ registry, documentId }) => {
       const annotation = registry.getPlugin<AnnotationPlugin>(ANNOTATION_PLUGIN_ID)?.provides();
@@ -1378,9 +1401,7 @@ export const commands: Record<string, Command<State>> = {
     id: 'annotation:add-ink-highlighter',
     labelKey: 'annotation.inkHighlighter',
     icon: 'inkHighlighter',
-    iconProps: ({ state }) => ({
-      primaryColor: getToolDefaultsById(state.plugins.annotation, 'inkHighlighter')?.strokeColor,
-    }),
+    iconProps: toolIconColor('inkHighlighter'),
     categories: ['annotation', 'annotation-ink'],
     action: ({ registry, documentId }) => {
       const annotation = registry.getPlugin<AnnotationPlugin>(ANNOTATION_PLUGIN_ID)?.provides();
@@ -1406,9 +1427,6 @@ export const commands: Record<string, Command<State>> = {
     id: 'annotation:add-text',
     labelKey: 'annotation.text',
     icon: 'freeText',
-    iconProps: ({ state }) => ({
-      primaryColor: getToolDefaultsById(state.plugins.annotation, 'freeText')?.fontColor,
-    }),
     categories: ['annotation', 'annotation-text'],
     action: ({ registry, documentId }) => {
       const annotation = registry.getPlugin<AnnotationPlugin>(ANNOTATION_PLUGIN_ID)?.provides();
@@ -1434,10 +1452,6 @@ export const commands: Record<string, Command<State>> = {
     id: 'annotation:add-callout',
     labelKey: 'annotation.callout',
     icon: 'callout',
-    iconProps: ({ state }) => ({
-      primaryColor: getToolDefaultsById(state.plugins.annotation, 'freeTextCallout')?.strokeColor,
-      secondaryColor: getToolDefaultsById(state.plugins.annotation, 'freeTextCallout')?.color,
-    }),
     categories: ['annotation', 'annotation-text'],
     action: ({ registry, documentId }) => {
       const annotation = registry.getPlugin<AnnotationPlugin>(ANNOTATION_PLUGIN_ID)?.provides();
@@ -1463,9 +1477,6 @@ export const commands: Record<string, Command<State>> = {
     id: 'annotation:add-comment',
     labelKey: 'annotation.comment',
     icon: 'message',
-    iconProps: ({ state }) => ({
-      primaryColor: getToolDefaultsById(state.plugins.annotation, 'textComment')?.strokeColor,
-    }),
     categories: ['annotation', 'annotation-comment-tool'],
     action: ({ registry, documentId }) => {
       const annotation = registry.getPlugin<AnnotationPlugin>(ANNOTATION_PLUGIN_ID)?.provides();
@@ -1517,10 +1528,7 @@ export const commands: Record<string, Command<State>> = {
     id: 'annotation:add-rectangle',
     labelKey: 'annotation.rectangle',
     icon: 'square',
-    iconProps: ({ state }) => ({
-      primaryColor: getToolDefaultsById(state.plugins.annotation, 'square')?.strokeColor,
-      secondaryColor: getToolDefaultsById(state.plugins.annotation, 'square')?.color,
-    }),
+    iconProps: toolIconColor('square'),
     categories: ['annotation', 'annotation-shape', 'annotation-rectangle'],
     action: ({ registry, documentId }) => {
       const annotation = registry.getPlugin<AnnotationPlugin>(ANNOTATION_PLUGIN_ID)?.provides();
@@ -1546,10 +1554,7 @@ export const commands: Record<string, Command<State>> = {
     id: 'annotation:add-circle',
     labelKey: 'annotation.circle',
     icon: 'circle',
-    iconProps: ({ state }) => ({
-      primaryColor: getToolDefaultsById(state.plugins.annotation, 'circle')?.strokeColor,
-      secondaryColor: getToolDefaultsById(state.plugins.annotation, 'circle')?.color,
-    }),
+    iconProps: toolIconColor('circle'),
     categories: ['annotation', 'annotation-shape', 'annotation-circle'],
     action: ({ registry, documentId }) => {
       const annotation = registry.getPlugin<AnnotationPlugin>(ANNOTATION_PLUGIN_ID)?.provides();
@@ -1575,9 +1580,7 @@ export const commands: Record<string, Command<State>> = {
     id: 'annotation:add-line',
     labelKey: 'annotation.line',
     icon: 'line',
-    iconProps: ({ state }) => ({
-      primaryColor: getToolDefaultsById(state.plugins.annotation, 'line')?.strokeColor,
-    }),
+    iconProps: toolIconColor('line'),
     categories: ['annotation', 'annotation-shape', 'annotation-line'],
     action: ({ registry, documentId }) => {
       const annotation = registry.getPlugin<AnnotationPlugin>(ANNOTATION_PLUGIN_ID)?.provides();
@@ -1603,9 +1606,7 @@ export const commands: Record<string, Command<State>> = {
     id: 'annotation:add-arrow',
     labelKey: 'annotation.arrow',
     icon: 'lineArrow',
-    iconProps: ({ state }) => ({
-      primaryColor: getToolDefaultsById(state.plugins.annotation, 'line')?.strokeColor,
-    }),
+    iconProps: toolIconColor('lineArrow'),
     categories: ['annotation', 'annotation-shape', 'annotation-arrow'],
     action: ({ registry, documentId }) => {
       const annotation = registry.getPlugin<AnnotationPlugin>(ANNOTATION_PLUGIN_ID)?.provides();
@@ -1631,10 +1632,7 @@ export const commands: Record<string, Command<State>> = {
     id: 'annotation:add-polygon',
     labelKey: 'annotation.polygon',
     icon: 'polygon',
-    iconProps: ({ state }) => ({
-      primaryColor: getToolDefaultsById(state.plugins.annotation, 'polygon')?.strokeColor,
-      secondaryColor: getToolDefaultsById(state.plugins.annotation, 'polygon')?.color,
-    }),
+    iconProps: toolIconColor('polygon'),
     categories: ['annotation', 'annotation-shape', 'annotation-polygon'],
     action: ({ registry, documentId }) => {
       const annotation = registry.getPlugin<AnnotationPlugin>(ANNOTATION_PLUGIN_ID)?.provides();
@@ -1660,9 +1658,7 @@ export const commands: Record<string, Command<State>> = {
     id: 'annotation:add-polyline',
     labelKey: 'annotation.polyline',
     icon: 'zigzag',
-    iconProps: ({ state }) => ({
-      primaryColor: getToolDefaultsById(state.plugins.annotation, 'polyline')?.strokeColor,
-    }),
+    iconProps: toolIconColor('polyline'),
     categories: ['annotation', 'annotation-shape', 'annotation-polyline'],
     action: ({ registry, documentId }) => {
       const annotation = registry.getPlugin<AnnotationPlugin>(ANNOTATION_PLUGIN_ID)?.provides();
