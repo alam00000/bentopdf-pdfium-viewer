@@ -1,7 +1,11 @@
 import { h, Fragment } from 'preact';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'preact/hooks';
 
-import { useAnnotation, useRegisterRenderers } from '@embedpdf/plugin-annotation/preact';
+import {
+  useAnnotation,
+  useAnnotationCapability,
+  useRegisterRenderers,
+} from '@embedpdf/plugin-annotation/preact';
 
 import { MeasurementCreateListener } from './create-listener';
 import { MeasurementScaleModal } from '../components/measurement-scale-modal';
@@ -10,8 +14,10 @@ import { MeasurementCalibrateOverlay } from '../components/measurement-calibrate
 import { MeasurementSelectionBridge } from './selection-bridge';
 import { buildMeasurementRenderers } from './renderers';
 import {
+  getCalibrationState,
   getPendingMode,
   isPendingModeStale,
+  resolveMeasurementToolId,
   setActiveMeasurementDoc,
   setPendingMode,
   releaseMeasurementDoc,
@@ -97,6 +103,33 @@ export function MeasurementMounts({ documentId }: Props) {
       <Loupe documentId={documentId} resolvePageElement={resolvePageElement} />
     </>
   );
+}
+
+export function useMeasuring(documentId: string): boolean {
+  const { provides } = useAnnotationCapability();
+  const [measuring, setMeasuring] = useState(false);
+
+  useEffect(() => {
+    const scope = provides?.forDocument(documentId);
+    const sync = () => {
+      const { phase } = getCalibrationState(documentId);
+      const toolId = scope?.getActiveTool()?.id ?? null;
+      setMeasuring(
+        phase === 'placing-first' ||
+          phase === 'placing-second' ||
+          resolveMeasurementToolId(getPendingMode(documentId), toolId) !== null,
+      );
+    };
+    sync();
+    const offs = [
+      subscribePendingMode(documentId, sync),
+      subscribeCalibration(documentId, sync),
+      scope?.onActiveToolChange(sync),
+    ];
+    return () => offs.forEach((off) => off?.());
+  }, [provides, documentId]);
+
+  return measuring;
 }
 
 function MeasurementModeToolSync({ documentId }: Props) {

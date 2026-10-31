@@ -131,3 +131,7 @@
     opacity: 1;
   }
 }
+
+[data-epdf-measuring] * {
+  pointer-events: none !important;
+}

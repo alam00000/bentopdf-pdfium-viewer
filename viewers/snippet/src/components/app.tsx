@@ -156,7 +156,7 @@ import { ProtectModal } from './protect-modal';
 import { UnlockOwnerOverlay } from './unlock-owner-overlay';
 import { ViewPermissionsModal } from './view-permissions-modal';
 import { getStoredAuthorName } from '../lib/author-name';
-import { MeasurementMounts } from '@/measurement/mounts';
+import { MeasurementMounts, useMeasuring } from '@/measurement/mounts';
 import { MeasurementSnapPageDriver } from '@/measurement/snap-driver';
 import { MeasurementSnapMarker } from '@/measurement/snap-marker';
 import { distanceTransform, perimeterTransform, areaTransform } from '@/measurement/transforms';
@@ -462,6 +462,7 @@ function ViewerLayout({
   const annotationMenu = useSelectionMenu('annotation', documentId);
   const groupAnnotationMenu = useSelectionMenu('groupAnnotation', documentId);
   const redactionMenu = useSelectionMenu('redaction', documentId);
+  const measuring = useMeasuring(documentId);
 
   // Get document states for tab bar
   const documentStates = useOpenDocuments();
@@ -562,6 +563,7 @@ function ViewerLayout({
                                         pageIndex={pageIndex}
                                         selectionMenu={annotationMenu}
                                         groupSelectionMenu={groupAnnotationMenu}
+                                        data-epdf-measuring={measuring ? '' : undefined}
                                       />
                                       <MeasurementCalibratePageVisual
                                         documentId={documentId}
